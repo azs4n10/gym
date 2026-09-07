@@ -1,0 +1,118 @@
+import '../../l10n/strings.dart';
+import '../../models/enums.dart';
+import '../database.dart';
+
+ExercisesCompanion _ex(String name, MuscleGroup g) =>
+    ExercisesCompanion.insert(name: name, muscleGroup: g.name);
+
+final List<ExercisesCompanion> seedExercises = [
+  _ex('Bench press', MuscleGroup.chest),
+  _ex('Dumbbell press', MuscleGroup.chest),
+  _ex('Incline bench press', MuscleGroup.chest),
+  _ex('Chest press', MuscleGroup.chest),
+  _ex('Pec fly', MuscleGroup.chest),
+  _ex('Dumbbell fly', MuscleGroup.chest),
+  _ex('Cable crossover', MuscleGroup.chest),
+  _ex('Push-up', MuscleGroup.chest),
+  _ex('Lat pulldown', MuscleGroup.back),
+  _ex('Seated row', MuscleGroup.back),
+  _ex('Deadlift', MuscleGroup.back),
+  _ex('Bent-over row', MuscleGroup.back),
+  _ex('Dumbbell row', MuscleGroup.back),
+  _ex('Pull-up', MuscleGroup.back),
+  _ex('T-bar row', MuscleGroup.back),
+  _ex('Face pull', MuscleGroup.back),
+  _ex('Shoulder press', MuscleGroup.shoulders),
+  _ex('Lateral raise', MuscleGroup.shoulders),
+  _ex('Front raise', MuscleGroup.shoulders),
+  _ex('Rear delt fly', MuscleGroup.shoulders),
+  _ex('Upright row', MuscleGroup.shoulders),
+  _ex('Arnold press', MuscleGroup.shoulders),
+  _ex('Biceps curl', MuscleGroup.arms),
+  _ex('Hammer curl', MuscleGroup.arms),
+  _ex('Cable curl', MuscleGroup.arms),
+  _ex('Triceps pushdown', MuscleGroup.arms),
+  _ex('Skull crusher', MuscleGroup.arms),
+  _ex('Triceps kickback', MuscleGroup.arms),
+  _ex('Dips', MuscleGroup.arms),
+  _ex('Squat', MuscleGroup.legs),
+  _ex('Leg press', MuscleGroup.legs),
+  _ex('Leg extension', MuscleGroup.legs),
+  _ex('Leg curl', MuscleGroup.legs),
+  _ex('Bulgarian split squat', MuscleGroup.legs),
+  _ex('Lunge', MuscleGroup.legs),
+  _ex('Romanian deadlift', MuscleGroup.legs),
+  _ex('Calf raise', MuscleGroup.legs),
+  _ex('Hip thrust', MuscleGroup.glutes),
+  _ex('Hip abduction', MuscleGroup.glutes),
+  _ex('Hip adduction', MuscleGroup.glutes),
+  _ex('Cable kickback', MuscleGroup.glutes),
+  _ex('Glute bridge', MuscleGroup.glutes),
+  _ex('Plank', MuscleGroup.core),
+  _ex('Crunch', MuscleGroup.core),
+  _ex('Leg raise', MuscleGroup.core),
+  _ex('Ab wheel rollout', MuscleGroup.core),
+  _ex('Hanging leg raise', MuscleGroup.core),
+  _ex('Russian twist', MuscleGroup.core),
+];
+
+const Map<String, String> _exerciseJa = {
+  'Bench press': 'ベンチプレス',
+  'Dumbbell press': 'ダンベルプレス',
+  'Incline bench press': 'インクラインベンチプレス',
+  'Chest press': 'チェストプレス',
+  'Pec fly': 'ペックフライ',
+  'Dumbbell fly': 'ダンベルフライ',
+  'Cable crossover': 'ケーブルクロスオーバー',
+  'Push-up': 'プッシュアップ',
+  'Lat pulldown': 'ラットプルダウン',
+  'Seated row': 'シーテッドロウ',
+  'Deadlift': 'デッドリフト',
+  'Bent-over row': 'ベントオーバーロウ',
+  'Dumbbell row': 'ダンベルロウ',
+  'Pull-up': '懸垂',
+  'T-bar row': 'Tバーロウ',
+  'Face pull': 'フェイスプル',
+  'Shoulder press': 'ショルダープレス',
+  'Lateral raise': 'サイドレイズ',
+  'Front raise': 'フロントレイズ',
+  'Rear delt fly': 'リアデルトフライ',
+  'Upright row': 'アップライトロウ',
+  'Arnold press': 'アーノルドプレス',
+  'Biceps curl': 'アームカール',
+  'Hammer curl': 'ハンマーカール',
+  'Cable curl': 'ケーブルカール',
+  'Triceps pushdown': 'トライセプスプレスダウン',
+  'Skull crusher': 'スカルクラッシャー',
+  'Triceps kickback': 'キックバック',
+  'Dips': 'ディップス',
+  'Squat': 'スクワット',
+  'Leg press': 'レッグプレス',
+  'Leg extension': 'レッグエクステンション',
+  'Leg curl': 'レッグカール',
+  'Bulgarian split squat': 'ブルガリアンスクワット',
+  'Lunge': 'ランジ',
+  'Romanian deadlift': 'ルーマニアンデッドリフト',
+  'Calf raise': 'カーフレイズ',
+  'Hip thrust': 'ヒップスラスト',
+  'Hip abduction': 'ヒップアブダクション',
+  'Hip adduction': 'ヒップアダクション',
+  'Cable kickback': 'ケーブルキックバック',
+  'Glute bridge': 'グルートブリッジ',
+  'Plank': 'プランク',
+  'Crunch': 'クランチ',
+  'Leg raise': 'レッグレイズ',
+  'Ab wheel rollout': 'アブローラー',
+  'Hanging leg raise': 'ハンギングレッグレイズ',
+  'Russian twist': 'ロシアンツイスト',
+};
+
+String exerciseName(Exercise e, L l) =>
+    l.isJa && !e.isCustom ? (_exerciseJa[e.name] ?? e.name) : e.name;
+
+bool exerciseMatches(Exercise e, String query, L l) {
+  final q = query.toLowerCase();
+  if (e.name.toLowerCase().contains(q)) return true;
+  final ja = _exerciseJa[e.name];
+  return ja != null && ja.contains(query);
+}
