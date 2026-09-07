@@ -52,6 +52,10 @@ Web では `web/sqlite3.wasm` と `web/drift_worker.js` を使って sqlite を�
 3. `main` に push するたびに `.github/workflows/deploy.yml` がテスト・ビルド・デプロイまで行う。URL は `https://<ユーザー名>.github.io/<リポジトリ名>/`
 4. iPhone / iPad の Safari でその URL を開き、共有メニューから「ホーム画面に追加」
 
+GitHub Actions が使えない場合は、Pages の Source を「Deploy from a branch → gh-pages」にして、手元から `tool/deploy_pages.sh` を実行する（ビルドして gh-pages ブランチへ push し、Pages のビルドを要求する）。Windows の Git Bash では `--base-href /gym/` がドライブパスに変換されてしまうので、スクリプト内で `MSYS_NO_PATHCONV=1` を立てている。
+
+現在の公開先: https://azs4n10.github.io/gym/
+
 データは端末のブラウザ内（IndexedDB）に保存される。Safari のサイトデータを消すと記録も消えるので注意。
 
 ## 注意
