@@ -10,10 +10,10 @@ import '../../models/enums.dart';
 import '../../services/health_sync.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
+import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/stepper_field.dart';
 import 'exercise_picker_screen.dart';
-import 'workout_list_screen.dart';
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key, required this.sessionId});
@@ -50,7 +50,7 @@ class _SessionScreenState extends State<SessionScreen> {
     if (d == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: EmptyHint(emoji: '🫧', text: l.sessionDeleted),
+        body: EmptyHint(icon: Icons.delete_outline_rounded, text: l.sessionDeleted),
       );
     }
     final isOpen = d.session.endedAt == null;
@@ -117,7 +117,7 @@ class _SessionScreenState extends State<SessionScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 child: Row(
                   children: [
-                    const Text('🏃‍♀️', style: TextStyle(fontSize: 22)),
+                    Icon(Icons.directions_run_rounded, size: 24, color: skin.heading),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -268,7 +268,7 @@ class _ExerciseBlock extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(group.emoji, style: const TextStyle(fontSize: 18)),
+              GroupBadge(group),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(exerciseName(ex, l),
@@ -415,8 +415,9 @@ class _MetaCardState extends State<_MetaCard> {
                       color: mood == i ? skin.buttonSoft : Colors.transparent,
                       shape: BoxShape.circle,
                     ),
-                    child: Text(moodEmoji(i),
-                        style: TextStyle(fontSize: mood == i ? 30 : 24)),
+                    child: Icon(moodIcon(i),
+                        size: mood == i ? 32 : 26,
+                        color: mood == i ? skin.heading : skin.subText),
                   ),
                 ),
             ],

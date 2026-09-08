@@ -281,11 +281,11 @@ class LEn extends L {
   @override
   String get finishWorkout => 'Finish';
   @override
-  String get savedSynced => 'Saved · synced 🎀';
+  String get savedSynced => 'Saved · synced';
   @override
   String get savedSyncFailed => 'Saved · sync failed';
   @override
-  String get saved => 'Saved 🎀';
+  String get saved => 'Saved';
   @override
   String get removeExercise => 'Remove';
   @override
@@ -580,11 +580,11 @@ class LJa extends L {
   @override
   String get finishWorkout => '完了';
   @override
-  String get savedSynced => '保存 · 連携済み 🎀';
+  String get savedSynced => '保存 · 連携済み';
   @override
   String get savedSyncFailed => '保存 · 連携失敗';
   @override
-  String get saved => '保存しました 🎀';
+  String get saved => '保存しました';
   @override
   String get removeExercise => '外す';
   @override

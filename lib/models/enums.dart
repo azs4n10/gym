@@ -1,20 +1,24 @@
+import 'package:flutter/material.dart';
+
 import '../l10n/strings.dart';
 
 enum MuscleGroup {
-  chest('Chest', '胸', '🌸'),
-  back('Back', '背中', '🦋'),
-  shoulders('Shoulders', '肩', '🎀'),
-  arms('Arms', '腕', '💪'),
-  legs('Legs', '脚', '🦵'),
-  glutes('Glutes', 'お尻', '🍑'),
-  core('Core', 'お腹', '⭐');
+  chest('Chest', '胸', 'CH', Color(0xFFF2A7B8)),
+  back('Back', '背中', 'BK', Color(0xFFA8C5E8)),
+  shoulders('Shoulders', '肩', 'SH', Color(0xFFC9B6E4)),
+  arms('Arms', '腕', 'AR', Color(0xFFF5C48A)),
+  legs('Legs', '脚', 'LG', Color(0xFF9FD3C7)),
+  glutes('Glutes', 'お尻', 'GL', Color(0xFFF7B7A3)),
+  core('Core', 'お腹', 'CO', Color(0xFFF3D67F));
 
-  const MuscleGroup(this.en, this.ja, this.emoji);
+  const MuscleGroup(this.en, this.ja, this.code, this.color);
   final String en;
   final String ja;
-  final String emoji;
+  final String code;
+  final Color color;
 
   String label(L l) => l.isJa ? ja : en;
+  String shortCode(L l) => l.isJa ? ja.replaceAll('お', '').substring(0, 1) : code;
 
   static MuscleGroup parse(String name) =>
       values.firstWhere((v) => v.name == name, orElse: () => core);
@@ -43,15 +47,15 @@ enum CardioType {
 }
 
 enum MealSlot {
-  breakfast('Breakfast', '朝ごはん', '🍳'),
-  lunch('Lunch', '昼ごはん', '🍱'),
-  dinner('Dinner', '夜ごはん', '🍲'),
-  snack('Snack', '間食', '🍪');
+  breakfast('Breakfast', '朝ごはん', Icons.free_breakfast_outlined),
+  lunch('Lunch', '昼ごはん', Icons.lunch_dining_outlined),
+  dinner('Dinner', '夜ごはん', Icons.dinner_dining_outlined),
+  snack('Snack', '間食', Icons.cookie_outlined);
 
-  const MealSlot(this.en, this.ja, this.emoji);
+  const MealSlot(this.en, this.ja, this.icon);
   final String en;
   final String ja;
-  final String emoji;
+  final IconData icon;
 
   String label(L l) => l.isJa ? ja : en;
 

@@ -45,10 +45,10 @@ class PastelCard extends StatelessWidget {
 }
 
 class SectionTitle extends StatelessWidget {
-  const SectionTitle(this.text, {super.key, this.emoji, this.trailing});
+  const SectionTitle(this.text, {super.key, this.icon, this.trailing});
 
   final String text;
-  final String? emoji;
+  final IconData? icon;
   final Widget? trailing;
 
   @override
@@ -58,8 +58,8 @@ class SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
       child: Row(
         children: [
-          if (emoji != null) ...[
-            Text(emoji!, style: const TextStyle(fontSize: 18)),
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: skin.heading),
             const SizedBox(width: 6),
           ],
           Expanded(
@@ -67,7 +67,7 @@ class SectionTitle extends StatelessWidget {
               text,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: skin.heading,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
             ),
           ),
@@ -79,9 +79,9 @@ class SectionTitle extends StatelessWidget {
 }
 
 class EmptyHint extends StatelessWidget {
-  const EmptyHint({super.key, required this.emoji, required this.text});
+  const EmptyHint({super.key, required this.icon, required this.text});
 
-  final String emoji;
+  final IconData icon;
   final String text;
 
   @override
@@ -93,12 +93,12 @@ class EmptyHint extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 40)),
+            Icon(icon, size: 36, color: skin.divider),
             const SizedBox(height: 8),
             Text(
               text,
               textAlign: TextAlign.center,
-              style: TextStyle(color: skin.subText, fontWeight: FontWeight.w700),
+              style: TextStyle(color: skin.subText, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -113,14 +113,14 @@ class StatTile extends StatelessWidget {
     required this.label,
     required this.value,
     this.unit,
-    this.emoji,
+    this.icon,
     this.color,
   });
 
   final String label;
   final String value;
   final String? unit;
-  final String? emoji;
+  final IconData? icon;
   final Color? color;
 
   @override
@@ -134,9 +134,20 @@ class StatTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '${emoji ?? ''} $label'.trim(),
-            style: t.labelMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 14, color: skin.subText),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.labelMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Row(
@@ -147,7 +158,7 @@ class StatTile extends StatelessWidget {
                 value,
                 style: t.headlineSmall?.copyWith(
                   color: skin.heading,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               if (unit != null) ...[

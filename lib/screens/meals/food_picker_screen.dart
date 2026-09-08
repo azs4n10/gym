@@ -45,7 +45,7 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
             dropdownColor: skin.card,
             items: [
               for (final s in MealSlot.values)
-                DropdownMenuItem(value: s, child: Text('${s.emoji} ${s.label(l)}')),
+                DropdownMenuItem(value: s, child: Text(s.label(l))),
             ],
             onChanged: (s) => setState(() => _slot = s ?? _slot),
           ),
@@ -93,7 +93,7 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
           ),
           Expanded(
             child: list.isEmpty
-                ? EmptyHint(emoji: '🔍', text: l.notFound)
+                ? EmptyHint(icon: Icons.search_off_rounded, text: l.notFound)
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: list.length,

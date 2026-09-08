@@ -62,11 +62,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: StatTile(label: l.streak, emoji: '🔥', value: '${streak.dayStreak}', unit: l.daysUnit)),
+              Expanded(child: StatTile(label: l.streak, icon: Icons.local_fire_department_rounded, value: '${streak.dayStreak}', unit: l.daysUnit)),
               const SizedBox(width: 8),
-              Expanded(child: StatTile(label: l.weekStreakShort, emoji: '🎀', value: '${streak.weekStreak}', unit: l.weeksUnit)),
+              Expanded(child: StatTile(label: l.weekStreakShort, icon: Icons.calendar_view_week_rounded, value: '${streak.weekStreak}', unit: l.weeksUnit)),
               const SizedBox(width: 8),
-              Expanded(child: StatTile(label: l.monthLabel, emoji: '🌸', value: '$monthGym', unit: l.timesUnit)),
+              Expanded(child: StatTile(label: l.monthLabel, icon: Icons.calendar_month_rounded, value: '$monthGym', unit: l.timesUnit)),
             ],
           ),
           const SizedBox(height: 14),
@@ -138,9 +138,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          SectionTitle(l.dateLong(_selected), emoji: '📌'),
+          SectionTitle(l.dateLong(_selected), icon: Icons.event_rounded),
           if (selectedSessions.isEmpty && selectedBody == null && selectedMeals.kcal == 0)
-            EmptyHint(emoji: '🫧', text: l.noRecords),
+            EmptyHint(icon: Icons.event_busy_rounded, text: l.noRecords),
           for (final s in selectedSessions)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -151,7 +151,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Text('🏋️‍♀️', style: TextStyle(fontSize: 22)),
+                    Icon(Icons.fitness_center_rounded, color: skin.heading),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -172,7 +172,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 onTap: () => HomeShell.of(context)?.goTo(3),
                 child: Row(
                   children: [
-                    const Text('🎀', style: TextStyle(fontSize: 22)),
+                    Icon(Icons.monitor_weight_outlined, color: skin.heading),
                     const SizedBox(width: 10),
                     Text(
                       l.bodyLine(selectedBody.weightKg, selectedBody.bodyFatPct),
@@ -188,7 +188,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onTap: () => HomeShell.of(context)?.goTo(4),
               child: Row(
                 children: [
-                  const Text('🍱', style: TextStyle(fontSize: 22)),
+                  Icon(Icons.restaurant_rounded, color: skin.heading),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -265,14 +265,12 @@ class _DayCell extends StatelessWidget {
                         ? Border.all(color: skin.accent, width: 2)
                         : null,
               ),
-              child: gym
-                  ? const Text('🌸', style: TextStyle(fontSize: 15))
-                  : Text('${d.day}',
-                      style: TextStyle(
-                        color: skin.text,
-                        fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
-                        fontSize: 13,
-                      )),
+              child: Text('${d.day}',
+                  style: TextStyle(
+                    color: gym ? skin.buttonText : skin.text,
+                    fontWeight: gym || isToday ? FontWeight.w800 : FontWeight.w600,
+                    fontSize: 13,
+                  )),
             ),
             const SizedBox(height: 2),
             Row(

@@ -53,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
         children: [
-          SectionTitle(l.language, emoji: '🌏'),
+          SectionTitle(l.language, icon: Icons.language_rounded),
           PastelCard(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             child: SegmentedButton<String>(
@@ -67,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.profile, emoji: '🎀'),
+          SectionTitle(l.profile, icon: Icons.person_outline_rounded),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.goal, emoji: '🌟'),
+          SectionTitle(l.goal, icon: Icons.flag_outlined),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.targets, emoji: '🍱'),
+          SectionTitle(l.targets, icon: Icons.restaurant_rounded),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.theme, emoji: '🎨'),
+          SectionTitle(l.theme, icon: Icons.palette_outlined),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.health, emoji: '💗'),
+          SectionTitle(l.health, icon: Icons.favorite_outline_rounded),
           PastelCard(
             child: SwitchListTile(
               contentPadding: EdgeInsets.zero,

@@ -5,6 +5,7 @@ import '../../l10n/strings.dart';
 import '../../models/enums.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
+import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
 import 'exercise_picker_screen.dart';
 import 'session_screen.dart';
@@ -49,7 +50,7 @@ class WorkoutListScreen extends StatelessWidget {
         label: Text(w.openSession == null ? l.startNew : l.continueWorkout),
       ),
       body: sessions.isEmpty
-          ? EmptyHint(emoji: '🏋️‍♀️', text: l.noWorkoutsYet)
+          ? EmptyHint(icon: Icons.fitness_center_rounded, text: l.noWorkoutsYet)
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               itemCount: sessions.length,
@@ -91,7 +92,7 @@ class WorkoutListScreen extends StatelessWidget {
                                   ? l.workoutInProgress
                                   : groups.isEmpty
                                       ? l.cardio
-                                      : groups.map((g) => '${g.emoji}${g.label(l)}').join(' '),
+                                      : groups.map((g) => g.label(l)).join(' · '),
                               style: t.bodyMedium?.copyWith(
                                   color: skin.text, fontWeight: FontWeight.w800),
                             ),
@@ -104,7 +105,7 @@ class WorkoutListScreen extends StatelessWidget {
                         ),
                       ),
                       if (s.session.mood != null)
-                        Text(moodEmoji(s.session.mood!), style: const TextStyle(fontSize: 20)),
+                        Icon(moodIcon(s.session.mood!), size: 22, color: skin.accent),
                       Icon(Icons.chevron_right_rounded, color: skin.subText),
                     ],
                   ),
@@ -132,10 +133,3 @@ class WorkoutListScreen extends StatelessWidget {
       : '${v.round()}kg';
 }
 
-String moodEmoji(int mood) => switch (mood) {
-      1 => '😵',
-      2 => '😮‍💨',
-      3 => '🙂',
-      4 => '😊',
-      _ => '🥰',
-    };

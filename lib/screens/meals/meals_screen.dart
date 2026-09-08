@@ -119,7 +119,7 @@ class _MealsScreenState extends State<MealsScreen> {
               child: _SlotCard(day: _day, slot: slot, detail: meal.mealFor(_day, slot)),
             ),
           const SizedBox(height: 8),
-          SectionTitle(l.ideas, emoji: '✨'),
+          SectionTitle(l.ideas, icon: Icons.auto_awesome_rounded),
           PastelCard(
             padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
             child: Column(
@@ -176,7 +176,7 @@ class _SlotCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(slot.emoji, style: const TextStyle(fontSize: 18)),
+              Icon(slot.icon, size: 20, color: skin.heading),
               const SizedBox(width: 6),
               Text(slot.label(l),
                   style: t.titleSmall?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),

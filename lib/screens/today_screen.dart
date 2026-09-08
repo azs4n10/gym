@@ -12,6 +12,7 @@ import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
+import '../widgets/group_badge.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
 import 'body_screen.dart';
@@ -72,7 +73,7 @@ class TodayScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
           Text(
-            '${l.greeting(now.hour)}$name 🌷',
+            '${l.greeting(now.hour)}$name',
             style: t.headlineSmall?.copyWith(
               color: skin.heading,
               fontWeight: FontWeight.w800,
@@ -125,7 +126,7 @@ class TodayScreen extends StatelessWidget {
               onTap: () => _openSession(context, open.session.id),
               child: Row(
                 children: [
-                  const Text('🔥', style: TextStyle(fontSize: 26)),
+                  Icon(Icons.local_fire_department_rounded, size: 28, color: skin.heading),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -150,7 +151,7 @@ class TodayScreen extends StatelessWidget {
               onTap: () => _openSession(context, todaySessions.first.session.id),
               child: Row(
                 children: [
-                  const Text('🎀', style: TextStyle(fontSize: 26)),
+                  Icon(Icons.check_circle_rounded, size: 28, color: skin.button),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -177,7 +178,7 @@ class TodayScreen extends StatelessWidget {
               label: Text(l.startTodayWorkout),
             ),
           const SizedBox(height: 20),
-          SectionTitle(l.todayMeals, emoji: '🍱'),
+          SectionTitle(l.todayMeals, icon: Icons.restaurant_rounded),
           PastelCard(
             onTap: () => HomeShell.of(context)?.goTo(4),
             child: Row(
@@ -261,7 +262,7 @@ class TodayScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          SectionTitle(l.todayPicks, emoji: '✨'),
+          SectionTitle(l.todayPicks, icon: Icons.auto_awesome_rounded),
           for (final s in training) _TrainingCard(suggestion: s),
           const SizedBox(height: 10),
           PastelCard(
@@ -368,7 +369,7 @@ class _TrainingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(suggestion.group.emoji, style: const TextStyle(fontSize: 20)),
+              GroupBadge(suggestion.group),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(

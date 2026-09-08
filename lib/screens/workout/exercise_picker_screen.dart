@@ -7,6 +7,7 @@ import '../../l10n/strings.dart';
 import '../../models/enums.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
+import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
 
 class ExercisePickerScreen extends StatefulWidget {
@@ -68,7 +69,8 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                 for (final g in MuscleGroup.values) ...[
                   const SizedBox(width: 6),
                   ChoiceChip(
-                    label: Text('${g.emoji} ${g.label(l)}'),
+                    avatar: GroupBadge(g, size: 20),
+                    label: Text(g.label(l)),
                     selected: _group == g,
                     onSelected: (_) => setState(() => _group = g),
                   ),
@@ -78,7 +80,7 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
           ),
           Expanded(
             child: list.isEmpty
-                ? EmptyHint(emoji: '🔍', text: l.notFound)
+                ? EmptyHint(icon: Icons.search_off_rounded, text: l.notFound)
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: list.length,
@@ -92,7 +94,7 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                         onTap: widget.manageOnly ? null : () => Navigator.pop(context, e),
                         child: Row(
                           children: [
-                            Text(g.emoji, style: const TextStyle(fontSize: 20)),
+                            GroupBadge(g),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
@@ -165,7 +167,8 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                 children: [
                   for (final g in MuscleGroup.values)
                     ChoiceChip(
-                      label: Text('${g.emoji} ${g.label(l)}'),
+                      avatar: GroupBadge(g, size: 20),
+                      label: Text(g.label(l)),
                       selected: group == g,
                       onSelected: (_) => setSheet(() => group = g),
                     ),

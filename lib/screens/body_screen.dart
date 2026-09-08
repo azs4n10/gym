@@ -50,7 +50,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.weight,
-                  emoji: '🎀',
+                  icon: Icons.monitor_weight_outlined,
                   value: latest == null ? '--' : fmtKg(latest.weightKg),
                   unit: 'kg',
                 ),
@@ -59,7 +59,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.bodyFat,
-                  emoji: '🌙',
+                  icon: Icons.water_drop_outlined,
                   value: latest?.bodyFatPct == null ? '--' : fmtKg(latest!.bodyFatPct!),
                   unit: '%',
                 ),
@@ -72,7 +72,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.avg7,
-                  emoji: '☁️',
+                  icon: Icons.timeline_rounded,
                   value: avg7 == null ? '--' : avg7.toStringAsFixed(1),
                   unit: 'kg',
                 ),
@@ -81,7 +81,9 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.overDays(_rangeDays),
-                  emoji: delta == null || delta == 0 ? '✨' : (delta < 0 ? '🕊️' : '🌱'),
+                  icon: delta == null || delta == 0
+                      ? Icons.trending_flat_rounded
+                      : (delta < 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded),
                   value: delta == null ? '--' : '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}',
                   unit: 'kg',
                 ),
@@ -89,7 +91,7 @@ class _BodyScreenState extends State<BodyScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.trend, emoji: '📈',
+          SectionTitle(l.trend, icon: Icons.show_chart_rounded,
               trailing: SegmentedButton<int>(
                 showSelectedIcon: false,
                 style: ButtonStyle(
@@ -109,14 +111,14 @@ class _BodyScreenState extends State<BodyScreen> {
             child: SizedBox(
               height: 220,
               child: series.length < 2
-                  ? EmptyHint(emoji: '🌷', text: l.chartHint)
+                  ? EmptyHint(icon: Icons.show_chart_rounded, text: l.chartHint)
                   : _WeightChart(series: series, rangeDays: _rangeDays),
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.history, emoji: '📝'),
+          SectionTitle(l.history, icon: Icons.history_rounded),
           if (body.logs.isEmpty)
-            EmptyHint(emoji: '🫧', text: l.noRecords)
+            EmptyHint(icon: Icons.history_rounded, text: l.noRecords)
           else
             for (final log in body.logs.take(60))
               Padding(
