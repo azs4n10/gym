@@ -158,6 +158,18 @@ abstract class L {
   String get permissionDenied;
   String get foodDisclaimer;
   String get language;
+
+  String hi(String name);
+  String get todaysProgress;
+  String get weeklyActivity;
+  String get quickActions;
+  String get logFood;
+  String get calorieGoal;
+  String get seeAll;
+  String vsLastWeek(String d);
+  String get workoutLabel;
+  String get strength;
+  String get today;
 }
 
 class LEn extends L {
@@ -217,7 +229,7 @@ class LEn extends L {
   @override
   String get startTodayWorkout => 'Start workout';
   @override
-  String get todayMeals => 'Meals';
+  String get todayMeals => "Today's meals";
   @override
   String get p => 'P';
   @override
@@ -457,6 +469,29 @@ class LEn extends L {
   String get foodDisclaimer => 'Food values are estimates.';
   @override
   String get language => 'Language';
+
+  @override
+  String hi(String name) => name.isEmpty ? 'Hi there' : 'Hi, $name';
+  @override
+  String get todaysProgress => "Today's progress";
+  @override
+  String get weeklyActivity => 'Weekly activity';
+  @override
+  String get quickActions => 'Quick actions';
+  @override
+  String get logFood => 'Log food';
+  @override
+  String get calorieGoal => 'Calorie goal';
+  @override
+  String get seeAll => 'See all';
+  @override
+  String vsLastWeek(String d) => '$d vs last week';
+  @override
+  String get workoutLabel => 'Workout';
+  @override
+  String get strength => 'Strength';
+  @override
+  String get today => 'Today';
 }
 
 class LJa extends L {
@@ -516,7 +551,7 @@ class LJa extends L {
   @override
   String get startTodayWorkout => 'トレーニング開始';
   @override
-  String get todayMeals => 'ごはん';
+  String get todayMeals => '今日のごはん';
   @override
   String get p => 'P';
   @override
@@ -756,6 +791,29 @@ class LJa extends L {
   String get foodDisclaimer => '食品の栄養値は目安です。';
   @override
   String get language => '言語';
+
+  @override
+  String hi(String name) => name.isEmpty ? 'こんにちは' : '$nameさん、こんにちは';
+  @override
+  String get todaysProgress => '今日の進み';
+  @override
+  String get weeklyActivity => '今週の活動';
+  @override
+  String get quickActions => 'クイック操作';
+  @override
+  String get logFood => 'ごはんを記録';
+  @override
+  String get calorieGoal => '目標カロリー';
+  @override
+  String get seeAll => 'すべて';
+  @override
+  String vsLastWeek(String d) => '先週比 $d';
+  @override
+  String get workoutLabel => 'トレーニング';
+  @override
+  String get strength => '筋トレ';
+  @override
+  String get today => '今日';
 }
 
 L stringsFor(String code) => code == 'ja' ? const LJa() : const LEn();

@@ -9,6 +9,7 @@ import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/pastel_card.dart';
+import '../widgets/ring_progress.dart';
 import '../widgets/stepper_field.dart';
 
 class BodyScreen extends StatefulWidget {
@@ -46,26 +47,68 @@ class _BodyScreenState extends State<BodyScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: StatTile(
-                  label: l.weight,
-                  ic: Ic.body,
-                  value: latest == null ? '--' : fmtKg(latest.weightKg),
-                  unit: 'kg',
+          PastelCard(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l.weight,
+                          style: t.labelLarge?.copyWith(color: skin.subText, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(latest == null ? '--' : fmtKg(latest.weightKg),
+                              style: t.displaySmall?.copyWith(
+                                  color: skin.heading, fontWeight: FontWeight.w800)),
+                          const SizedBox(width: 4),
+                          Text('kg', style: t.bodyMedium?.copyWith(color: skin.subText)),
+                        ],
+                      ),
+                      if (delta != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: skin.buttonSoft,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppIcon(delta == 0 ? Ic.flat : (delta < 0 ? Ic.down : Ic.up), size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)} kg · ${l.overDays(_rangeDays)}',
+                                style: TextStyle(color: skin.heading, fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: StatTile(
-                  label: l.bodyFat,
-                  ic: Ic.fat,
-                  value: latest?.bodyFatPct == null ? '--' : fmtKg(latest!.bodyFatPct!),
-                  unit: '%',
+                RingProgress(
+                  value: latest?.bodyFatPct == null ? 0 : latest!.bodyFatPct! / 40,
+                  color: skin.accent,
+                  trackColor: skin.divider,
+                  size: 84,
+                  stroke: 9,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(latest?.bodyFatPct == null ? '--' : fmtKg(latest!.bodyFatPct!),
+                          style: t.titleMedium?.copyWith(
+                              color: skin.heading, fontWeight: FontWeight.w800)),
+                      Text(l.bodyFat, style: t.labelSmall?.copyWith(color: skin.subText)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           Row(
@@ -81,12 +124,9 @@ class _BodyScreenState extends State<BodyScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: StatTile(
-                  label: l.overDays(_rangeDays),
-                  ic: delta == null || delta == 0
-                      ? Ic.flat
-                      : (delta < 0 ? Ic.down : Ic.up),
-                  value: delta == null ? '--' : '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}',
-                  unit: 'kg',
+                  label: l.history,
+                  ic: Ic.history,
+                  value: '${body.logs.length}',
                 ),
               ),
             ],

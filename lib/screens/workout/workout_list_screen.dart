@@ -10,8 +10,10 @@ import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/cardio_sheet.dart';
 import '../../widgets/group_badge.dart';
+import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
 import 'exercise_picker_screen.dart';
+import 'history_screen.dart';
 import 'session_screen.dart';
 
 class WorkoutListScreen extends StatefulWidget {
@@ -22,42 +24,48 @@ class WorkoutListScreen extends StatefulWidget {
 }
 
 class _WorkoutListScreenState extends State<WorkoutListScreen> {
-  bool _showHistory = false;
+  String _query = '';
+  Object? _filter;
 
   @override
   Widget build(BuildContext context) {
+    final skin = context.skin;
     final l = context.l;
     final w = context.watch<WorkoutState>();
+    final t = Theme.of(context).textTheme;
+
+    final showCardio = _filter == null || _filter == 'cardio';
+    final exercises = w.activeExercises.where((e) {
+      if (_filter is MuscleGroup && MuscleGroup.parse(e.muscleGroup) != _filter) return false;
+      if (_filter == 'cardio') return false;
+      if (_query.isNotEmpty && !exerciseMatches(e, _query, l)) return false;
+      return true;
+    }).toList();
+    final cardio = !showCardio
+        ? const <CardioType>[]
+        : CardioType.values
+            .where((c) => _query.isEmpty || c.label(l).toLowerCase().contains(_query.toLowerCase()))
+            .toList();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l.workouts),
         actions: [
           IconButton(
+            tooltip: l.history,
+            icon: const Icon(Icons.history_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const HistoryScreen()),
+            ),
+          ),
+          IconButton(
             tooltip: l.exerciseList,
             icon: const Icon(Icons.edit_note_rounded),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ExercisePickerScreen(manageOnly: true),
-              ),
+              MaterialPageRoute(builder: (_) => const ExercisePickerScreen(manageOnly: true)),
             ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(52),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: SegmentedButton<bool>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: false, label: Text(l.exerciseList)),
-                ButtonSegment(value: true, label: Text(l.history)),
-              ],
-              selected: {_showHistory},
-              onSelectionChanged: (s) => setState(() => _showHistory = s.first),
-            ),
-          ),
-        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'workout-fab',
@@ -65,7 +73,68 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
         icon: Icon(w.openSession == null ? Icons.add_rounded : Icons.play_arrow_rounded),
         label: Text(w.openSession == null ? l.startNew : l.continueWorkout),
       ),
-      body: _showHistory ? _History(w: w) : _Library(w: w),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: l.search,
+                prefixIcon: const Icon(Icons.search_rounded),
+              ),
+              onChanged: (v) => setState(() => _query = v.trim()),
+            ),
+          ),
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                ChoiceChip(
+                  label: Text(l.all),
+                  selected: _filter == null,
+                  onSelected: (_) => setState(() => _filter = null),
+                ),
+                for (final g in MuscleGroup.values) ...[
+                  const SizedBox(width: 6),
+                  ChoiceChip(
+                    avatar: GroupBadge(g, size: 20),
+                    label: Text(g.label(l)),
+                    selected: _filter == g,
+                    onSelected: (_) => setState(() => _filter = g),
+                  ),
+                ],
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  avatar: const AppIcon(Ic.cardio, size: 18),
+                  label: Text(l.cardio),
+                  selected: _filter == 'cardio',
+                  onSelected: (_) => setState(() => _filter = 'cardio'),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: exercises.isEmpty && cardio.isEmpty
+                ? EmptyHint(ic: Ic.search, text: l.notFound)
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                    children: [
+                      for (final e in exercises) _ExerciseCard(exercise: e, last: w.lastSetFor(e.id)),
+                      if (cardio.isNotEmpty && _filter == null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
+                          child: Text(l.cardio,
+                              style: t.titleMedium?.copyWith(
+                                  color: skin.heading, fontWeight: FontWeight.w800)),
+                        ),
+                      for (final c in cardio) _CardioCard(kind: c),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -79,54 +148,8 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
   }
 }
 
-class _Library extends StatelessWidget {
-  const _Library({required this.w});
-  final WorkoutState w;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = context.l;
-    final skin = context.skin;
-    final t = Theme.of(context).textTheme;
-    final exercises = w.activeExercises;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
-      children: [
-        for (final g in MuscleGroup.values) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-            child: Row(
-              children: [
-                GroupBadge(g, size: 26),
-                const SizedBox(width: 8),
-                Text(g.label(l),
-                    style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ),
-          for (final e in exercises.where((e) => MuscleGroup.parse(e.muscleGroup) == g))
-            _ExerciseRow(exercise: e, last: w.lastSetFor(e.id)),
-        ],
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-          child: Row(
-            children: [
-              const AppIcon(Ic.cardio, size: 24),
-              const SizedBox(width: 8),
-              Text(l.cardio,
-                  style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-        for (final c in CardioType.values) _CardioRow(kind: c),
-      ],
-    );
-  }
-}
-
-class _ExerciseRow extends StatelessWidget {
-  const _ExerciseRow({required this.exercise, required this.last});
+class _ExerciseCard extends StatelessWidget {
+  const _ExerciseCard({required this.exercise, required this.last});
   final Exercise exercise;
   final WorkoutSet? last;
 
@@ -135,22 +158,32 @@ class _ExerciseRow extends StatelessWidget {
     final skin = context.skin;
     final l = context.l;
     final t = Theme.of(context).textTheme;
+    final g = MuscleGroup.parse(exercise.muscleGroup);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: PastelCard(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         onTap: () => _start(context),
         child: Row(
           children: [
+            IconTile(g.ic, size: 46, color: g.color.withValues(alpha: 0.35)),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text(exerciseName(exercise, l),
-                  style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w600)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(exerciseName(exercise, l),
+                      style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w700)),
+                  Text(
+                    last == null
+                        ? g.label(l)
+                        : '${g.label(l)} · ${l.lastSet(fmtKg(last!.weightKg), last!.reps)}',
+                    style: t.bodySmall?.copyWith(color: skin.subText),
+                  ),
+                ],
+              ),
             ),
-            if (last != null)
-              Text(l.lastSet(fmtKg(last!.weightKg), last!.reps),
-                  style: t.bodySmall?.copyWith(color: skin.subText)),
-            const SizedBox(width: 6),
-            Icon(Icons.play_circle_outline_rounded, color: skin.button),
+            const GoButton(icon: Icons.play_arrow_rounded),
           ],
         ),
       ),
@@ -171,8 +204,8 @@ class _ExerciseRow extends StatelessWidget {
   }
 }
 
-class _CardioRow extends StatelessWidget {
-  const _CardioRow({required this.kind});
+class _CardioCard extends StatelessWidget {
+  const _CardioCard({required this.kind});
   final CardioType kind;
 
   @override
@@ -181,17 +214,25 @@ class _CardioRow extends StatelessWidget {
     final l = context.l;
     final t = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: PastelCard(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         onTap: () => _start(context),
         child: Row(
           children: [
+            IconTile(Ic.cardio, size: 46, color: skin.accentSoft),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text(kind.label(l),
-                  style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w600)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(kind.label(l),
+                      style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w700)),
+                  Text(l.cardio, style: t.bodySmall?.copyWith(color: skin.subText)),
+                ],
+              ),
             ),
-            Icon(Icons.play_circle_outline_rounded, color: skin.button),
+            const GoButton(icon: Icons.play_arrow_rounded),
           ],
         ),
       ),
@@ -211,100 +252,4 @@ class _CardioRow extends StatelessWidget {
       );
     }
   }
-}
-
-class _History extends StatelessWidget {
-  const _History({required this.w});
-  final WorkoutState w;
-
-  @override
-  Widget build(BuildContext context) {
-    final skin = context.skin;
-    final l = context.l;
-    final t = Theme.of(context).textTheme;
-    final sessions = w.sessions.where((s) => !s.isEmpty || s.session.endedAt == null).toList();
-    if (sessions.isEmpty) return EmptyHint(ic: Ic.workout, text: l.noWorkoutsYet);
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-      itemCount: sessions.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 10),
-      itemBuilder: (context, i) {
-        final s = sessions[i];
-        final isOpen = s.session.endedAt == null;
-        final groups = <MuscleGroup>{};
-        for (final id in s.exerciseOrder) {
-          final e = w.exerciseById(id);
-          if (e != null) groups.add(MuscleGroup.parse(e.muscleGroup));
-        }
-        return PastelCard(
-          color: isOpen ? skin.buttonSoft : null,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => SessionScreen(sessionId: s.session.id)),
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 44,
-                child: Column(
-                  children: [
-                    Text(l.dateShort(s.session.startedAt),
-                        style: t.titleMedium?.copyWith(
-                            color: skin.heading, fontWeight: FontWeight.w800)),
-                    Text(l.weekday(s.session.startedAt),
-                        style: t.labelSmall?.copyWith(color: skin.subText)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        for (final g in groups) ...[
-                          GroupBadge(g, size: 20),
-                          const SizedBox(width: 4),
-                        ],
-                        if (s.cardio.isNotEmpty) ...[
-                          const AppIcon(Ic.cardio, size: 18),
-                          const SizedBox(width: 4),
-                        ],
-                        if (isOpen)
-                          Text(l.workoutInProgress,
-                              style: t.bodyMedium?.copyWith(
-                                  color: skin.text, fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(_summary(s, l), style: t.bodySmall?.copyWith(color: skin.subText)),
-                  ],
-                ),
-              ),
-              if (s.session.mood != null) AppIcon(moodIc(s.session.mood!), size: 22),
-              Icon(Icons.chevron_right_rounded, color: skin.subText),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _summary(SessionDetail s, L l) {
-    final parts = <String>[];
-    if (s.sets.isNotEmpty) {
-      parts.add(l.setsSummary(s.exerciseOrder.length, s.sets.length, _vol(s.volumeKg)));
-    }
-    for (final c in s.cardio) {
-      final kind = CardioType.parse(c.kind).label(l);
-      final dist = c.distanceKm == null ? '' : ' ${c.distanceKm}km';
-      parts.add('$kind ${l.minutes(c.durationMin.round())}$dist');
-    }
-    return parts.join(' / ');
-  }
-
-  String _vol(double v) => v >= 1000
-      ? '${(v / 1000).toStringAsFixed(1)}t'
-      : '${v.round()}kg';
 }

@@ -11,9 +11,8 @@ import '../../services/suggestions.dart';
 import '../../state/app_state.dart';
 import '../../state/body_state.dart';
 import '../../state/meal_state.dart';
-import '../../widgets/app_icon.dart';
+import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
-import '../../widgets/ring_progress.dart';
 import 'food_picker_screen.dart';
 
 class MealsScreen extends StatefulWidget {
@@ -45,6 +44,7 @@ class _MealsScreenState extends State<MealsScreen> {
       count: 4,
     );
     final isToday = _day == dayOf(DateTime.now());
+    final ratio = target.kcal == 0 ? 0.0 : (eaten.kcal / target.kcal).clamp(0.0, 1.0);
 
     return Scaffold(
       appBar: AppBar(
@@ -55,7 +55,7 @@ class _MealsScreenState extends State<MealsScreen> {
               icon: const Icon(Icons.chevron_left_rounded),
               onPressed: () => setState(() => _day = _day.subtract(const Duration(days: 1))),
             ),
-            Text(isToday ? l.todayMeals : l.dateLong(_day)),
+            Text(isToday ? l.today : l.dateLong(_day)),
             IconButton(
               icon: const Icon(Icons.chevron_right_rounded),
               onPressed: isToday ? null : () => setState(() => _day = _day.add(const Duration(days: 1))),
@@ -63,64 +63,87 @@ class _MealsScreenState extends State<MealsScreen> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'meals-fab',
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => FoodPickerScreen(day: _day, slot: MealSlot.forNow()),
+          ),
+        ),
+        icon: const Icon(Icons.add_rounded),
+        label: Text(l.logFood),
+      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
         children: [
           PastelCard(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RingProgress(
-                  value: target.kcal == 0 ? 0 : eaten.kcal / target.kcal,
-                  color: skin.accent,
-                  trackColor: skin.divider,
-                  size: 104,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('${eaten.kcal.round()}',
-                          style: t.titleLarge?.copyWith(
-                              color: skin.heading, fontWeight: FontWeight.w800)),
-                      Text('/${target.kcal.round()}',
-                          style: t.labelSmall?.copyWith(color: skin.subText)),
-                    ],
-                  ),
+                Text(l.calorieGoal,
+                    style: t.labelLarge?.copyWith(color: skin.subText, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text('${eaten.kcal.round()}',
+                        style: t.displaySmall?.copyWith(
+                            color: skin.heading, fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 6),
+                    Text('/ ${target.kcal.round()} kcal',
+                        style: t.bodyMedium?.copyWith(color: skin.subText)),
+                    const Spacer(),
+                    Text(
+                      remain.kcal >= 0
+                          ? l.kcalLeft(remain.kcal.round())
+                          : l.kcalOver((-remain.kcal).round()),
+                      style: t.bodySmall?.copyWith(
+                          color: remain.kcal >= 0 ? skin.heading : const Color(0xFFE05A7A),
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        remain.kcal >= 0
-                            ? l.kcalLeft(remain.kcal.round())
-                            : l.kcalOver((-remain.kcal).round()),
-                        style: t.titleMedium?.copyWith(
-                            color: remain.kcal >= 0 ? skin.heading : const Color(0xFFE05A7A),
-                            fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 8),
-                      MacroBar(label: l.p, value: eaten.protein, target: target.protein,
-                          color: skin.button, trackColor: skin.divider, textColor: skin.text),
-                      const SizedBox(height: 6),
-                      MacroBar(label: l.f, value: eaten.fat, target: target.fat,
-                          color: skin.accent, trackColor: skin.divider, textColor: skin.text),
-                      const SizedBox(height: 6),
-                      MacroBar(label: l.c, value: eaten.carbs, target: target.carbs,
-                          color: skin.heading, trackColor: skin.divider, textColor: skin.text),
-                    ],
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: ratio),
+                    duration: const Duration(milliseconds: 500),
+                    builder: (_, v, _) => LinearProgressIndicator(
+                      value: v,
+                      minHeight: 10,
+                      backgroundColor: skin.divider,
+                      color: skin.button,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _MacroCard(label: l.carbs, value: eaten.carbs, target: target.carbs, color: skin.heading)),
+              const SizedBox(width: 8),
+              Expanded(child: _MacroCard(label: l.protein, value: eaten.protein, target: target.protein, color: skin.button)),
+              const SizedBox(width: 8),
+              Expanded(child: _MacroCard(label: l.fat, value: eaten.fat, target: target.fat, color: skin.accent)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(l.todayMeals,
+              style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
           for (final slot in MealSlot.values)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 8),
               child: _SlotCard(day: _day, slot: slot, detail: meal.mealFor(_day, slot)),
             ),
-          const SizedBox(height: 8),
-          SectionTitle(l.ideas, ic: Ic.picks),
+          const SizedBox(height: 12),
+          Text(l.ideas,
+              style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
           PastelCard(
             padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
             child: Column(
@@ -137,7 +160,7 @@ class _MealsScreenState extends State<MealsScreen> {
                           style: t.bodySmall?.copyWith(color: skin.subText)),
                       IconButton(
                         visualDensity: VisualDensity.compact,
-                        icon: Icon(Icons.add_circle_rounded, color: skin.button),
+                        icon: Icon(Icons.add_circle_rounded, color: skin.heading),
                         onPressed: () => meal.addFood(_day, MealSlot.forNow(), m.food, 1),
                       ),
                     ],
@@ -147,6 +170,51 @@ class _MealsScreenState extends State<MealsScreen> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MacroCard extends StatelessWidget {
+  const _MacroCard({
+    required this.label,
+    required this.value,
+    required this.target,
+    required this.color,
+  });
+
+  final String label;
+  final double value;
+  final double target;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final t = Theme.of(context).textTheme;
+    final pct = target <= 0 ? 0 : (value / target * 100).round();
+    return PastelCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: t.labelMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text('${value.round()}g',
+              style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: target <= 0 ? 0 : (value / target).clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: skin.divider,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text('$pct%', style: t.labelSmall?.copyWith(color: skin.subText)),
         ],
       ),
     );
@@ -171,20 +239,38 @@ class _SlotCard extends StatelessWidget {
     final canSync = app.profile.healthSync && HealthSync.instance.isSupported;
 
     return PastelCard(
-      padding: const EdgeInsets.fromLTRB(18, 8, 10, 8),
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => FoodPickerScreen(day: day, slot: slot)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              AppIcon(slot.ic, size: 22),
-              const SizedBox(width: 6),
-              Text(slot.label(l),
-                  style: t.titleSmall?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),
-              const Spacer(),
+              IconTile(slot.ic, size: 44, color: skin.accentSoft),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(slot.label(l),
+                        style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w700)),
+                    Text(
+                      d == null
+                          ? '—'
+                          : d.items.map((i) => foodNameByStored(i.name, l)).join(', '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.bodySmall?.copyWith(color: skin.subText),
+                    ),
+                  ],
+                ),
+              ),
               if (d != null)
                 Text('${totals.kcal.round()} kcal',
-                    style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700)),
+                    style: t.bodyMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),
+              const SizedBox(width: 6),
               if (d != null && canSync)
                 IconButton(
                   tooltip: d.meal.healthSynced ? l.synced : l.sync,
@@ -196,47 +282,50 @@ class _SlotCard extends StatelessWidget {
                   ),
                   onPressed: d.meal.healthSynced ? null : () => meal.syncMealToHealth(d),
                 ),
-              IconButton(
-                tooltip: l.add,
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.add_circle_rounded, color: skin.button),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => FoodPickerScreen(day: day, slot: slot)),
-                ),
+              Icon(
+                d == null ? Icons.add_circle_outline_rounded : Icons.check_circle_rounded,
+                color: d == null ? skin.subText : skin.button,
               ),
             ],
           ),
           if (d != null)
-            for (final item in d.items)
-              Dismissible(
-                key: ValueKey('item-${item.id}'),
-                direction: DismissDirection.endToStart,
-                onDismissed: (_) => meal.deleteItem(item),
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 12),
-                  child: Icon(Icons.delete_outline_rounded, color: skin.subText),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.servings == 1
-                              ? foodNameByStored(item.name, l)
-                              : '${foodNameByStored(item.name, l)} ×${fmtKg(item.servings)}',
-                          style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w600),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Column(
+                children: [
+                  for (final item in d.items)
+                    Dismissible(
+                      key: ValueKey('item-${item.id}'),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (_) => meal.deleteItem(item),
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Icon(Icons.delete_outline_rounded, color: skin.subText),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.servings == 1
+                                    ? foodNameByStored(item.name, l)
+                                    : '${foodNameByStored(item.name, l)} ×${fmtKg(item.servings)}',
+                                style: t.bodySmall?.copyWith(color: skin.text, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            Text(
+                              l.macroLine(item.kcal.round(), item.protein.round(), item.fat.round(), item.carbs.round()),
+                              style: t.bodySmall?.copyWith(color: skin.subText),
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        l.macroLine(item.kcal.round(), item.protein.round(), item.fat.round(), item.carbs.round()),
-                        style: t.bodySmall?.copyWith(color: skin.subText),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
+            ),
         ],
       ),
     );

@@ -48,7 +48,7 @@ ThemeData buildTheme(Skin skin, {String font = 'standard'}) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: skin.button,
+        backgroundColor: skin.heading,
         foregroundColor: skin.buttonText,
         shape: const StadiumBorder(),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
@@ -74,6 +74,7 @@ ThemeData buildTheme(Skin skin, {String font = 'standard'}) {
         borderSide: BorderSide.none,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      prefixIconColor: skin.subText,
       labelStyle: TextStyle(color: skin.subText),
       hintStyle: TextStyle(color: skin.subText),
     ),
@@ -111,7 +112,7 @@ ThemeData buildTheme(Skin skin, {String font = 'standard'}) {
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: skin.button,
+      backgroundColor: skin.heading,
       foregroundColor: skin.buttonText,
       shape: const StadiumBorder(),
     ),
