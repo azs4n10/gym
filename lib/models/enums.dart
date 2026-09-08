@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
+import '../widgets/emo.dart';
 
 enum MuscleGroup {
-  chest('Chest', '胸', 'CH', Color(0xFFF2A7B8)),
-  back('Back', '背中', 'BK', Color(0xFFA8C5E8)),
-  shoulders('Shoulders', '肩', 'SH', Color(0xFFC9B6E4)),
-  arms('Arms', '腕', 'AR', Color(0xFFF5C48A)),
-  legs('Legs', '脚', 'LG', Color(0xFF9FD3C7)),
-  glutes('Glutes', 'お尻', 'GL', Color(0xFFF7B7A3)),
-  core('Core', 'お腹', 'CO', Color(0xFFF3D67F));
+  chest('Chest', '胸', Emo.cherryBlossom, Color(0xFFF2A7B8)),
+  back('Back', '背中', Emo.butterfly, Color(0xFFA8C5E8)),
+  shoulders('Shoulders', '肩', Emo.ribbon, Color(0xFFC9B6E4)),
+  arms('Arms', '腕', Emo.biceps, Color(0xFFF5C48A)),
+  legs('Legs', '脚', Emo.leg, Color(0xFF9FD3C7)),
+  glutes('Glutes', 'お尻', Emo.peach, Color(0xFFF7B7A3)),
+  core('Core', 'お腹', Emo.star, Color(0xFFF3D67F));
 
-  const MuscleGroup(this.en, this.ja, this.code, this.color);
+  const MuscleGroup(this.en, this.ja, this.emo, this.color);
   final String en;
   final String ja;
-  final String code;
+  final Emo emo;
   final Color color;
 
   String label(L l) => l.isJa ? ja : en;
-  String shortCode(L l) => l.isJa ? ja.replaceAll('お', '').substring(0, 1) : code;
 
   static MuscleGroup parse(String name) =>
       values.firstWhere((v) => v.name == name, orElse: () => core);
@@ -47,15 +47,15 @@ enum CardioType {
 }
 
 enum MealSlot {
-  breakfast('Breakfast', '朝ごはん', Icons.free_breakfast_outlined),
-  lunch('Lunch', '昼ごはん', Icons.lunch_dining_outlined),
-  dinner('Dinner', '夜ごはん', Icons.dinner_dining_outlined),
-  snack('Snack', '間食', Icons.cookie_outlined);
+  breakfast('Breakfast', '朝ごはん', Emo.cooking),
+  lunch('Lunch', '昼ごはん', Emo.bento),
+  dinner('Dinner', '夜ごはん', Emo.pot),
+  snack('Snack', '間食', Emo.cookie);
 
-  const MealSlot(this.en, this.ja, this.icon);
+  const MealSlot(this.en, this.ja, this.emo);
   final String en;
   final String ja;
-  final IconData icon;
+  final Emo emo;
 
   String label(L l) => l.isJa ? ja : en;
 

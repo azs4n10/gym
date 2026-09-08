@@ -7,6 +7,7 @@ import '../../l10n/strings.dart';
 import '../../models/enums.dart';
 import '../../state/app_state.dart';
 import '../../state/meal_state.dart';
+import '../../widgets/emo.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/stepper_field.dart';
 
@@ -45,7 +46,13 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
             dropdownColor: skin.card,
             items: [
               for (final s in MealSlot.values)
-                DropdownMenuItem(value: s, child: Text(s.label(l))),
+                DropdownMenuItem(
+                  value: s,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [EmoIcon(s.emo, size: 20), const SizedBox(width: 6), Text(s.label(l))],
+                  ),
+                ),
             ],
             onChanged: (s) => setState(() => _slot = s ?? _slot),
           ),
@@ -93,7 +100,7 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
           ),
           Expanded(
             child: list.isEmpty
-                ? EmptyHint(icon: Icons.search_off_rounded, text: l.notFound)
+                ? EmptyHint(emo: Emo.search, text: l.notFound)
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: list.length,

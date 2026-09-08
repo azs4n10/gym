@@ -9,6 +9,7 @@ import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
+import '../widgets/emo.dart';
 import '../widgets/pastel_card.dart';
 import 'home_shell.dart';
 import 'workout/session_screen.dart';
@@ -62,11 +63,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: StatTile(label: l.streak, icon: Icons.local_fire_department_rounded, value: '${streak.dayStreak}', unit: l.daysUnit)),
+              Expanded(child: StatTile(label: l.streak, emo: Emo.fire, value: '${streak.dayStreak}', unit: l.daysUnit)),
               const SizedBox(width: 8),
-              Expanded(child: StatTile(label: l.weekStreakShort, icon: Icons.calendar_view_week_rounded, value: '${streak.weekStreak}', unit: l.weeksUnit)),
+              Expanded(child: StatTile(label: l.weekStreakShort, emo: Emo.ribbon, value: '${streak.weekStreak}', unit: l.weeksUnit)),
               const SizedBox(width: 8),
-              Expanded(child: StatTile(label: l.monthLabel, icon: Icons.calendar_month_rounded, value: '$monthGym', unit: l.timesUnit)),
+              Expanded(child: StatTile(label: l.monthLabel, emo: Emo.cherryBlossom, value: '$monthGym', unit: l.timesUnit)),
             ],
           ),
           const SizedBox(height: 14),
@@ -138,9 +139,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          SectionTitle(l.dateLong(_selected), icon: Icons.event_rounded),
+          SectionTitle(l.dateLong(_selected), emo: Emo.pushpin),
           if (selectedSessions.isEmpty && selectedBody == null && selectedMeals.kcal == 0)
-            EmptyHint(icon: Icons.event_busy_rounded, text: l.noRecords),
+            EmptyHint(emo: Emo.bubbles, text: l.noRecords),
           for (final s in selectedSessions)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -151,7 +152,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.fitness_center_rounded, color: skin.heading),
+                    const EmoIcon(Emo.lifting, size: 24),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -172,7 +173,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 onTap: () => HomeShell.of(context)?.goTo(3),
                 child: Row(
                   children: [
-                    Icon(Icons.monitor_weight_outlined, color: skin.heading),
+                    const EmoIcon(Emo.ribbon, size: 24),
                     const SizedBox(width: 10),
                     Text(
                       l.bodyLine(selectedBody.weightKg, selectedBody.bodyFatPct),
@@ -188,7 +189,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onTap: () => HomeShell.of(context)?.goTo(4),
               child: Row(
                 children: [
-                  Icon(Icons.restaurant_rounded, color: skin.heading),
+                  const EmoIcon(Emo.bento, size: 24),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -265,12 +266,14 @@ class _DayCell extends StatelessWidget {
                         ? Border.all(color: skin.accent, width: 2)
                         : null,
               ),
-              child: Text('${d.day}',
-                  style: TextStyle(
-                    color: gym ? skin.buttonText : skin.text,
-                    fontWeight: gym || isToday ? FontWeight.w800 : FontWeight.w600,
-                    fontSize: 13,
-                  )),
+              child: gym
+                  ? const EmoIcon(Emo.cherryBlossom, size: 18)
+                  : Text('${d.day}',
+                      style: TextStyle(
+                        color: skin.text,
+                        fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 13,
+                      )),
             ),
             const SizedBox(height: 2),
             Row(

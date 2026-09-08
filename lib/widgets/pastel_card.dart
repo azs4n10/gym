@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import 'emo.dart';
 
 class PastelCard extends StatelessWidget {
   const PastelCard({
@@ -45,10 +46,11 @@ class PastelCard extends StatelessWidget {
 }
 
 class SectionTitle extends StatelessWidget {
-  const SectionTitle(this.text, {super.key, this.icon, this.trailing});
+  const SectionTitle(this.text, {super.key, this.icon, this.emo, this.trailing});
 
   final String text;
   final IconData? icon;
+  final Emo? emo;
   final Widget? trailing;
 
   @override
@@ -58,7 +60,10 @@ class SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
       child: Row(
         children: [
-          if (icon != null) ...[
+          if (emo != null) ...[
+            EmoIcon(emo!, size: 20),
+            const SizedBox(width: 6),
+          ] else if (icon != null) ...[
             Icon(icon, size: 18, color: skin.heading),
             const SizedBox(width: 6),
           ],
@@ -79,9 +84,10 @@ class SectionTitle extends StatelessWidget {
 }
 
 class EmptyHint extends StatelessWidget {
-  const EmptyHint({super.key, required this.icon, required this.text});
+  const EmptyHint({super.key, this.icon, this.emo, required this.text});
 
-  final IconData icon;
+  final IconData? icon;
+  final Emo? emo;
   final String text;
 
   @override
@@ -93,7 +99,7 @@ class EmptyHint extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 36, color: skin.divider),
+            if (emo != null) EmoIcon(emo!, size: 44, opacity: 0.8) else Icon(icon, size: 36, color: skin.divider),
             const SizedBox(height: 8),
             Text(
               text,
@@ -114,6 +120,7 @@ class StatTile extends StatelessWidget {
     required this.value,
     this.unit,
     this.icon,
+    this.emo,
     this.color,
   });
 
@@ -121,6 +128,7 @@ class StatTile extends StatelessWidget {
   final String value;
   final String? unit;
   final IconData? icon;
+  final Emo? emo;
   final Color? color;
 
   @override
@@ -136,7 +144,10 @@ class StatTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (icon != null) ...[
+              if (emo != null) ...[
+                EmoIcon(emo!, size: 16),
+                const SizedBox(width: 4),
+              ] else if (icon != null) ...[
                 Icon(icon, size: 14, color: skin.subText),
                 const SizedBox(width: 4),
               ],

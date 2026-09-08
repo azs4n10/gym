@@ -7,6 +7,7 @@ import '../l10n/strings.dart';
 import '../services/health_sync.dart';
 import '../state/app_state.dart';
 import '../state/body_state.dart';
+import '../widgets/emo.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/stepper_field.dart';
 
@@ -50,7 +51,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.weight,
-                  icon: Icons.monitor_weight_outlined,
+                  emo: Emo.ribbon,
                   value: latest == null ? '--' : fmtKg(latest.weightKg),
                   unit: 'kg',
                 ),
@@ -59,7 +60,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.bodyFat,
-                  icon: Icons.water_drop_outlined,
+                  emo: Emo.moon,
                   value: latest?.bodyFatPct == null ? '--' : fmtKg(latest!.bodyFatPct!),
                   unit: '%',
                 ),
@@ -72,7 +73,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.avg7,
-                  icon: Icons.timeline_rounded,
+                  emo: Emo.cloud,
                   value: avg7 == null ? '--' : avg7.toStringAsFixed(1),
                   unit: 'kg',
                 ),
@@ -81,9 +82,9 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.overDays(_rangeDays),
-                  icon: delta == null || delta == 0
-                      ? Icons.trending_flat_rounded
-                      : (delta < 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded),
+                  emo: delta == null || delta == 0
+                      ? Emo.sparkles
+                      : (delta < 0 ? Emo.dove : Emo.seedling),
                   value: delta == null ? '--' : '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}',
                   unit: 'kg',
                 ),
@@ -91,7 +92,7 @@ class _BodyScreenState extends State<BodyScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.trend, icon: Icons.show_chart_rounded,
+          SectionTitle(l.trend, emo: Emo.chart,
               trailing: SegmentedButton<int>(
                 showSelectedIcon: false,
                 style: ButtonStyle(
@@ -111,14 +112,14 @@ class _BodyScreenState extends State<BodyScreen> {
             child: SizedBox(
               height: 220,
               child: series.length < 2
-                  ? EmptyHint(icon: Icons.show_chart_rounded, text: l.chartHint)
+                  ? EmptyHint(emo: Emo.tulip, text: l.chartHint)
                   : _WeightChart(series: series, rangeDays: _rangeDays),
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.history, icon: Icons.history_rounded),
+          SectionTitle(l.history, emo: Emo.memo),
           if (body.logs.isEmpty)
-            EmptyHint(icon: Icons.history_rounded, text: l.noRecords)
+            EmptyHint(emo: Emo.bubbles, text: l.noRecords)
           else
             for (final log in body.logs.take(60))
               Padding(

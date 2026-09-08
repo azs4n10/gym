@@ -12,6 +12,7 @@ import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
+import '../widgets/emo.dart';
 import '../widgets/group_badge.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
@@ -72,12 +73,20 @@ class TodayScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
-          Text(
-            '${l.greeting(now.hour)}$name',
-            style: t.headlineSmall?.copyWith(
-              color: skin.heading,
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  '${l.greeting(now.hour)}$name',
+                  style: t.headlineSmall?.copyWith(
+                    color: skin.heading,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const EmoIcon(Emo.tulip, size: 26),
+            ],
           ),
           const SizedBox(height: 14),
           PastelCard(
@@ -126,7 +135,7 @@ class TodayScreen extends StatelessWidget {
               onTap: () => _openSession(context, open.session.id),
               child: Row(
                 children: [
-                  Icon(Icons.local_fire_department_rounded, size: 28, color: skin.heading),
+                  const EmoIcon(Emo.fire, size: 30),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -151,7 +160,7 @@ class TodayScreen extends StatelessWidget {
               onTap: () => _openSession(context, todaySessions.first.session.id),
               child: Row(
                 children: [
-                  Icon(Icons.check_circle_rounded, size: 28, color: skin.button),
+                  const EmoIcon(Emo.ribbon, size: 30),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -178,7 +187,7 @@ class TodayScreen extends StatelessWidget {
               label: Text(l.startTodayWorkout),
             ),
           const SizedBox(height: 20),
-          SectionTitle(l.todayMeals, icon: Icons.restaurant_rounded),
+          SectionTitle(l.todayMeals, emo: Emo.bento),
           PastelCard(
             onTap: () => HomeShell.of(context)?.goTo(4),
             child: Row(
@@ -262,7 +271,7 @@ class TodayScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          SectionTitle(l.todayPicks, icon: Icons.auto_awesome_rounded),
+          SectionTitle(l.todayPicks, emo: Emo.sparkles),
           for (final s in training) _TrainingCard(suggestion: s),
           const SizedBox(height: 10),
           PastelCard(

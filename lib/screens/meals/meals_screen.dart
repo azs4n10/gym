@@ -11,6 +11,7 @@ import '../../services/suggestions.dart';
 import '../../state/app_state.dart';
 import '../../state/body_state.dart';
 import '../../state/meal_state.dart';
+import '../../widgets/emo.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/ring_progress.dart';
 import 'food_picker_screen.dart';
@@ -119,7 +120,7 @@ class _MealsScreenState extends State<MealsScreen> {
               child: _SlotCard(day: _day, slot: slot, detail: meal.mealFor(_day, slot)),
             ),
           const SizedBox(height: 8),
-          SectionTitle(l.ideas, icon: Icons.auto_awesome_rounded),
+          SectionTitle(l.ideas, emo: Emo.sparkles),
           PastelCard(
             padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
             child: Column(
@@ -176,7 +177,7 @@ class _SlotCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(slot.icon, size: 20, color: skin.heading),
+              EmoIcon(slot.emo, size: 22),
               const SizedBox(width: 6),
               Text(slot.label(l),
                   style: t.titleSmall?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),

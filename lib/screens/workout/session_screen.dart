@@ -10,6 +10,7 @@ import '../../models/enums.dart';
 import '../../services/health_sync.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
+import '../../widgets/emo.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/stepper_field.dart';
@@ -50,7 +51,7 @@ class _SessionScreenState extends State<SessionScreen> {
     if (d == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: EmptyHint(icon: Icons.delete_outline_rounded, text: l.sessionDeleted),
+        body: EmptyHint(emo: Emo.bubbles, text: l.sessionDeleted),
       );
     }
     final isOpen = d.session.endedAt == null;
@@ -117,7 +118,7 @@ class _SessionScreenState extends State<SessionScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 child: Row(
                   children: [
-                    Icon(Icons.directions_run_rounded, size: 24, color: skin.heading),
+                    const EmoIcon(Emo.running, size: 26),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -415,9 +416,9 @@ class _MetaCardState extends State<_MetaCard> {
                       color: mood == i ? skin.buttonSoft : Colors.transparent,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(moodIcon(i),
+                    child: EmoIcon(moodEmo(i),
                         size: mood == i ? 32 : 26,
-                        color: mood == i ? skin.heading : skin.subText),
+                        opacity: mood == i ? 1 : 0.55),
                   ),
                 ),
             ],

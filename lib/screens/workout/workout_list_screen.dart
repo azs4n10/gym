@@ -5,7 +5,7 @@ import '../../l10n/strings.dart';
 import '../../models/enums.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
-import '../../widgets/group_badge.dart';
+import '../../widgets/emo.dart';
 import '../../widgets/pastel_card.dart';
 import 'exercise_picker_screen.dart';
 import 'session_screen.dart';
@@ -50,7 +50,7 @@ class WorkoutListScreen extends StatelessWidget {
         label: Text(w.openSession == null ? l.startNew : l.continueWorkout),
       ),
       body: sessions.isEmpty
-          ? EmptyHint(icon: Icons.fitness_center_rounded, text: l.noWorkoutsYet)
+          ? EmptyHint(emo: Emo.lifting, text: l.noWorkoutsYet)
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               itemCount: sessions.length,
@@ -105,7 +105,7 @@ class WorkoutListScreen extends StatelessWidget {
                         ),
                       ),
                       if (s.session.mood != null)
-                        Icon(moodIcon(s.session.mood!), size: 22, color: skin.accent),
+                        EmoIcon(moodEmo(s.session.mood!), size: 22),
                       Icon(Icons.chevron_right_rounded, color: skin.subText),
                     ],
                   ),

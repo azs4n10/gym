@@ -58,6 +58,10 @@ GitHub Actions が使えない場合は、Pages の Source を「Deploy from a b
 
 データは端末のブラウザ内（IndexedDB）に保存される。Safari のサイトデータを消すと記録も消えるので注意。
 
+## アイコン
+
+OS 標準の絵文字は使わず、[Fluent Emoji](https://github.com/microsoft/fluentui-emoji)（Microsoft、MIT License）の Color スタイル SVG を `assets/emoji/` に同梱して `flutter_svg` で描画している。どの端末でも同じ絵柄になる。追加するときは `tool` 相当の手順として、リポジトリの `assets/<名前>/Color/*.svg` を取ってきて `lib/widgets/emo.dart` の `Emo` に登録する。
+
 ## 注意
 
 - 食品リストの栄養値は 1 食分の目安。パッケージ表示がある場合はそちらを優先して自分で入力したものに置き換える前提
