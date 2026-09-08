@@ -60,7 +60,7 @@ GitHub Actions が使えない場合は、Pages の Source を「Deploy from a b
 
 ## アイコン
 
-絵文字は使わない。装飾アイコンは [Phosphor Icons](https://phosphoricons.com/)（MIT License、`phosphor_flutter`）の duotone スタイルを、テーマの色で塗って表示している（`lib/widgets/app_icon.dart` の `Ic` と `AppIcon`）。追加するときは `Ic` に `PhosphorIcons.<名前>` を登録する。
+絵文字は使わない。装飾アイコンは [Phosphor Icons](https://phosphoricons.com/)（MIT License）の duotone フォント `assets/fonts/Phosphor-Duotone.ttf` を同梱し、テーマの色で 2 層に塗って表示している（`lib/widgets/app_icon.dart` の `Ic` と `AppIcon`）。追加するときは Phosphor の duotone グリフのコードポイント（主・副の 2 つ）を `Ic` に登録する。pub の `phosphor_flutter` は Flutter 3.44 でコンパイルできないため使っていない。
 
 ## 注意
 

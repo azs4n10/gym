@@ -47,8 +47,6 @@ dependencies:
   health: ^13.3.2
   flutter_localizations:
     sdk: flutter
-  phosphor_flutter: ^2.1.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -72,6 +70,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: PhosphorDuotone
+      fonts:
+        - asset: assets/fonts/Phosphor-Duotone.ttf
 
 
   # To add assets to your application, add an assets section, like this:
