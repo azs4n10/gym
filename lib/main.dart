@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
@@ -19,12 +20,29 @@ Future<void> main() async {
 
   final db = AppDatabase(openConnection());
   final app = await AppState.create();
+  await _preloadFonts(app.profile.font);
   final workout = WorkoutState(db);
   final body = BodyState(db);
   final meal = MealState(db);
   await Future.wait([workout.load(), body.load(), meal.load()]);
 
   runApp(GymApp(app: app, workout: workout, body: body, meal: meal));
+}
+
+// Bold weights arrive as separate font files; lay out with them from the start
+// so chips and labels are not measured with the regular weight first.
+Future<void> _preloadFonts(String font) async {
+  final rounded = font == 'rounded';
+  TextStyle style({FontWeight? w}) => rounded
+      ? GoogleFonts.mPlusRounded1c(fontWeight: w)
+      : GoogleFonts.notoSansJp(fontWeight: w);
+  final pending = GoogleFonts.pendingFonts([
+    style(),
+    style(w: FontWeight.w600),
+    style(w: FontWeight.w700),
+    style(w: FontWeight.w800),
+  ]);
+  await Future.any([pending, Future<void>.delayed(const Duration(seconds: 4))]);
 }
 
 class GymApp extends StatelessWidget {
