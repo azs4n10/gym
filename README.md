@@ -60,7 +60,7 @@ GitHub Actions が使えない場合は、Pages の Source を「Deploy from a b
 
 ## アイコン
 
-OS 標準の絵文字は使わず、[Fluent Emoji](https://github.com/microsoft/fluentui-emoji)（Microsoft、MIT License）の Color スタイル SVG を `assets/emoji/` に同梱して `flutter_svg` で描画している。どの端末でも同じ絵柄になる。追加するときは `tool` 相当の手順として、リポジトリの `assets/<名前>/Color/*.svg` を取ってきて `lib/widgets/emo.dart` の `Emo` に登録する。
+絵文字は使わない。装飾アイコンは [Phosphor Icons](https://phosphoricons.com/)（MIT License、`phosphor_flutter`）の duotone スタイルを、テーマの色で塗って表示している（`lib/widgets/app_icon.dart` の `Ic` と `AppIcon`）。追加するときは `Ic` に `PhosphorIcons.<名前>` を登録する。
 
 ## 注意
 

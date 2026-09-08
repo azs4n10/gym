@@ -7,7 +7,7 @@ import '../../l10n/strings.dart';
 import '../../models/enums.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
-import '../../widgets/emo.dart';
+import '../../widgets/app_icon.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
 
@@ -81,7 +81,7 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
           ),
           Expanded(
             child: list.isEmpty
-                ? EmptyHint(emo: Emo.search, text: l.notFound)
+                ? EmptyHint(ic: Ic.search, text: l.notFound)
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: list.length,

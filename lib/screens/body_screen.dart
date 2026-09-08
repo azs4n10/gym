@@ -7,7 +7,7 @@ import '../l10n/strings.dart';
 import '../services/health_sync.dart';
 import '../state/app_state.dart';
 import '../state/body_state.dart';
-import '../widgets/emo.dart';
+import '../widgets/app_icon.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/stepper_field.dart';
 
@@ -51,7 +51,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.weight,
-                  emo: Emo.ribbon,
+                  ic: Ic.body,
                   value: latest == null ? '--' : fmtKg(latest.weightKg),
                   unit: 'kg',
                 ),
@@ -60,7 +60,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.bodyFat,
-                  emo: Emo.moon,
+                  ic: Ic.fat,
                   value: latest?.bodyFatPct == null ? '--' : fmtKg(latest!.bodyFatPct!),
                   unit: '%',
                 ),
@@ -73,7 +73,7 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.avg7,
-                  emo: Emo.cloud,
+                  ic: Ic.avg,
                   value: avg7 == null ? '--' : avg7.toStringAsFixed(1),
                   unit: 'kg',
                 ),
@@ -82,9 +82,9 @@ class _BodyScreenState extends State<BodyScreen> {
               Expanded(
                 child: StatTile(
                   label: l.overDays(_rangeDays),
-                  emo: delta == null || delta == 0
-                      ? Emo.sparkles
-                      : (delta < 0 ? Emo.dove : Emo.seedling),
+                  ic: delta == null || delta == 0
+                      ? Ic.flat
+                      : (delta < 0 ? Ic.down : Ic.up),
                   value: delta == null ? '--' : '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}',
                   unit: 'kg',
                 ),
@@ -92,7 +92,7 @@ class _BodyScreenState extends State<BodyScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.trend, emo: Emo.chart,
+          SectionTitle(l.trend, ic: Ic.trend,
               trailing: SegmentedButton<int>(
                 showSelectedIcon: false,
                 style: ButtonStyle(
@@ -112,14 +112,14 @@ class _BodyScreenState extends State<BodyScreen> {
             child: SizedBox(
               height: 220,
               child: series.length < 2
-                  ? EmptyHint(emo: Emo.tulip, text: l.chartHint)
+                  ? EmptyHint(ic: Ic.trend, text: l.chartHint)
                   : _WeightChart(series: series, rangeDays: _rangeDays),
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.history, emo: Emo.memo),
+          SectionTitle(l.history, ic: Ic.history),
           if (body.logs.isEmpty)
-            EmptyHint(emo: Emo.bubbles, text: l.noRecords)
+            EmptyHint(ic: Ic.empty, text: l.noRecords)
           else
             for (final log in body.logs.take(60))
               Padding(

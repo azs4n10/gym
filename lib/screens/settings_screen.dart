@@ -7,7 +7,7 @@ import '../services/nutrition.dart';
 import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../theme/skin.dart';
-import '../widgets/emo.dart';
+import '../widgets/app_icon.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/stepper_field.dart';
 
@@ -54,7 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
         children: [
-          SectionTitle(l.language, emo: Emo.globe),
+          SectionTitle(l.language, ic: Ic.language),
           PastelCard(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             child: SegmentedButton<String>(
@@ -68,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.profile, emo: Emo.ribbon),
+          SectionTitle(l.profile, ic: Ic.profile),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,7 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.goal, emo: Emo.glowingStar),
+          SectionTitle(l.goal, ic: Ic.goal),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +142,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.targets, emo: Emo.bento),
+          SectionTitle(l.targets, ic: Ic.targets),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.theme, emo: Emo.palette),
+          SectionTitle(l.theme, ic: Ic.theme),
           PastelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.health, emo: Emo.growingHeart),
+          SectionTitle(l.health, ic: Ic.health),
           PastelCard(
             child: SwitchListTile(
               contentPadding: EdgeInsets.zero,

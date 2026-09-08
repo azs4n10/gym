@@ -12,7 +12,7 @@ import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
-import '../widgets/emo.dart';
+import '../widgets/app_icon.dart';
 import '../widgets/group_badge.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
@@ -85,7 +85,7 @@ class TodayScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const EmoIcon(Emo.tulip, size: 26),
+              const AppIcon(Ic.greeting, size: 26),
             ],
           ),
           const SizedBox(height: 14),
@@ -135,7 +135,7 @@ class TodayScreen extends StatelessWidget {
               onTap: () => _openSession(context, open.session.id),
               child: Row(
                 children: [
-                  const EmoIcon(Emo.fire, size: 30),
+                  const AppIcon(Ic.fire, size: 30),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -160,7 +160,7 @@ class TodayScreen extends StatelessWidget {
               onTap: () => _openSession(context, todaySessions.first.session.id),
               child: Row(
                 children: [
-                  const EmoIcon(Emo.ribbon, size: 30),
+                  const AppIcon(Ic.done, size: 30),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -187,7 +187,7 @@ class TodayScreen extends StatelessWidget {
               label: Text(l.startTodayWorkout),
             ),
           const SizedBox(height: 20),
-          SectionTitle(l.todayMeals, emo: Emo.bento),
+          SectionTitle(l.todayMeals, ic: Ic.meals),
           PastelCard(
             onTap: () => HomeShell.of(context)?.goTo(4),
             child: Row(
@@ -271,7 +271,7 @@ class TodayScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          SectionTitle(l.todayPicks, emo: Emo.sparkles),
+          SectionTitle(l.todayPicks, ic: Ic.picks),
           for (final s in training) _TrainingCard(suggestion: s),
           const SizedBox(height: 10),
           PastelCard(

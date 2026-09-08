@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
-import '../widgets/emo.dart';
+import '../widgets/app_icon.dart';
 
 enum MuscleGroup {
-  chest('Chest', '胸', Emo.cherryBlossom, Color(0xFFF2A7B8)),
-  back('Back', '背中', Emo.butterfly, Color(0xFFA8C5E8)),
-  shoulders('Shoulders', '肩', Emo.ribbon, Color(0xFFC9B6E4)),
-  arms('Arms', '腕', Emo.biceps, Color(0xFFF5C48A)),
-  legs('Legs', '脚', Emo.leg, Color(0xFF9FD3C7)),
-  glutes('Glutes', 'お尻', Emo.peach, Color(0xFFF7B7A3)),
-  core('Core', 'お腹', Emo.star, Color(0xFFF3D67F));
+  chest('Chest', '胸', Ic.chest, Color(0xFFF2A7B8)),
+  back('Back', '背中', Ic.back, Color(0xFFA8C5E8)),
+  shoulders('Shoulders', '肩', Ic.shoulders, Color(0xFFC9B6E4)),
+  arms('Arms', '腕', Ic.arms, Color(0xFFF5C48A)),
+  legs('Legs', '脚', Ic.legs, Color(0xFF9FD3C7)),
+  glutes('Glutes', 'お尻', Ic.glutes, Color(0xFFF7B7A3)),
+  core('Core', 'お腹', Ic.core, Color(0xFFF3D67F));
 
-  const MuscleGroup(this.en, this.ja, this.emo, this.color);
+  const MuscleGroup(this.en, this.ja, this.ic, this.color);
   final String en;
   final String ja;
-  final Emo emo;
+  final Ic ic;
   final Color color;
 
   String label(L l) => l.isJa ? ja : en;
@@ -47,15 +47,15 @@ enum CardioType {
 }
 
 enum MealSlot {
-  breakfast('Breakfast', '朝ごはん', Emo.cooking),
-  lunch('Lunch', '昼ごはん', Emo.bento),
-  dinner('Dinner', '夜ごはん', Emo.pot),
-  snack('Snack', '間食', Emo.cookie);
+  breakfast('Breakfast', '朝ごはん', Ic.breakfast),
+  lunch('Lunch', '昼ごはん', Ic.lunch),
+  dinner('Dinner', '夜ごはん', Ic.dinner),
+  snack('Snack', '間食', Ic.snack);
 
-  const MealSlot(this.en, this.ja, this.emo);
+  const MealSlot(this.en, this.ja, this.ic);
   final String en;
   final String ja;
-  final Emo emo;
+  final Ic ic;
 
   String label(L l) => l.isJa ? ja : en;
 

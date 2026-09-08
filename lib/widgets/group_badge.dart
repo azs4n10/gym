@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/enums.dart';
-import 'emo.dart';
+import 'app_icon.dart';
 
 class GroupBadge extends StatelessWidget {
   const GroupBadge(this.group, {super.key, this.size = 28});
@@ -19,7 +19,7 @@ class GroupBadge extends StatelessWidget {
         color: group.color.withValues(alpha: 0.35),
         shape: BoxShape.circle,
       ),
-      child: EmoIcon(group.emo, size: size * 0.68),
+      child: AppIcon(group.ic, size: size * 0.66),
     );
   }
 }
