@@ -271,7 +271,11 @@ class TodayScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          SectionTitle(l.todayPicks, ic: Ic.picks),
+          SectionTitle(l.todayPicks, ic: Ic.picks,
+              trailing: TextButton(
+                onPressed: () => HomeShell.of(context)?.goTo(1),
+                child: Text(l.all),
+              )),
           for (final s in training) _TrainingCard(suggestion: s),
           const SizedBox(height: 10),
           PastelCard(

@@ -11,6 +11,7 @@ import '../../services/health_sync.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/cardio_sheet.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/stepper_field.dart';
@@ -212,11 +213,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
   Future<void> _addCardio(BuildContext context, int sessionId) async {
     final w = context.read<WorkoutState>();
-    final result = await showModalBottomSheet<_CardioInput>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => const _CardioSheet(),
-    );
+    final result = await showCardioSheet(context);
     if (result != null) {
       await w.addCardio(sessionId, result.kind, result.minutes,
           distanceKm: result.distanceKm, kcal: result.kcal);
@@ -437,96 +434,4 @@ class _MetaCardState extends State<_MetaCard> {
       ),
     );
   }
-}
-
-class _CardioInput {
-  const _CardioInput(this.kind, this.minutes, this.distanceKm, this.kcal);
-  final CardioType kind;
-  final double minutes;
-  final double? distanceKm;
-  final int? kcal;
-}
-
-class _CardioSheet extends StatefulWidget {
-  const _CardioSheet();
-
-  @override
-  State<_CardioSheet> createState() => _CardioSheetState();
-}
-
-class _CardioSheetState extends State<_CardioSheet> {
-  CardioType _kind = CardioType.running;
-  double _minutes = 20;
-  double _distance = 0;
-  double _kcal = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final skin = context.skin;
-    final l = context.l;
-    final t = Theme.of(context).textTheme;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.addCardio,
-              style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final k in CardioType.values)
-                ChoiceChip(
-                  label: Text(k.label(l)),
-                  selected: _kind == k,
-                  onSelected: (_) => setState(() => _kind = k),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _row(l.duration, StepperField(
-            value: _minutes, step: 5, unit: l.minUnit, decimals: 0, max: 600, width: 140,
-            onChanged: (v) => setState(() => _minutes = v),
-          )),
-          _row(l.distance, StepperField(
-            value: _distance, step: 0.5, unit: 'km', max: 200, width: 140,
-            onChanged: (v) => setState(() => _distance = v),
-          )),
-          _row(l.burned, StepperField(
-            value: _kcal, step: 10, unit: 'kcal', decimals: 0, max: 5000, width: 140,
-            onChanged: (v) => setState(() => _kcal = v),
-          )),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                _CardioInput(
-                  _kind,
-                  _minutes,
-                  _distance > 0 ? _distance : null,
-                  _kcal > 0 ? _kcal.round() : null,
-                ),
-              ),
-              child: Text(l.add),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _row(String label, Widget field) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            SizedBox(width: 72, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
-            field,
-          ],
-        ),
-      );
 }
