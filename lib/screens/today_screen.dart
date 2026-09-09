@@ -14,6 +14,7 @@ import '../state/meal_state.dart';
 import '../state/workout_state.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/group_badge.dart';
+import '../widgets/hero_card.dart';
 import '../widgets/icon_tile.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
@@ -59,6 +60,7 @@ class TodayScreen extends StatelessWidget {
     final goal = app.profile.weeklyGoalDays;
     final progress = goal == 0 ? 0.0 : streak.thisWeek / goal;
     final name = app.profile.nickname;
+    final onHero = skin.buttonText;
 
     return Scaffold(
       body: SafeArea(
@@ -99,51 +101,82 @@ class TodayScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 18),
-            PastelCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            HeroCard(
+              child: Row(
                 children: [
-                  Text(l.todaysProgress,
-                      style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      RingProgress(
-                        value: progress,
-                        color: skin.button,
-                        trackColor: skin.divider,
-                        size: 104,
-                        stroke: 11,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l.thisWeekGym,
+                            style: t.labelLarge?.copyWith(
+                                color: onHero.withValues(alpha: 0.85), fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Text('${(progress * 100).round()}%',
-                                style: t.titleLarge?.copyWith(
-                                    color: skin.heading, fontWeight: FontWeight.w800)),
-                            Text('${streak.thisWeek}${l.perWeek(goal)}',
-                                style: t.labelSmall?.copyWith(color: skin.subText)),
+                            Text('${streak.thisWeek}',
+                                style: t.displayMedium?.copyWith(
+                                    color: onHero, fontWeight: FontWeight.w800, height: 1)),
+                            Text(' / $goal',
+                                style: t.titleMedium?.copyWith(color: onHero.withValues(alpha: 0.85))),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
                           children: [
-                            _StatLine(color: skin.button, label: l.workoutLabel, value: l.minutes(todayMinutes)),
-                            _StatLine(color: skin.accent, label: l.calories, value: '${eaten.kcal.round()} / ${target.kcal.round()}'),
-                            _StatLine(color: skin.heading, label: l.protein, value: '${eaten.protein.round()} / ${target.protein.round()} g'),
-                            _StatLine(
-                              color: skin.subText,
-                              label: l.weight,
-                              value: body.latestWeight == null ? '--' : '${fmtKg(body.latestWeight!)} kg',
-                            ),
+                            _HeroPill(ic: Ic.workout, text: l.minutes(todayMinutes)),
+                            _HeroPill(ic: Ic.streak, text: l.weeks(streak.weekStreak)),
                           ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                  RingProgress(
+                    value: progress,
+                    color: onHero,
+                    trackColor: onHero.withValues(alpha: 0.25),
+                    size: 96,
+                    stroke: 10,
+                    child: Text('${(progress * 100).round()}%',
+                        style: t.titleMedium?.copyWith(color: onHero, fontWeight: FontWeight.w800)),
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: StatTile(
+                    label: l.calories,
+                    ic: Ic.meals,
+                    value: '${eaten.kcal.round()}',
+                    unit: '/ ${target.kcal.round()}',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: StatTile(
+                    label: l.protein,
+                    ic: Ic.lunch,
+                    value: '${eaten.protein.round()}',
+                    unit: '/ ${target.protein.round()} g',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: StatTile(
+                    label: l.weight,
+                    ic: Ic.body,
+                    value: body.latestWeight == null ? '--' : fmtKg(body.latestWeight!),
+                    unit: 'kg',
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             PastelCard(
@@ -159,7 +192,7 @@ class TodayScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(l.quickActions,
-                style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+                style: t.titleLarge?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -191,7 +224,7 @@ class TodayScreen extends StatelessWidget {
                   child: _QuickAction(
                     ic: Ic.body,
                     label: l.body,
-                    color: skin.accentSoft,
+                    color: Color.lerp(skin.heading, skin.card, 0.82)!,
                     onTap: () => showBodyLogSheet(context),
                   ),
                 ),
@@ -200,7 +233,7 @@ class TodayScreen extends StatelessWidget {
                   child: _QuickAction(
                     ic: Ic.month,
                     label: l.calendar,
-                    color: skin.buttonSoft,
+                    color: Color.lerp(skin.button, skin.card, 0.45)!,
                     onTap: () => HomeShell.of(context)?.goTo(2),
                   ),
                 ),
@@ -241,7 +274,7 @@ class TodayScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(l.todayPicks,
-                      style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+                      style: t.titleLarge?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
                 ),
                 TextButton(
                   onPressed: () => HomeShell.of(context)?.goTo(1),
@@ -337,26 +370,27 @@ class TodayScreen extends StatelessWidget {
   }
 }
 
-class _StatLine extends StatelessWidget {
-  const _StatLine({required this.color, required this.label, required this.value});
-  final Color color;
-  final String label;
-  final String value;
+class _HeroPill extends StatelessWidget {
+  const _HeroPill({required this.ic, required this.text});
+  final Ic ic;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(label,
-                style: TextStyle(color: skin.subText, fontSize: 12, fontWeight: FontWeight.w600)),
-          ),
-          Text(value, style: TextStyle(color: skin.text, fontSize: 13, fontWeight: FontWeight.w700)),
+          AppIcon(ic, size: 14, color: skin.buttonText),
+          const SizedBox(width: 5),
+          Text(text,
+              style: TextStyle(color: skin.buttonText, fontSize: 12, fontWeight: FontWeight.w700)),
         ],
       ),
     );

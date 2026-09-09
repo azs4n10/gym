@@ -8,7 +8,7 @@ REMOTE="$(git remote get-url origin)"
 
 # Git Bash rewrites "/gym/" into a Windows path unless this is set.
 export MSYS_NO_PATHCONV=1
-flutter build web --release --base-href "/$REPO/"
+flutter build web --release --pwa-strategy=none --base-href "/$REPO/"
 grep -q "<base href=\"/$REPO/\">" build/web/index.html
 
 touch build/web/.nojekyll

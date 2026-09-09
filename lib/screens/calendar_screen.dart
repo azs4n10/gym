@@ -10,6 +10,7 @@ import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/hero_card.dart';
 import '../widgets/pastel_card.dart';
 import 'home_shell.dart';
 import 'workout/session_screen.dart';
@@ -57,10 +58,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final selectedMeals = meal.totalsOn(_selected);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.calendar)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      body: SafeArea(
+        child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         children: [
+          PageHeader(l.calendar),
           Row(
             children: [
               Expanded(child: StatTile(label: l.streak, ic: Ic.streak, value: '${streak.dayStreak}', unit: l.daysUnit)),
@@ -206,6 +208,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ),
         ],
+        ),
       ),
     );
   }

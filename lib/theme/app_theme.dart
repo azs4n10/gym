@@ -80,10 +80,16 @@ ThemeData buildTheme(Skin skin, {String font = 'standard'}) {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: skin.card,
-      selectedColor: skin.buttonSoft,
+      selectedColor: skin.heading,
       side: BorderSide(color: skin.divider),
-      labelStyle: textTheme.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w700),
-      checkmarkColor: skin.heading,
+      labelStyle: textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.selected) ? skin.buttonText : skin.text,
+        ),
+      ),
+      checkmarkColor: skin.buttonText,
+      showCheckmark: false,
       shape: const StadiumBorder(),
     ),
     bottomSheetTheme: BottomSheetThemeData(

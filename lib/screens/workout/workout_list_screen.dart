@@ -10,6 +10,7 @@ import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/cardio_sheet.dart';
 import '../../widgets/group_badge.dart';
+import '../../widgets/hero_card.dart';
 import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
 import 'exercise_picker_screen.dart';
@@ -48,33 +49,31 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
             .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.workouts),
-        actions: [
-          IconButton(
-            tooltip: l.history,
-            icon: const Icon(Icons.history_rounded),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const HistoryScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: l.exerciseList,
-            icon: const Icon(Icons.edit_note_rounded),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ExercisePickerScreen(manageOnly: true)),
-            ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'workout-fab',
         onPressed: () => _openSession(context),
         icon: Icon(w.openSession == null ? Icons.add_rounded : Icons.play_arrow_rounded),
         label: Text(w.openSession == null ? l.startNew : l.continueWorkout),
       ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
+          PageHeader(l.workouts, actions: [
+            IconButton(
+              tooltip: l.history,
+              icon: Icon(Icons.history_rounded, color: skin.heading),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              ),
+            ),
+            IconButton(
+              tooltip: l.exerciseList,
+              icon: Icon(Icons.edit_note_rounded, color: skin.heading),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ExercisePickerScreen(manageOnly: true)),
+              ),
+            ),
+          ]),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: TextField(
@@ -134,6 +133,7 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
                   ),
           ),
         ],
+        ),
       ),
     );
   }

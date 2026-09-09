@@ -14,6 +14,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/cardio_sheet.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
+import '../../widgets/ring_progress.dart';
 import '../../widgets/stepper_field.dart';
 import 'exercise_picker_screen.dart';
 
@@ -273,6 +274,16 @@ class _ExerciseBlock extends StatelessWidget {
                     style: t.titleMedium?.copyWith(
                         color: skin.heading, fontWeight: FontWeight.w800)),
               ),
+              RingProgress(
+                value: (sets.length / 3).clamp(0.0, 1.0),
+                color: skin.button,
+                trackColor: skin.divider,
+                size: 38,
+                stroke: 5,
+                child: Text('${sets.length}',
+                    style: TextStyle(color: skin.heading, fontWeight: FontWeight.w800, fontSize: 13)),
+              ),
+              const SizedBox(width: 4),
               if (editable)
                 IconButton(
                   tooltip: l.removeExercise,
@@ -352,12 +363,20 @@ class _ExerciseBlock extends StatelessWidget {
               ),
             ),
           if (editable)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => w.addSet(detail.session.id, ex.id),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text(l.addSet),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: skin.buttonSoft,
+                    foregroundColor: skin.heading,
+                    shape: const StadiumBorder(),
+                  ),
+                  onPressed: () => w.addSet(detail.session.id, ex.id),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: Text(l.addSet),
+                ),
               ),
             ),
         ],

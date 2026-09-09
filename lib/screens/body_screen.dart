@@ -8,6 +8,7 @@ import '../services/health_sync.dart';
 import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/hero_card.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
 import '../widgets/stepper_field.dart';
@@ -37,16 +38,17 @@ class _BodyScreenState extends State<BodyScreen> {
         : null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.body)),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'body-fab',
         onPressed: () => showBodyLogSheet(context),
         icon: const Icon(Icons.add_rounded),
         label: Text(l.logAction),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+      body: SafeArea(
+        child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         children: [
+          PageHeader(l.body),
           PastelCard(
             child: Row(
               children: [
@@ -199,6 +201,7 @@ class _BodyScreenState extends State<BodyScreen> {
                 ),
               ),
         ],
+        ),
       ),
     );
   }
