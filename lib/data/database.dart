@@ -112,8 +112,35 @@ class AppDatabase extends _$AppDatabase {
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
+          await _repairSeeds();
         },
       );
+
+  // Two page loads racing on a brand-new database can both run onCreate, so
+  // drop duplicated built-in rows (keeping the oldest) and fill in missing seeds.
+  Future<void> _repairSeeds() async {
+    await customStatement('''
+      DELETE FROM exercises
+      WHERE is_custom = 0
+        AND id NOT IN (SELECT MIN(id) FROM exercises WHERE is_custom = 0 GROUP BY name)
+        AND id NOT IN (SELECT DISTINCT exercise_id FROM workout_sets)
+    ''');
+    await customStatement('''
+      DELETE FROM foods
+      WHERE is_custom = 0
+        AND id NOT IN (SELECT MIN(id) FROM foods WHERE is_custom = 0 GROUP BY name)
+    ''');
+    final exerciseCount = await (selectOnly(exercises)..addColumns([exercises.id.count()]))
+        .map((r) => r.read(exercises.id.count()) ?? 0)
+        .getSingle();
+    final foodCount = await (selectOnly(foods)..addColumns([foods.id.count()]))
+        .map((r) => r.read(foods.id.count()) ?? 0)
+        .getSingle();
+    await batch((b) {
+      if (exerciseCount == 0) b.insertAll(exercises, seedExercises);
+      if (foodCount == 0) b.insertAll(foods, seedFoods);
+    });
+  }
 }
 
 DateTime dayOf(DateTime t) => DateTime(t.year, t.month, t.day);
