@@ -126,14 +126,16 @@ class _MealsScreenState extends State<MealsScreen> {
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: skin.ink, width: 1.6),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: ratio),
-                    duration: const Duration(milliseconds: 500),
-                    builder: (_, v, _) => FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: v,
-                      child: DecoratedBox(decoration: BoxDecoration(color: skin.button)),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: ratio),
+                      duration: const Duration(milliseconds: 500),
+                      builder: (_, v, _) => FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: v,
+                        child: DecoratedBox(decoration: BoxDecoration(color: skin.button)),
+                      ),
                     ),
                   ),
                 ),

@@ -33,17 +33,17 @@ class Cover extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = context.skin;
     final deep = Color.lerp(tint, skin.heading, 0.35)!;
+    final inset = outlined ? kBorderWidth : 0.0;
     return Container(
       width: width,
       height: height,
-      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
         border: outlined ? Border.all(color: skin.ink, width: kBorderWidth) : null,
       ),
-      child: SizedBox(
-        width: width,
-        height: height,
+      child: ClipRRect(
+        // Clip inside the border so the gradient cannot paint over it.
+        borderRadius: BorderRadius.circular(radius - inset),
         child: Stack(
           fit: StackFit.expand,
           children: [

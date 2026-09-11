@@ -39,40 +39,44 @@ class WindowCard extends StatelessWidget {
           BoxShadow(color: skin.shadow, blurRadius: 0, offset: const Offset(3, 4)),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(14, 7, 10, 7),
-                decoration: BoxDecoration(
-                  color: bar,
-                  border: Border(bottom: BorderSide(color: skin.ink, width: kBorderWidth)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: t.labelLarge?.copyWith(
-                          color: skin.ink,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.3,
+      child: ClipRRect(
+        // Clip to the inner edge, otherwise the title bar paints over the
+        // border and the top corners lose their outline.
+        borderRadius: BorderRadius.circular(kCardRadius - kBorderWidth),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 7, 10, 7),
+                  decoration: BoxDecoration(
+                    color: bar,
+                    border: Border(bottom: BorderSide(color: skin.ink, width: kBorderWidth)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.labelLarge?.copyWith(
+                            color: skin.ink,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
-                    ),
-                    if (trailing != null) trailing! else const _WindowButtons(),
-                  ],
+                      if (trailing != null) trailing! else const _WindowButtons(),
+                    ],
+                  ),
                 ),
-              ),
-              Padding(padding: padding, child: child),
-            ],
+                Padding(padding: padding, child: child),
+              ],
+            ),
           ),
         ),
       ),

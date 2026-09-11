@@ -37,10 +37,12 @@ class PastelCard extends StatelessWidget {
           BoxShadow(color: skin.shadow, blurRadius: 0, offset: const Offset(3, 4)),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        color: Colors.transparent,
-        child: onTap == null ? body : InkWell(onTap: onTap, child: body),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius - kBorderWidth),
+        child: Material(
+          color: Colors.transparent,
+          child: onTap == null ? body : InkWell(onTap: onTap, child: body),
+        ),
       ),
     );
   }
