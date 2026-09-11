@@ -120,6 +120,7 @@ class _MealsScreenState extends State<MealsScreen> {
                 const SizedBox(height: 14),
                 Container(
                   height: 14,
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     color: skin.background,
                     borderRadius: BorderRadius.circular(999),
