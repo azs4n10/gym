@@ -14,10 +14,11 @@ import '../state/meal_state.dart';
 import '../state/workout_state.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/cover.dart';
-import '../widgets/hero_card.dart';
 import '../widgets/icon_tile.dart';
+import '../widgets/mascot.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
+import '../widgets/window_card.dart';
 import 'body_screen.dart';
 import 'home_shell.dart';
 import 'meals/food_picker_screen.dart';
@@ -58,9 +59,11 @@ class TodayScreen extends StatelessWidget {
     final todayMinutes = _minutesOn(workout, now);
     final slotNow = MealSlot.forNow(now);
     final goal = app.profile.weeklyGoalDays;
-    final progress = goal == 0 ? 0.0 : streak.thisWeek / goal;
+    final progress = goal == 0 ? 0.0 : (streak.thisWeek / goal).clamp(0.0, 1.0);
     final name = app.profile.nickname;
-    final onHero = skin.buttonText;
+    final mood = todaySessions.isNotEmpty || open != null
+        ? MascotMood.happy
+        : (streak.thisWeek == 0 ? MascotMood.sleepy : MascotMood.idle);
 
     return Scaffold(
       body: SafeArea(
@@ -69,58 +72,58 @@ class TodayScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: skin.buttonSoft, shape: BoxShape.circle),
-                  child: name.isEmpty
-                      ? const AppIcon(Ic.profile, size: 26)
-                      : Text(name.characters.first.toUpperCase(),
-                          style: t.titleLarge?.copyWith(
-                              color: skin.heading, fontWeight: FontWeight.w800)),
-                ),
-                const SizedBox(width: 12),
+                Mascot(size: 64, mood: mood),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l.hi(name),
-                          style: t.titleLarge?.copyWith(
-                              color: skin.heading, fontWeight: FontWeight.w800)),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(l.hi(name),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: t.titleLarge?.copyWith(
+                                    color: skin.heading, fontWeight: FontWeight.w800)),
+                          ),
+                          const SizedBox(width: 6),
+                          AppIcon(Ic.chest, size: 16, color: skin.button),
+                        ],
+                      ),
                       Text(l.dateLong(now), style: t.bodySmall?.copyWith(color: skin.subText)),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.settings_outlined, color: skin.heading),
-                  onPressed: () => Navigator.of(context).push(
+                _CircleButton(
+                  icon: Icons.settings_outlined,
+                  onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const SettingsScreen()),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            HeroCard(
+            const SizedBox(height: 16),
+            WindowCard(
+              title: l.thisWeekGym,
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(l.thisWeekGym,
-                            style: t.labelLarge?.copyWith(
-                                color: onHero.withValues(alpha: 0.85), fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.baseline,
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text('${streak.thisWeek}',
                                 style: t.displayMedium?.copyWith(
-                                    color: onHero, fontWeight: FontWeight.w800, height: 1)),
+                                    color: skin.heading,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1)),
                             Text(' / $goal',
-                                style: t.titleMedium?.copyWith(color: onHero.withValues(alpha: 0.85))),
+                                style: t.titleMedium?.copyWith(color: skin.subText)),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -128,8 +131,8 @@ class TodayScreen extends StatelessWidget {
                           spacing: 6,
                           runSpacing: 6,
                           children: [
-                            _HeroPill(ic: Ic.workout, text: l.minutes(todayMinutes)),
-                            _HeroPill(ic: Ic.streak, text: l.weeks(streak.weekStreak)),
+                            _Pill(ic: Ic.workout, text: l.minutes(todayMinutes)),
+                            _Pill(ic: Ic.streak, text: l.weeks(streak.weekStreak)),
                           ],
                         ),
                       ],
@@ -137,12 +140,13 @@ class TodayScreen extends StatelessWidget {
                   ),
                   RingProgress(
                     value: progress,
-                    color: onHero,
-                    trackColor: onHero.withValues(alpha: 0.25),
-                    size: 96,
-                    stroke: 10,
+                    color: skin.button,
+                    trackColor: skin.divider,
+                    size: 92,
+                    stroke: 12,
                     child: Text('${(progress * 100).round()}%',
-                        style: t.titleMedium?.copyWith(color: onHero, fontWeight: FontWeight.w800)),
+                        style: t.titleMedium
+                            ?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
                   ),
                 ],
               ),
@@ -179,20 +183,14 @@ class TodayScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            PastelCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l.weeklyActivity,
-                      style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
-                  _WeekBars(minutes: _weekMinutes(workout, now), today: now),
-                ],
-              ),
+            WindowCard(
+              title: l.weeklyActivity,
+              tint: skin.accent,
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+              child: _WeekBars(minutes: _weekMinutes(workout, now), today: now),
             ),
             const SizedBox(height: 20),
-            Text(l.quickActions,
-                style: t.titleLarge?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+            _Heading(l.quickActions),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -200,7 +198,7 @@ class TodayScreen extends StatelessWidget {
                   child: _QuickAction(
                     ic: Ic.workout,
                     label: open == null ? l.startTodayWorkout : l.continueWorkout,
-                    color: skin.buttonSoft,
+                    color: skin.button,
                     onTap: () => _startSession(context),
                   ),
                 ),
@@ -209,7 +207,7 @@ class TodayScreen extends StatelessWidget {
                   child: _QuickAction(
                     ic: Ic.meals,
                     label: l.logFood,
-                    color: skin.accentSoft,
+                    color: skin.accent,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => FoodPickerScreen(day: now, slot: slotNow)),
                     ),
@@ -224,7 +222,7 @@ class TodayScreen extends StatelessWidget {
                   child: _QuickAction(
                     ic: Ic.body,
                     label: l.body,
-                    color: Color.lerp(skin.heading, skin.card, 0.82)!,
+                    color: skin.accentSoft,
                     onTap: () => showBodyLogSheet(context),
                   ),
                 ),
@@ -233,15 +231,16 @@ class TodayScreen extends StatelessWidget {
                   child: _QuickAction(
                     ic: Ic.month,
                     label: l.calendar,
-                    color: Color.lerp(skin.button, skin.card, 0.45)!,
+                    color: skin.buttonSoft,
                     onTap: () => HomeShell.of(context)?.goTo(2),
                   ),
                 ),
               ],
             ),
             if (open != null || todaySessions.isNotEmpty) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               PastelCard(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 color: open != null ? skin.buttonSoft : null,
                 onTap: () => _openSession(context, (open ?? todaySessions.first).session.id),
                 child: Row(
@@ -253,18 +252,20 @@ class TodayScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(open != null ? l.workoutInProgress : l.todayWorkoutDone,
-                              style: t.titleMedium?.copyWith(
-                                  color: skin.heading, fontWeight: FontWeight.w700)),
+                              style: t.titleSmall?.copyWith(
+                                  color: skin.heading, fontWeight: FontWeight.w800)),
                           Text(
                             open != null
                                 ? l.exercisesAndSets(open.exerciseOrder.length, open.sets.length)
                                 : _sessionSummary(todaySessions.first, workout, l),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: t.bodySmall?.copyWith(color: skin.subText),
                           ),
                         ],
                       ),
                     ),
-                    const GoButton(),
+                    const RoundAction(),
                   ],
                 ),
               ),
@@ -272,26 +273,23 @@ class TodayScreen extends StatelessWidget {
             const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(
-                  child: Text(l.todayPicks,
-                      style: t.titleLarge?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-                ),
+                Expanded(child: _Heading(l.todayPicks)),
                 TextButton(
                   onPressed: () => HomeShell.of(context)?.goTo(1),
                   child: Text(l.seeAll),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             for (final s in training) _TrainingCard(suggestion: s),
-            const SizedBox(height: 10),
-            PastelCard(
+            const SizedBox(height: 12),
+            WindowCard(
+              title: l.nextMealIdeas,
+              tint: skin.accent,
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l.nextMealIdeas,
-                      style: t.titleSmall?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
                   if (mealIdeas.isEmpty)
                     Text(l.foodListEmpty, style: TextStyle(color: skin.subText))
                   else
@@ -301,7 +299,7 @@ class TodayScreen extends StatelessWidget {
                           Expanded(
                             child: Text(foodName(m.food, l),
                                 style: t.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600, color: skin.text)),
+                                    fontWeight: FontWeight.w700, color: skin.text)),
                           ),
                           Text('${m.food.kcal.round()} · P${m.food.protein.round()}',
                               style: t.bodySmall?.copyWith(color: skin.subText)),
@@ -332,7 +330,8 @@ class TodayScreen extends StatelessWidget {
     var total = 0;
     for (final s in w.sessionsOn(day)) {
       if (s.isEmpty) continue;
-      total += _sessionMinutes(s);
+      final end = s.session.endedAt ?? DateTime.now();
+      total += end.difference(s.session.startedAt).inMinutes.clamp(0, 300);
     }
     return total;
   }
@@ -340,11 +339,6 @@ class TodayScreen extends StatelessWidget {
   List<int> _weekMinutes(WorkoutState w, DateTime now) {
     final start = weekStart(now);
     return [for (var i = 0; i < 7; i++) _minutesOn(w, start.add(Duration(days: i)))];
-  }
-
-  static int _sessionMinutes(SessionDetail s) {
-    final end = s.session.endedAt ?? DateTime.now();
-    return end.difference(s.session.startedAt).inMinutes.clamp(0, 300);
   }
 
   String _sessionSummary(SessionDetail s, WorkoutState w, L l) {
@@ -370,8 +364,47 @@ class TodayScreen extends StatelessWidget {
   }
 }
 
-class _HeroPill extends StatelessWidget {
-  const _HeroPill({required this.ic, required this.text});
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: context.skin.heading,
+              fontWeight: FontWeight.w800,
+            ),
+      );
+}
+
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return InkResponse(
+      onTap: onTap,
+      radius: 26,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: skin.card,
+          shape: BoxShape.circle,
+          border: Border.all(color: skin.ink, width: 2),
+        ),
+        child: Icon(icon, size: 20, color: skin.ink),
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.ic, required this.text});
   final Ic ic;
   final String text;
 
@@ -381,16 +414,17 @@ class _HeroPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.22),
+        color: skin.buttonSoft,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: skin.ink, width: 1.6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppIcon(ic, size: 14, color: skin.buttonText),
+          AppIcon(ic, size: 14, color: skin.ink),
           const SizedBox(width: 5),
           Text(text,
-              style: TextStyle(color: skin.buttonText, fontSize: 12, fontWeight: FontWeight.w700)),
+              style: TextStyle(color: skin.ink, fontSize: 12, fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -409,7 +443,7 @@ class _WeekBars extends StatelessWidget {
     final max = minutes.fold<int>(0, (m, v) => v > m ? v : m);
     final todayIndex = today.weekday - DateTime.monday;
     return SizedBox(
-      height: 104,
+      height: 108,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -420,36 +454,38 @@ class _WeekBars extends StatelessWidget {
                 children: [
                   if (minutes[i] > 0)
                     Text('${minutes[i]}',
-                        style: TextStyle(color: skin.subText, fontSize: 10, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            color: skin.subText, fontSize: 10, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 3),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeOutCubic,
-                    width: 14,
-                    height: max == 0 ? 6 : 6 + 60 * minutes[i] / max,
+                  Container(
+                    width: 18,
+                    height: max == 0 ? 8 : 8 + 56 * minutes[i] / max,
                     decoration: BoxDecoration(
-                      color: i == todayIndex
-                          ? skin.heading
-                          : minutes[i] > 0
-                              ? skin.button
-                              : skin.divider,
-                      borderRadius: BorderRadius.circular(7),
+                      color: minutes[i] > 0
+                          ? (i == todayIndex ? skin.heading : skin.button)
+                          : skin.card,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: skin.ink, width: 1.6),
                     ),
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    width: 22,
-                    height: 22,
+                    width: 24,
+                    height: 24,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: i == todayIndex ? skin.buttonSoft : Colors.transparent,
+                      color: i == todayIndex ? skin.button : Colors.transparent,
                       shape: BoxShape.circle,
+                      border: Border.all(
+                        color: i == todayIndex ? skin.ink : Colors.transparent,
+                        width: 1.6,
+                      ),
                     ),
                     child: Text(l.weekdayHeaders[i],
                         style: TextStyle(
-                          color: i == todayIndex ? skin.heading : skin.subText,
+                          color: i == todayIndex ? skin.ink : skin.subText,
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         )),
                   ),
                 ],
@@ -478,7 +514,7 @@ class _QuickAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = context.skin;
     return PastelCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       onTap: onTap,
       child: Row(
         children: [
@@ -487,7 +523,7 @@ class _QuickAction extends StatelessWidget {
           Expanded(
             child: Text(label,
                 maxLines: 2,
-                style: TextStyle(color: skin.text, fontWeight: FontWeight.w700, fontSize: 13)),
+                style: TextStyle(color: skin.text, fontWeight: FontWeight.w800, fontSize: 13)),
           ),
         ],
       ),
@@ -504,71 +540,61 @@ class _TrainingCard extends StatelessWidget {
     final skin = context.skin;
     final l = context.l;
     final t = Theme.of(context).textTheme;
-    return PastelCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CoverThumb(ic: suggestion.group.ic, tint: suggestion.group.color, size: 46),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  suggestion.group.label(l),
-                  style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: WindowCard(
+        title: suggestion.group.label(l),
+        tint: suggestion.group.color,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final p in suggestion.plans)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(exerciseName(p.exercise, l),
+                          style: t.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700, color: skin.text)),
+                    ),
+                    Text(
+                      l.planLine(
+                        p.weightKg == 0 ? l.bodyweight : '${fmtKg(p.weightKg)}kg',
+                        p.reps,
+                        p.sets,
+                      ),
+                      style: t.bodySmall?.copyWith(
+                          color: skin.heading, fontWeight: FontWeight.w700),
+                    ),
+                  ],
                 ),
               ),
-              if (suggestion.daysSince != null)
-                Text(l.overDays(suggestion.daysSince!),
-                    style: t.bodySmall?.copyWith(color: skin.subText)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (final p in suggestion.plans)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(exerciseName(p.exercise, l),
-                        style: t.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600, color: skin.text)),
-                  ),
-                  Text(
-                    l.planLine(
-                      p.weightKg == 0 ? l.bodyweight : '${fmtKg(p.weightKg)}kg',
-                      p.reps,
-                      p.sets,
-                    ),
-                    style: t.bodySmall?.copyWith(
-                        color: skin.heading, fontWeight: FontWeight.w700),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  final w = context.read<WorkoutState>();
+                  final id = await w.startSession();
+                  for (final p in suggestion.plans) {
+                    if (w.sessionById(id)!.setsFor(p.exercise.id).isEmpty) {
+                      await w.addSet(id, p.exercise.id, weightKg: p.weightKg, reps: p.reps);
+                    }
+                  }
+                  if (context.mounted) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => SessionScreen(sessionId: id)),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: Text(l.start),
               ),
             ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () async {
-                final w = context.read<WorkoutState>();
-                final id = await w.startSession();
-                for (final p in suggestion.plans) {
-                  if (w.sessionById(id)!.setsFor(p.exercise.id).isEmpty) {
-                    await w.addSet(id, p.exercise.id, weightKg: p.weightKg, reps: p.reps);
-                  }
-                }
-                if (context.mounted) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => SessionScreen(sessionId: id)),
-                  );
-                }
-              },
-              icon: const Icon(Icons.play_arrow_rounded, size: 18),
-              label: Text(l.start),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

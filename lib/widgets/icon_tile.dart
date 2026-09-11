@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import 'app_icon.dart';
 
 /// Rounded soft-colored square with an icon inside, as used in the quick-action
@@ -23,6 +24,7 @@ class IconTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? skin.buttonSoft,
         borderRadius: BorderRadius.circular(size * 0.32),
+        border: Border.all(color: skin.ink, width: kBorderWidth),
       ),
       child: AppIcon(ic, size: size * 0.52, color: iconColor),
     );
@@ -42,8 +44,12 @@ class GoButton extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(color: skin.heading, shape: BoxShape.circle),
-      child: Icon(icon, size: size * 0.5, color: skin.buttonText),
+      decoration: BoxDecoration(
+        color: skin.button,
+        shape: BoxShape.circle,
+        border: Border.all(color: skin.ink, width: 1.6),
+      ),
+      child: Icon(icon, size: size * 0.5, color: skin.ink),
     );
   }
 }

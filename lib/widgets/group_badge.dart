@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/enums.dart';
+import '../state/app_state.dart';
 import 'app_icon.dart';
 
 class GroupBadge extends StatelessWidget {
@@ -11,15 +12,17 @@ class GroupBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final skin = context.skin;
     return Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: group.color.withValues(alpha: 0.35),
+        color: group.color,
         shape: BoxShape.circle,
+        border: Border.all(color: skin.ink, width: 1.4),
       ),
-      child: AppIcon(group.ic, size: size * 0.66),
+      child: AppIcon(group.ic, size: size * 0.62, color: skin.ink),
     );
   }
 }

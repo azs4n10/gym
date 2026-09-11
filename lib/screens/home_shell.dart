@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../widgets/grid_background.dart';
 import 'body_screen.dart';
 import 'calendar_screen.dart';
 import 'meals/meals_screen.dart';
@@ -43,7 +44,10 @@ class HomeShellState extends State<HomeShell> {
       (Icons.monitor_weight_outlined, Icons.monitor_weight_rounded, l.navBody),
       (Icons.restaurant_outlined, Icons.restaurant_rounded, l.navMeals),
     ];
-    final body = IndexedStack(index: _index, children: pages);
+    final body = GridBackground(
+      skin: skin,
+      child: IndexedStack(index: _index, children: pages),
+    );
 
     if (sideNav) {
       return Scaffold(

@@ -15,10 +15,10 @@ class UserProfile {
     this.proteinOverride,
     this.fatOverride,
     this.carbsOverride,
-    this.skinId = 'beige_rose',
+    this.skinId = 'sticker_pink',
     this.healthSync = false,
     this.lang = 'en',
-    this.font = 'standard',
+    this.font = 'rounded',
   });
 
   final String nickname;
@@ -80,6 +80,12 @@ class UserProfile {
 
   static Future<UserProfile> load() async {
     final p = await SharedPreferences.getInstance();
+    // One-time move onto the outlined sticker style.
+    if (!(p.getBool('styleV2') ?? false)) {
+      await p.setString('skinId', 'sticker_pink');
+      await p.setString('font', 'rounded');
+      await p.setBool('styleV2', true);
+    }
     return UserProfile(
       nickname: p.getString('nickname') ?? '',
       sex: Sex.parse(p.getString('sex') ?? ''),
@@ -92,10 +98,10 @@ class UserProfile {
       proteinOverride: p.getDouble('proteinOverride'),
       fatOverride: p.getDouble('fatOverride'),
       carbsOverride: p.getDouble('carbsOverride'),
-      skinId: p.getString('skinId') ?? 'beige_rose',
+      skinId: p.getString('skinId') ?? 'sticker_pink',
       healthSync: p.getBool('healthSync') ?? false,
       lang: p.getString('lang') ?? 'en',
-      font: p.getString('font') ?? 'standard',
+      font: p.getString('font') ?? 'rounded',
     );
   }
 

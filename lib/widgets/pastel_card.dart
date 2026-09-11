@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import 'app_icon.dart';
 
+/// Sticker-style surface: pastel fill, ink outline, hard offset shadow.
 class PastelCard extends StatelessWidget {
   const PastelCard({
     super.key,
@@ -11,6 +13,7 @@ class PastelCard extends StatelessWidget {
     this.color,
     this.onTap,
     this.borderColor,
+    this.radius = kCardRadius,
   });
 
   final Widget child;
@@ -18,27 +21,25 @@ class PastelCard extends StatelessWidget {
   final Color? color;
   final VoidCallback? onTap;
   final Color? borderColor;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
+    final shape = BorderRadius.circular(radius);
     final body = Padding(padding: padding, child: child);
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        color: color ?? skin.card,
+        borderRadius: shape,
+        border: Border.all(color: borderColor ?? skin.ink, width: kBorderWidth),
         boxShadow: [
-          BoxShadow(color: skin.shadow, blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: skin.shadow, blurRadius: 0, offset: const Offset(3, 4)),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Material(
-        color: color ?? skin.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: borderColor == null
-              ? BorderSide.none
-              : BorderSide(color: borderColor!, width: 2),
-        ),
-        clipBehavior: Clip.antiAlias,
+        color: Colors.transparent,
         child: onTap == null ? body : InkWell(onTap: onTap, child: body),
       ),
     );
@@ -72,7 +73,7 @@ class SectionTitle extends StatelessWidget {
               text,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: skin.heading,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
             ),
           ),
@@ -99,12 +100,15 @@ class EmptyHint extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (ic != null) AppIcon(ic!, size: 40, color: skin.subText) else Icon(icon, size: 36, color: skin.divider),
+            if (ic != null)
+              AppIcon(ic!, size: 40, color: skin.subText)
+            else
+              Icon(icon, size: 36, color: skin.divider),
             const SizedBox(height: 8),
             Text(
               text,
               textAlign: TextAlign.center,
-              style: TextStyle(color: skin.subText, fontWeight: FontWeight.w600),
+              style: TextStyle(color: skin.subText, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -155,7 +159,7 @@ class StatTile extends StatelessWidget {
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
-                  style: t.labelMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w600),
+                  style: t.labelMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w700),
                 ),
               ),
             ],

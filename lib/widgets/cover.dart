@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import 'app_icon.dart';
 
 /// Tinted panel that stands in for the photography used in the reference
@@ -16,6 +17,7 @@ class Cover extends StatelessWidget {
     this.radius = 22,
     this.iconSize,
     this.child,
+    this.outlined = true,
   });
 
   final Ic? ic;
@@ -25,13 +27,20 @@ class Cover extends StatelessWidget {
   final double radius;
   final double? iconSize;
   final Widget? child;
+  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
     final deep = Color.lerp(tint, skin.heading, 0.35)!;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
+    return Container(
+      width: width,
+      height: height,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        border: outlined ? Border.all(color: skin.ink, width: kBorderWidth) : null,
+      ),
       child: SizedBox(
         width: width,
         height: height,
@@ -101,8 +110,12 @@ class RoundAction extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(color: background ?? skin.card, shape: BoxShape.circle),
-      child: Icon(icon, size: size * 0.5, color: foreground ?? skin.heading),
+      decoration: BoxDecoration(
+        color: background ?? skin.card,
+        shape: BoxShape.circle,
+        border: Border.all(color: skin.ink, width: 1.6),
+      ),
+      child: Icon(icon, size: size * 0.5, color: foreground ?? skin.ink),
     );
   }
 }

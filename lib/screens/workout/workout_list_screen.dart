@@ -258,7 +258,19 @@ class _WideCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Cover(tint: tint, width: 132, height: 108, radius: 0, child: panel),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(left: BorderSide(color: skin.ink, width: 2)),
+                ),
+                child: Cover(
+                  tint: tint,
+                  width: 130,
+                  height: 106,
+                  radius: 0,
+                  outlined: false,
+                  child: panel,
+                ),
+              ),
             ],
           ),
         ),

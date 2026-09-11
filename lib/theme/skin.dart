@@ -15,6 +15,7 @@ class Skin {
     required this.text,
     required this.subText,
     required this.divider,
+    this.inkOverride,
     this.isDark = false,
   });
 
@@ -30,12 +31,89 @@ class Skin {
   final Color text;
   final Color subText;
   final Color divider;
+  final Color? inkOverride;
   final bool isDark;
+
+  /// Outline colour. Everything in this style is drawn with a border rather
+  /// than a blurred shadow, so one dark ink carries the whole contrast.
+  Color get ink =>
+      inkOverride ?? (isDark ? text : Color.lerp(heading, const Color(0xFF2E1F33), 0.5)!);
 
   Color get accentSoft => Color.lerp(accent, card, 0.6)!;
   Color get buttonSoft => Color.lerp(button, card, 0.7)!;
-  Color get shadow => (isDark ? Colors.black : heading).withValues(alpha: isDark ? 0.35 : 0.10);
+
+  /// Hard drop shadow sitting just below and right of an element.
+  Color get shadow => ink.withValues(alpha: isDark ? 0.55 : 0.22);
+
+  /// Faint ruling for the grid-paper background.
+  Color get grid => isDark
+      ? Colors.white.withValues(alpha: 0.05)
+      : ink.withValues(alpha: 0.07);
 }
+
+const Skin stickerPinkSkin = Skin(
+  id: 'sticker_pink',
+  name: 'Sticker Pink',
+  nameJa: 'ステッカーピンク',
+  background: Color(0xFFFDF0F5),
+  card: Color(0xFFFFFFFF),
+  heading: Color(0xFFC2547E),
+  accent: Color(0xFFC7B2EF),
+  button: Color(0xFFFBBBD3),
+  buttonText: Color(0xFF4A3550),
+  text: Color(0xFF4A3550),
+  subText: Color(0xFF9A7F9B),
+  divider: Color(0xFFF3D3E2),
+  inkOverride: Color(0xFF4A3550),
+);
+
+const Skin stickerLilacSkin = Skin(
+  id: 'sticker_lilac',
+  name: 'Sticker Lilac',
+  nameJa: 'ステッカーラベンダー',
+  background: Color(0xFFF3EEFE),
+  card: Color(0xFFFFFFFF),
+  heading: Color(0xFF7A5BB5),
+  accent: Color(0xFFFFC2DF),
+  button: Color(0xFFC9B3F5),
+  buttonText: Color(0xFF3D2C57),
+  text: Color(0xFF3D2C57),
+  subText: Color(0xFF8B7BAA),
+  divider: Color(0xFFE2D8F7),
+  inkOverride: Color(0xFF3D2C57),
+);
+
+const Skin stickerMintSkin = Skin(
+  id: 'sticker_mint',
+  name: 'Sticker Mint',
+  nameJa: 'ステッカーミント',
+  background: Color(0xFFEAF7F2),
+  card: Color(0xFFFFFFFF),
+  heading: Color(0xFF2F7F72),
+  accent: Color(0xFFFFC9A8),
+  button: Color(0xFF9EE0CE),
+  buttonText: Color(0xFF23433F),
+  text: Color(0xFF23433F),
+  subText: Color(0xFF6E958D),
+  divider: Color(0xFFD2EBE2),
+  inkOverride: Color(0xFF23433F),
+);
+
+const Skin stickerCreamSkin = Skin(
+  id: 'sticker_cream',
+  name: 'Sticker Cream',
+  nameJa: 'ステッカークリーム',
+  background: Color(0xFFFDF4E7),
+  card: Color(0xFFFFFDF8),
+  heading: Color(0xFFB5763F),
+  accent: Color(0xFFF3C3A0),
+  button: Color(0xFFF7D9A8),
+  buttonText: Color(0xFF4C3A2A),
+  text: Color(0xFF4C3A2A),
+  subText: Color(0xFF9A8168),
+  divider: Color(0xFFEEDCC3),
+  inkOverride: Color(0xFF4C3A2A),
+);
 
 const Skin beigeRoseSkin = Skin(
   id: 'beige_rose',
@@ -46,10 +124,11 @@ const Skin beigeRoseSkin = Skin(
   heading: Color(0xFF8B5A6B),
   accent: Color(0xFFD4A5A5),
   button: Color(0xFFC9A88D),
-  buttonText: Color(0xFFFFFFFF),
+  buttonText: Color(0xFF4A3038),
   text: Color(0xFF6B4858),
   subText: Color(0xFF8F7669),
   divider: Color(0xFFE8D5C4),
+  inkOverride: Color(0xFF4A3038),
 );
 
 const Skin yumekawaSkin = Skin(
@@ -61,55 +140,11 @@ const Skin yumekawaSkin = Skin(
   heading: Color(0xFFBE5A8F),
   accent: Color(0xFFC4A8E1),
   button: Color(0xFFF8A5C2),
-  buttonText: Color(0xFFFFFFFF),
-  text: Color(0xFF6B4858),
+  buttonText: Color(0xFF56304A),
+  text: Color(0xFF56304A),
   subText: Color(0xFF9C7488),
   divider: Color(0xFFF5D2E1),
-);
-
-const Skin lavenderSkin = Skin(
-  id: 'lavender',
-  name: 'Lavender Dream',
-  nameJa: 'ラベンダー',
-  background: Color(0xFFF1E8FF),
-  card: Color(0xFFFFFFFF),
-  heading: Color(0xFF8C6BB5),
-  accent: Color(0xFFFFB6D9),
-  button: Color(0xFFB69CE8),
-  buttonText: Color(0xFFFFFFFF),
-  text: Color(0xFF5E4A7A),
-  subText: Color(0xFF8672A6),
-  divider: Color(0xFFE3D6F5),
-);
-
-const Skin mintPeachSkin = Skin(
-  id: 'mint_peach',
-  name: 'Mint Peach',
-  nameJa: 'ミントピーチ',
-  background: Color(0xFFF5F9F4),
-  card: Color(0xFFFFF5EE),
-  heading: Color(0xFF5C8D89),
-  accent: Color(0xFFFFB088),
-  button: Color(0xFF88C9BF),
-  buttonText: Color(0xFFFFFFFF),
-  text: Color(0xFF4A6B68),
-  subText: Color(0xFF6F948D),
-  divider: Color(0xFFDDE8E0),
-);
-
-const Skin sugarPinkSkin = Skin(
-  id: 'sugar_pink',
-  name: 'Sugar Pink',
-  nameJa: 'シュガーピンク',
-  background: Color(0xFFFFFFFF),
-  card: Color(0xFFFFE4EC),
-  heading: Color(0xFFF472B6),
-  accent: Color(0xFFFBCFE8),
-  button: Color(0xFFEC4899),
-  buttonText: Color(0xFFFFFFFF),
-  text: Color(0xFF8B2A6B),
-  subText: Color(0xFFBB6F98),
-  divider: Color(0xFFFBCFE8),
+  inkOverride: Color(0xFF56304A),
 );
 
 const Skin nightStarSkin = Skin(
@@ -121,26 +156,11 @@ const Skin nightStarSkin = Skin(
   heading: Color(0xFFFFC0E2),
   accent: Color(0xFFB69CE8),
   button: Color(0xFFCE82B0),
-  buttonText: Color(0xFFFFFFFF),
+  buttonText: Color(0xFF241C3A),
   text: Color(0xFFF5EBE0),
   subText: Color(0xFFB8A8D0),
   divider: Color(0xFF4A4070),
-  isDark: true,
-);
-
-const Skin midnightPlumSkin = Skin(
-  id: 'midnight_plum',
-  name: 'Midnight Plum',
-  nameJa: 'ミッドナイトプラム',
-  background: Color(0xFF1E1B2E),
-  card: Color(0xFF2E2A45),
-  heading: Color(0xFFE8B7D4),
-  accent: Color(0xFFB69CE8),
-  button: Color(0xFFC98DB2),
-  buttonText: Color(0xFFFFFFFF),
-  text: Color(0xFFEDE7F5),
-  subText: Color(0xFFA89CC0),
-  divider: Color(0xFF3B3658),
+  inkOverride: Color(0xFFF0E3F5),
   isDark: true,
 );
 
@@ -153,42 +173,26 @@ const Skin cocoaNightSkin = Skin(
   heading: Color(0xFFF0C9B0),
   accent: Color(0xFFD9A299),
   button: Color(0xFFC4939A),
-  buttonText: Color(0xFFFFFFFF),
+  buttonText: Color(0xFF2B2320),
   text: Color(0xFFF0E6DE),
   subText: Color(0xFFB5A89E),
   divider: Color(0xFF4A3E3A),
-  isDark: true,
-);
-
-const Skin charcoalRoseSkin = Skin(
-  id: 'charcoal_rose',
-  name: 'Charcoal Rose',
-  nameJa: 'チャコールローズ',
-  background: Color(0xFF242022),
-  card: Color(0xFF353033),
-  heading: Color(0xFFEAB8C4),
-  accent: Color(0xFFC99AA8),
-  button: Color(0xFFC596A0),
-  buttonText: Color(0xFFFFFFFF),
-  text: Color(0xFFF0E8EC),
-  subText: Color(0xFFAEA2A8),
-  divider: Color(0xFF443D41),
+  inkOverride: Color(0xFFF3E7DD),
   isDark: true,
 );
 
 const List<Skin> allSkins = [
+  stickerPinkSkin,
+  stickerLilacSkin,
+  stickerMintSkin,
+  stickerCreamSkin,
   beigeRoseSkin,
   yumekawaSkin,
-  lavenderSkin,
-  mintPeachSkin,
-  sugarPinkSkin,
   nightStarSkin,
-  midnightPlumSkin,
   cocoaNightSkin,
-  charcoalRoseSkin,
 ];
 
-const Skin defaultSkin = beigeRoseSkin;
+const Skin defaultSkin = stickerPinkSkin;
 
 Skin skinById(String id) =>
     allSkins.firstWhere((s) => s.id == id, orElse: () => defaultSkin);
