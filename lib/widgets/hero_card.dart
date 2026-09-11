@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 
 /// Gradient card with soft decorative circles, used as the page hero.
 class HeroCard extends StatelessWidget {
@@ -22,13 +23,14 @@ class HeroCard extends StatelessWidget {
     final b = Color.lerp(skin.accent, skin.heading, 0.25)!;
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(kCardRadius),
+        border: Border.all(color: skin.ink, width: kBorderWidth),
         boxShadow: [
-          BoxShadow(color: b.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: skin.shadow, blurRadius: 0, offset: const Offset(3, 4)),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(kCardRadius - kBorderWidth),
         child: Material(
           color: Colors.transparent,
           child: Ink(

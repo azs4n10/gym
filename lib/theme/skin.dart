@@ -48,7 +48,7 @@ class Skin {
   /// Faint ruling for the grid-paper background.
   Color get grid => isDark
       ? Colors.white.withValues(alpha: 0.05)
-      : ink.withValues(alpha: 0.07);
+      : ink.withValues(alpha: 0.11);
 }
 
 const Skin stickerPinkSkin = Skin(
