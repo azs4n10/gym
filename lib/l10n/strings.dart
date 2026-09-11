@@ -162,6 +162,8 @@ abstract class L {
   String get recent;
   String get level;
   String get volume;
+  String get summary;
+  String get mood;
 
   String hi(String name);
   String get todaysProgress;
@@ -481,6 +483,11 @@ class LEn extends L {
   String get level => 'Sets';
   @override
   String get volume => 'Volume';
+
+  @override
+  String get summary => 'Summary';
+  @override
+  String get mood => 'Mood';
 
   @override
   String hi(String name) => name.isEmpty ? 'Hi there' : 'Hi, $name';
@@ -811,6 +818,11 @@ class LJa extends L {
   String get level => 'セット';
   @override
   String get volume => '総重量';
+
+  @override
+  String get summary => 'サマリー';
+  @override
+  String get mood => '気分';
 
   @override
   String hi(String name) => name.isEmpty ? 'こんにちは' : '$nameさん、こんにちは';

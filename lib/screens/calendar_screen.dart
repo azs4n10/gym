@@ -11,7 +11,9 @@ import '../state/meal_state.dart';
 import '../state/workout_state.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/hero_card.dart';
+import '../widgets/icon_tile.dart';
 import '../widgets/pastel_card.dart';
+import '../widgets/window_card.dart';
 import 'home_shell.dart';
 import 'workout/session_screen.dart';
 
@@ -73,29 +75,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          PastelCard(
+          WindowCard(
+            title: l.monthYear(_month),
             padding: const EdgeInsets.fromLTRB(10, 10, 10, 14),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleButton(
+                  icon: Icons.chevron_left_rounded,
+                  size: 24,
+                  onTap: () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
+                ),
+                const SizedBox(width: 6),
+                CircleButton(
+                  icon: Icons.chevron_right_rounded,
+                  size: 24,
+                  onTap: () => setState(() => _month = DateTime(_month.year, _month.month + 1)),
+                ),
+              ],
+            ),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left_rounded),
-                      onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
-                    ),
-                    Expanded(
-                      child: Text(
-                        l.monthYear(_month),
-                        textAlign: TextAlign.center,
-                        style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right_rounded),
-                      onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1)),
-                    ),
-                  ],
-                ),
                 Row(
                   children: [
                     for (final label in l.weekdayHeaders)
@@ -126,7 +126,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                     ],
                   ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -141,72 +141,81 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          SectionTitle(l.dateLong(_selected), ic: Ic.day),
-          if (selectedSessions.isEmpty && selectedBody == null && selectedMeals.kcal == 0)
-            EmptyHint(ic: Ic.empty, text: l.noRecords),
-          for (final s in selectedSessions)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: PastelCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => SessionScreen(sessionId: s.session.id)),
-                ),
-                child: Row(
-                  children: [
-                    const AppIcon(Ic.workout, size: 24),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _sessionLine(s, w, l),
-                        style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700),
+          WindowCard(
+            title: l.dateLong(_selected),
+            tint: skin.accent,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (selectedSessions.isEmpty && selectedBody == null && selectedMeals.kcal == 0)
+                  EmptyHint(ic: Ic.empty, text: l.noRecords),
+                for (final s in selectedSessions)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: PastelCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => SessionScreen(sessionId: s.session.id)),
                       ),
-                    ),
-                    Icon(Icons.chevron_right_rounded, color: skin.subText),
-                  ],
-                ),
-              ),
-            ),
-          if (selectedBody != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: PastelCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                onTap: () => HomeShell.of(context)?.goTo(3),
-                child: Row(
-                  children: [
-                    const AppIcon(Ic.body, size: 24),
-                    const SizedBox(width: 10),
-                    Text(
-                      l.bodyLine(selectedBody.weightKg, selectedBody.bodyFatPct),
-                      style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (selectedMeals.kcal > 0)
-            PastelCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              onTap: () => HomeShell.of(context)?.goTo(4),
-              child: Row(
-                children: [
-                  const AppIcon(Ic.meals, size: 24),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      l.macroLine(
-                        selectedMeals.kcal.round(),
-                        selectedMeals.protein.round(),
-                        selectedMeals.fat.round(),
-                        selectedMeals.carbs.round(),
+                      child: Row(
+                        children: [
+                          const AppIcon(Ic.workout, size: 24),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _sessionLine(s, w, l),
+                              style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded, color: skin.subText),
+                        ],
                       ),
-                      style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700),
                     ),
                   ),
-                ],
-              ),
+                if (selectedBody != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: PastelCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      onTap: () => HomeShell.of(context)?.goTo(3),
+                      child: Row(
+                        children: [
+                          const AppIcon(Ic.body, size: 24),
+                          const SizedBox(width: 10),
+                          Text(
+                            l.bodyLine(selectedBody.weightKg, selectedBody.bodyFatPct),
+                            style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (selectedMeals.kcal > 0)
+                  PastelCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    onTap: () => HomeShell.of(context)?.goTo(4),
+                    child: Row(
+                      children: [
+                        const AppIcon(Ic.meals, size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            l.macroLine(
+                              selectedMeals.kcal.round(),
+                              selectedMeals.protein.round(),
+                              selectedMeals.fat.round(),
+                              selectedMeals.carbs.round(),
+                            ),
+                            style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
         ),
       ),
@@ -261,12 +270,16 @@ class _DayCell extends StatelessWidget {
               height: 30,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: gym ? skin.button : Colors.transparent,
+                color: gym
+                    ? skin.button
+                    : isToday
+                        ? skin.accentSoft
+                        : Colors.transparent,
                 shape: BoxShape.circle,
                 border: isSelected
-                    ? Border.all(color: skin.heading, width: 2)
-                    : isToday
-                        ? Border.all(color: skin.accent, width: 2)
+                    ? Border.all(color: skin.ink, width: 2.4)
+                    : gym || isToday
+                        ? Border.all(color: skin.ink, width: 1.5)
                         : null,
               ),
               child: Text('${d.day}',

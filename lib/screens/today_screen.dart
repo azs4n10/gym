@@ -95,7 +95,7 @@ class TodayScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                _CircleButton(
+                CircleButton(
                   icon: Icons.settings_outlined,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -376,31 +376,6 @@ class _Heading extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
       );
-}
-
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({required this.icon, required this.onTap});
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final skin = context.skin;
-    return InkResponse(
-      onTap: onTap,
-      radius: 26,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: skin.card,
-          shape: BoxShape.circle,
-          border: Border.all(color: skin.ink, width: 2),
-        ),
-        child: Icon(icon, size: 20, color: skin.ink),
-      ),
-    );
-  }
 }
 
 class _Pill extends StatelessWidget {

@@ -12,6 +12,7 @@ import '../widgets/hero_card.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
 import '../widgets/stepper_field.dart';
+import '../widgets/window_card.dart';
 
 class BodyScreen extends StatefulWidget {
   const BodyScreen({super.key});
@@ -49,16 +50,14 @@ class _BodyScreenState extends State<BodyScreen> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         children: [
           PageHeader(l.body),
-          PastelCard(
+          WindowCard(
+            title: l.weight,
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l.weight,
-                          style: t.labelLarge?.copyWith(color: skin.subText, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 4),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
@@ -77,6 +76,7 @@ class _BodyScreenState extends State<BodyScreen> {
                           decoration: BoxDecoration(
                             color: skin.buttonSoft,
                             borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: skin.ink, width: 1.4),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -134,73 +134,122 @@ class _BodyScreenState extends State<BodyScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.trend, ic: Ic.trend,
-              trailing: SegmentedButton<int>(
-                showSelectedIcon: false,
-                style: ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  textStyle: WidgetStatePropertyAll(t.labelSmall),
+          WindowCard(
+            title: l.trend,
+            tint: skin.accent,
+            padding: const EdgeInsets.fromLTRB(8, 14, 16, 10),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    for (final r in [(30, l.d30), (90, l.d90), (365, l.y1)])
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: _RangePill(
+                          label: r.$2,
+                          selected: _rangeDays == r.$1,
+                          onTap: () => setState(() => _rangeDays = r.$1),
+                        ),
+                      ),
+                  ],
                 ),
-                segments: [
-                  ButtonSegment(value: 30, label: Text(l.d30)),
-                  ButtonSegment(value: 90, label: Text(l.d90)),
-                  ButtonSegment(value: 365, label: Text(l.y1)),
-                ],
-                selected: {_rangeDays},
-                onSelectionChanged: (s) => setState(() => _rangeDays = s.first),
-              )),
-          PastelCard(
-            padding: const EdgeInsets.fromLTRB(8, 18, 18, 10),
-            child: SizedBox(
-              height: 220,
-              child: series.length < 2
-                  ? EmptyHint(ic: Ic.trend, text: l.chartHint)
-                  : _WeightChart(series: series, rangeDays: _rangeDays),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 220,
+                  child: series.length < 2
+                      ? EmptyHint(ic: Ic.trend, text: l.chartHint)
+                      : _WeightChart(series: series, rangeDays: _rangeDays),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.history, ic: Ic.history),
-          if (body.logs.isEmpty)
-            EmptyHint(ic: Ic.empty, text: l.noRecords)
-          else
-            for (final log in body.logs.take(60))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: PastelCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  onTap: () => showBodyLogSheet(context, existing: log),
-                  child: Row(
+          WindowCard(
+            title: l.history,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: body.logs.isEmpty
+                ? EmptyHint(ic: Ic.empty, text: l.noRecords)
+                : Column(
                     children: [
-                      SizedBox(
-                        width: 76,
-                        child: Text(l.dateWithWeekday(log.date),
-                            style: t.bodyMedium?.copyWith(
-                                color: skin.subText, fontWeight: FontWeight.w700)),
-                      ),
-                      Text('${fmtKg(log.weightKg)} kg',
-                          style: t.bodyLarge?.copyWith(
-                              color: skin.heading, fontWeight: FontWeight.w900)),
-                      const SizedBox(width: 12),
-                      if (log.bodyFatPct != null)
-                        Text('${fmtKg(log.bodyFatPct!)} %',
-                            style: t.bodyMedium?.copyWith(color: skin.text)),
-                      const Spacer(),
-                      if (log.note.isNotEmpty)
-                        Flexible(
-                          child: Text(log.note,
-                              overflow: TextOverflow.ellipsis,
-                              style: t.bodySmall?.copyWith(color: skin.subText)),
-                        ),
-                      if (log.healthSynced)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: Icon(Icons.favorite_rounded, size: 14, color: skin.accent),
+                      for (final log in body.logs.take(60))
+                        InkWell(
+                          onTap: () => showBodyLogSheet(context, existing: log),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                            decoration: BoxDecoration(
+                              border: log == body.logs.last
+                                  ? null
+                                  : Border(bottom: BorderSide(color: skin.divider, width: 1.5)),
+                            ),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 76,
+                                  child: Text(l.dateWithWeekday(log.date),
+                                      style: t.bodyMedium?.copyWith(
+                                          color: skin.subText, fontWeight: FontWeight.w700)),
+                                ),
+                                Text('${fmtKg(log.weightKg)} kg',
+                                    style: t.bodyLarge?.copyWith(
+                                        color: skin.heading, fontWeight: FontWeight.w900)),
+                                const SizedBox(width: 12),
+                                if (log.bodyFatPct != null)
+                                  Text('${fmtKg(log.bodyFatPct!)} %',
+                                      style: t.bodyMedium?.copyWith(color: skin.text)),
+                                const Spacer(),
+                                if (log.note.isNotEmpty)
+                                  Flexible(
+                                    child: Text(log.note,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: t.bodySmall?.copyWith(color: skin.subText)),
+                                  ),
+                                if (log.healthSynced)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 6),
+                                    child: AppIcon(Ic.health, size: 14, color: skin.accent),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ),
                     ],
                   ),
-                ),
-              ),
+          ),
         ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small outlined pill used for the chart range switch.
+class _RangePill extends StatelessWidget {
+  const _RangePill({required this.label, required this.selected, required this.onTap});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? skin.button : skin.card,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: skin.ink, width: 1.6),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: skin.ink,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+          ),
         ),
       ),
     );

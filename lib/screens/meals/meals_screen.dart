@@ -12,10 +12,13 @@ import '../../state/app_state.dart';
 import '../../theme/skin.dart';
 import '../../state/body_state.dart';
 import '../../state/meal_state.dart';
+import '../../widgets/app_icon.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/hero_card.dart';
+import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/ring_progress.dart';
+import '../../widgets/window_card.dart';
 import 'food_picker_screen.dart';
 
 class MealsScreen extends StatefulWidget {
@@ -48,7 +51,6 @@ class _MealsScreenState extends State<MealsScreen> {
     );
     final isToday = _day == dayOf(DateTime.now());
     final ratio = target.kcal == 0 ? 0.0 : (eaten.kcal / target.kcal).clamp(0.0, 1.0);
-    final onHero = skin.buttonText;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -68,61 +70,69 @@ class _MealsScreenState extends State<MealsScreen> {
           PageHeader(
             isToday ? l.todayMeals : l.dateLong(_day),
             actions: [
-              IconButton(
-                icon: Icon(Icons.chevron_left_rounded, color: skin.heading),
-                onPressed: () => setState(() => _day = _day.subtract(const Duration(days: 1))),
+              CircleButton(
+                icon: Icons.chevron_left_rounded,
+                size: 34,
+                onTap: () => setState(() => _day = _day.subtract(const Duration(days: 1))),
               ),
-              IconButton(
-                icon: Icon(Icons.chevron_right_rounded, color: skin.heading),
-                onPressed: isToday ? null : () => setState(() => _day = _day.add(const Duration(days: 1))),
+              const SizedBox(width: 8),
+              CircleButton(
+                icon: Icons.chevron_right_rounded,
+                size: 34,
+                onTap: isToday ? null : () => setState(() => _day = _day.add(const Duration(days: 1))),
               ),
+              const SizedBox(width: 12),
             ],
           ),
-          HeroCard(
+          WindowCard(
+            title: l.calorieGoal,
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l.calorieGoal,
-                    style: t.labelLarge?.copyWith(
-                        color: onHero.withValues(alpha: 0.85), fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text('${eaten.kcal.round()}',
                         style: t.displayMedium?.copyWith(
-                            color: onHero, fontWeight: FontWeight.w800, height: 1)),
+                            color: skin.heading, fontWeight: FontWeight.w800, height: 1)),
                     const SizedBox(width: 6),
                     Text('/ ${target.kcal.round()} kcal',
-                        style: t.titleSmall?.copyWith(color: onHero.withValues(alpha: 0.85))),
+                        style: t.titleSmall?.copyWith(color: skin.subText)),
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.22),
+                        color: remain.kcal >= 0 ? skin.buttonSoft : skin.accentSoft,
                         borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: skin.ink, width: 1.4),
                       ),
                       child: Text(
                         remain.kcal >= 0
                             ? l.kcalLeft(remain.kcal.round())
                             : l.kcalOver((-remain.kcal).round()),
-                        style: TextStyle(color: onHero, fontSize: 12, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: skin.ink, fontSize: 12, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                Container(
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: skin.background,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: skin.ink, width: 1.6),
+                  ),
+                  clipBehavior: Clip.antiAlias,
                   child: TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: ratio),
                     duration: const Duration(milliseconds: 500),
-                    builder: (_, v, _) => LinearProgressIndicator(
-                      value: v,
-                      minHeight: 10,
-                      backgroundColor: Colors.white.withValues(alpha: 0.25),
-                      color: onHero,
+                    builder: (_, v, _) => FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: v,
+                      child: DecoratedBox(decoration: BoxDecoration(color: skin.button)),
                     ),
                   ),
                 ),
@@ -140,20 +150,17 @@ class _MealsScreenState extends State<MealsScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          Text(l.meals,
-              style: t.titleLarge?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
+          SectionTitle(l.meals, ic: Ic.meals),
           for (final slot in MealSlot.values)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _SlotCard(day: _day, slot: slot, detail: meal.mealFor(_day, slot)),
             ),
           const SizedBox(height: 12),
-          Text(l.ideas,
-              style: t.titleLarge?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          PastelCard(
-            padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
+          WindowCard(
+            title: l.ideas,
+            tint: skin.accent,
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
             child: Column(
               children: [
                 for (final m in ideas)
@@ -162,14 +169,16 @@ class _MealsScreenState extends State<MealsScreen> {
                       Expanded(
                         child: Text(foodName(m.food, l),
                             style: t.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600, color: skin.text)),
+                                fontWeight: FontWeight.w700, color: skin.text)),
                       ),
                       Text('${m.food.kcal.round()} · P${m.food.protein.round()}',
                           style: t.bodySmall?.copyWith(color: skin.subText)),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        icon: Icon(Icons.add_circle_rounded, color: skin.heading),
-                        onPressed: () => meal.addFood(_day, MealSlot.forNow(), m.food, 1),
+                      const SizedBox(width: 8),
+                      CircleButton(
+                        icon: Icons.add_rounded,
+                        size: 28,
+                        background: skin.button,
+                        onTap: () => meal.addFood(_day, MealSlot.forNow(), m.food, 1),
                       ),
                     ],
                   ),
@@ -286,15 +295,14 @@ class _SlotCard extends StatelessWidget {
                 ),
               ),
               if (d != null && canSync)
-                IconButton(
-                  tooltip: d.meal.healthSynced ? l.synced : l.sync,
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(
-                    d.meal.healthSynced ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: skin.accent,
-                    size: 20,
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: CircleButton(
+                    icon: Icons.favorite_rounded,
+                    size: 28,
+                    background: d.meal.healthSynced ? skin.accent : skin.card,
+                    onTap: d.meal.healthSynced ? null : () => meal.syncMealToHealth(d),
                   ),
-                  onPressed: d.meal.healthSynced ? null : () => meal.syncMealToHealth(d),
                 ),
               RoundAction(
                 icon: d == null ? Icons.add_rounded : Icons.check_rounded,

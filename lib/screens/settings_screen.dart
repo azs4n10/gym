@@ -7,9 +7,9 @@ import '../services/nutrition.dart';
 import '../state/app_state.dart';
 import '../state/body_state.dart';
 import '../theme/skin.dart';
-import '../widgets/app_icon.dart';
-import '../widgets/pastel_card.dart';
+import '../widgets/grid_background.dart';
 import '../widgets/stepper_field.dart';
+import '../widgets/window_card.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -51,11 +51,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.settings)),
-      body: ListView(
+      body: GridBackground(
+        skin: skin,
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
         children: [
-          SectionTitle(l.language, ic: Ic.language),
-          PastelCard(
+          WindowCard(
+            title: l.language,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             child: SegmentedButton<String>(
               showSelectedIcon: false,
@@ -68,8 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.profile, ic: Ic.profile),
-          PastelCard(
+          WindowCard(
+            title: l.profile,
+            tint: skin.accent,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -101,8 +104,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.goal, ic: Ic.goal),
-          PastelCard(
+          WindowCard(
+            title: l.goal,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -142,8 +145,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.targets, ic: Ic.targets),
-          PastelCard(
+          WindowCard(
+            title: l.targets,
+            tint: skin.accent,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -192,8 +196,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.theme, ic: Ic.theme),
-          PastelCard(
+          WindowCard(
+            title: l.theme,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -219,8 +223,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SectionTitle(l.health, ic: Ic.health),
-          PastelCard(
+          WindowCard(
+            title: l.health,
+            tint: skin.accent,
             child: SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(health.isSupported ? health.platformName(l) : l.healthNotSupported),
@@ -244,6 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 14),
           Text(l.foodDisclaimer, style: t.bodySmall?.copyWith(color: skin.subText)),
         ],
+        ),
       ),
     );
   }
@@ -271,8 +277,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final skin = context.skin;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: skin.buttonSoft, borderRadius: BorderRadius.circular(999)),
-      child: Text(text, style: TextStyle(color: skin.heading, fontWeight: FontWeight.w700)),
+      decoration: BoxDecoration(
+        color: skin.buttonSoft,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: skin.ink, width: 1.4),
+      ),
+      child: Text(text, style: TextStyle(color: skin.ink, fontWeight: FontWeight.w800)),
     );
   }
 }
@@ -295,10 +305,10 @@ class _SkinSwatch extends StatelessWidget {
         decoration: BoxDecoration(
           color: skin.background,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? current.heading : current.divider,
-            width: selected ? 3 : 1,
-          ),
+          border: Border.all(color: current.ink, width: selected ? 3 : 1.6),
+          boxShadow: selected
+              ? [BoxShadow(color: current.shadow, blurRadius: 0, offset: const Offset(3, 4))]
+              : null,
         ),
         child: Column(
           children: [
@@ -324,6 +334,10 @@ class _SkinSwatch extends StatelessWidget {
         width: 18,
         height: 18,
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: c,
+          shape: BoxShape.circle,
+          border: Border.all(color: skin.ink, width: 1.2),
+        ),
       );
 }

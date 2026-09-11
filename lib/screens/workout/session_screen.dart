@@ -13,10 +13,13 @@ import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/cardio_sheet.dart';
+import '../../widgets/grid_background.dart';
 import '../../widgets/group_badge.dart';
+import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/ring_progress.dart';
 import '../../widgets/stepper_field.dart';
+import '../../widgets/window_card.dart';
 import 'exercise_picker_screen.dart';
 
 class SessionScreen extends StatefulWidget {
@@ -82,12 +85,15 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-        children: [
+      body: GridBackground(
+        skin: skin,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+          children: [
           _SessionHero(detail: d, isOpen: isOpen),
           const SizedBox(height: 14),
-          PastelCard(
+          WindowCard(
+            title: l.summary,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             child: Row(
               children: [
@@ -184,6 +190,7 @@ class _SessionScreenState extends State<SessionScreen> {
           ],
           _MetaCard(detail: d, editable: isOpen),
         ],
+        ),
       ),
       bottomNavigationBar: isOpen
           ? SafeArea(
@@ -264,20 +271,17 @@ class _ExerciseBlock extends StatelessWidget {
     final best = w.bestWeightFor(ex.id);
     final group = MuscleGroup.parse(ex.muscleGroup);
 
-    return PastelCard(
-      padding: const EdgeInsets.fromLTRB(18, 14, 12, 12),
+    return WindowCard(
+      title: exerciseName(ex, l),
+      tint: group.color,
+      padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               GroupBadge(group),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(exerciseName(ex, l),
-                    style: t.titleMedium?.copyWith(
-                        color: skin.heading, fontWeight: FontWeight.w800)),
-              ),
+              const SizedBox(width: 10),
               RingProgress(
                 value: (sets.length / 3).clamp(0.0, 1.0),
                 color: skin.button,
@@ -287,12 +291,12 @@ class _ExerciseBlock extends StatelessWidget {
                 child: Text('${sets.length}',
                     style: TextStyle(color: skin.heading, fontWeight: FontWeight.w800, fontSize: 13)),
               ),
-              const SizedBox(width: 4),
+              const Spacer(),
               if (editable)
-                IconButton(
-                  tooltip: l.removeExercise,
-                  icon: Icon(Icons.close_rounded, color: skin.subText),
-                  onPressed: () => w.removeExerciseFromSession(detail.session.id, ex.id),
+                CircleButton(
+                  icon: Icons.close_rounded,
+                  size: 28,
+                  onTap: () => w.removeExerciseFromSession(detail.session.id, ex.id),
                 ),
             ],
           ),
@@ -417,7 +421,9 @@ class _MetaCardState extends State<_MetaCard> {
     if (!widget.editable && mood == null && widget.detail.session.note.isEmpty) {
       return const SizedBox.shrink();
     }
-    return PastelCard(
+    return WindowCard(
+      title: l.mood,
+      tint: skin.accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -433,8 +439,9 @@ class _MetaCardState extends State<_MetaCard> {
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: mood == i ? skin.buttonSoft : Colors.transparent,
+                      color: mood == i ? skin.button : Colors.transparent,
                       shape: BoxShape.circle,
+                      border: mood == i ? Border.all(color: skin.ink, width: 1.6) : null,
                     ),
                     child: AppIcon(moodIc(i),
                         size: mood == i ? 32 : 26,

@@ -11,6 +11,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/cardio_sheet.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/group_badge.dart';
+import '../../widgets/icon_tile.dart';
 import '../../widgets/hero_card.dart';
 import '../../widgets/pastel_card.dart';
 import 'exercise_picker_screen.dart';
@@ -69,20 +70,22 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
         child: Column(
           children: [
             PageHeader(l.workouts, actions: [
-              IconButton(
-                tooltip: l.history,
-                icon: Icon(Icons.history_rounded, color: skin.heading),
-                onPressed: () => Navigator.of(context).push(
+              CircleButton(
+                icon: Icons.history_rounded,
+                size: 36,
+                onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const HistoryScreen()),
                 ),
               ),
-              IconButton(
-                tooltip: l.exerciseList,
-                icon: Icon(Icons.edit_note_rounded, color: skin.heading),
-                onPressed: () => Navigator.of(context).push(
+              const SizedBox(width: 8),
+              CircleButton(
+                icon: Icons.edit_note_rounded,
+                size: 36,
+                onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ExercisePickerScreen(manageOnly: true)),
                 ),
               ),
+              const SizedBox(width: 12),
             ]),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
