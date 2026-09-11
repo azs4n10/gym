@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#F5EBE0",
     "theme_color": "#F5EBE0",
-    "description": "ワークアウトとごはんの記録",
+    "description": "Workout, body and meal log",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [

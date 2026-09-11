@@ -67,8 +67,8 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSHealthShareUsageDescription</key>
-	<string>ヘルスケアのデータを読み取って、歩数などを表示します</string>
+	<string>Reads Health data so the app can show figures such as your step count.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>トレーニング・体重・食事の記録をヘルスケアに保存します</string>
+	<string>Saves your workouts, weight and meals to Health.</string>
 </dict>
 </plist>

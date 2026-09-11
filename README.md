@@ -1,69 +1,71 @@
 # gym
 
-ジムのワークアウト・有酸素・体重・食事を端末内に記録する Flutter アプリ。配色は flipclock と同じ Beige Rose を既定にした、やわらかいパステル調。UI は英語が既定で、設定から日本語に切り替えられる。
+A Flutter app that keeps strength training, cardio, body measurements and meals on the device. The palette is the same soft Beige Rose used by flipclock. The interface is English by default and can switch to Japanese in settings.
 
-## できること
+Live: https://azs4n10.github.io/gym/
 
-- **トレーニング記録**: 種目 × 重量 × 回数 × セット。前回の記録と自己ベストを見ながら入力。有酸素（種類・時間・距離・消費kcal）も同じセッションに追加できる
-- **カレンダー**: ジムに行った日にスタンプ、食事・体重を記録した日にドット。連続日数・週連続達成・今月の回数
-- **からだ**: 体重・体脂肪率の記録と 30日/90日/1年 の推移グラフ、7日平均
-- **ごはん**: 朝・昼・夜・間食ごとにカロリーと PFC を記録。目標は身長・体重・年齢・活動量から Mifflin-St Jeor 式で算出（手動上書き可）
-- **おすすめ**: 最近鍛えていない部位と、前回の実績に応じた重量・回数の提案（全セット10回達成なら +2.5kg、脚は +5kg）。食事は残りの PFC に合う食品を提案
-- **ヘルスケア連携**: iOS は Apple ヘルスケア、Android は Health Connect に、トレーニング・体重・食事を書き込む（`health` パッケージ）。Web では無効
-- **きせかえ**: flipclock 由来の 9 スキン（Beige Rose / Yumekawa / Lavender / Mint Peach / Sugar Pink / Night Star / Midnight Plum / Cocoa Night / Charcoal Rose）
+## Features
 
-## 構成
+- **Strength log**: exercise × weight × reps × sets, with the previous session and the personal best shown while you type. Cardio (type, duration, distance, calories) goes into the same session.
+- **Calendar**: gym days are filled in, meal and body days get a dot. Day streak, weekly-goal streak and monthly count.
+- **Body**: weight and body fat with a 30-day / 90-day / 1-year trend chart and a 7-day average.
+- **Meals**: calories and macros per breakfast, lunch, dinner and snack. Targets come from height, weight, age and activity level via Mifflin-St Jeor, and can be overridden by hand.
+- **Suggestions**: the muscle group you have trained least recently, plus weight and reps based on the last session (+2.5 kg when every set hit 10 reps, +5 kg for lower body). Meals are suggested from the macros you still have left.
+- **Health sync**: workouts, weight and meals are written to Apple Health on iOS and Health Connect on Android through the `health` package. Disabled on the web.
+- **Themes**: nine skins carried over from flipclock (Beige Rose, Yumekawa, Lavender, Mint Peach, Sugar Pink, Night Star, Midnight Plum, Cocoa Night, Charcoal Rose).
+
+## Layout
 
 ```
 lib/
-  main.dart              起動・Provider 配線・幅広画面では 480px にセンタリング
-  l10n/strings.dart      UI 文言（en / ja）
-  theme/                 Skin 定義と ThemeData
-  models/                enum 群と UserProfile（shared_preferences）
-  data/database.dart     drift のテーブル定義（sqlite）
-  data/seed/             種目・食品の初期データ（英語名 + 日本語表示用の対応表）
+  main.dart              startup, provider wiring, centred column on wide screens
+  l10n/strings.dart      interface strings (en / ja)
+  theme/                 Skin definitions and ThemeData
+  models/                enums and UserProfile (shared_preferences)
+  data/database.dart     drift table definitions (sqlite)
+  data/seed/             built-in exercises and foods (English names + Japanese display map)
   state/                 WorkoutState / BodyState / MealState / AppState
-  services/              栄養計算・連続記録・提案ロジック・ヘルスケア連携
-  screens/               ホーム / トレ / カレンダー / からだ / ごはん / 設定
-  widgets/               カード・リング・ステッパー入力
+  services/              nutrition maths, streaks, suggestions, health sync
+  screens/               home / workouts / calendar / body / meals / settings
+  widgets/               cards, rings, stepper inputs, icons
 ```
 
-## 開発
+## Development
 
 ```
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs   # スキーマ変更時のみ
+dart run build_runner build --delete-conflicting-outputs   # only after a schema change
 flutter run -d chrome
 flutter test
 ```
 
-Web では `web/sqlite3.wasm` と `web/drift_worker.js` を使って sqlite を動かす（drift 公式リリースから取得したもの）。
+On the web, sqlite runs through `web/sqlite3.wasm` and `web/drift_worker.js`, both taken from the official drift releases.
 
-## iPhone / iPad で使う（GitHub Pages）
+## iPhone / iPad (GitHub Pages)
 
-ネイティブアプリではなく Web アプリとして公開し、Safari の「ホーム画面に追加」で使う。縦横どちらの向きにも対応していて、横向きのときはタブが左のレールに移る。
+The app ships as a web app rather than a native build, and is meant to be added to the home screen from Safari. Both orientations are supported; in landscape the tab bar moves to a rail on the left.
 
-1. このフォルダを単独のリポジトリにして GitHub に push する（リポジトリ名は何でもよい。`--base-href` はワークフローがリポジトリ名から自動で決める）
+1. Make this folder its own repository and push it. The repository name does not matter — the workflow derives `--base-href` from it.
    ```
    git init && git add -A && git commit -m "Initial commit"
    gh repo create gym --private --source=. --push
    ```
-2. GitHub のリポジトリ設定 → Pages → Source を「GitHub Actions」にする
-3. `main` に push するたびに `.github/workflows/deploy.yml` がテスト・ビルド・デプロイまで行う。URL は `https://<ユーザー名>.github.io/<リポジトリ名>/`
-4. iPhone / iPad の Safari でその URL を開き、共有メニューから「ホーム画面に追加」
+2. In the repository settings, set Pages → Source to "GitHub Actions".
+3. Every push to `main` runs `.github/workflows/deploy.yml`, which tests, builds and deploys. The URL is `https://<user>.github.io/<repo>/`.
+4. Open that URL in Safari on the iPhone or iPad and choose "Add to Home Screen" from the share menu.
 
-GitHub Actions が使えない場合は、Pages の Source を「Deploy from a branch → gh-pages」にして、手元から `tool/deploy_pages.sh` を実行する（ビルドして gh-pages ブランチへ push し、Pages のビルドを要求する）。Windows の Git Bash では `--base-href /gym/` がドライブパスに変換されてしまうので、スクリプト内で `MSYS_NO_PATHCONV=1` を立てている。
+If GitHub Actions is unavailable, set Pages → Source to "Deploy from a branch → gh-pages" and run `tool/deploy_pages.sh` locally. It builds, pushes to the `gh-pages` branch and requests a Pages build. Git Bash on Windows rewrites `--base-href /gym/` into a drive path, so the script sets `MSYS_NO_PATHCONV=1`.
 
-現在の公開先: https://azs4n10.github.io/gym/
+Builds use `--pwa-strategy=none`, and `web/flutter_service_worker.js` is a kill switch that unregisters the service worker installed by earlier builds, so an updated deploy reaches devices on the next load.
 
-データは端末のブラウザ内（IndexedDB）に保存される。Safari のサイトデータを消すと記録も消えるので注意。
+Records live in the browser's IndexedDB on the device. Clearing Safari's site data clears them too.
 
-## アイコン
+## Icons
 
-絵文字は使わない。装飾アイコンは [Phosphor Icons](https://phosphoricons.com/)（MIT License）の duotone フォント `assets/fonts/Phosphor-Duotone.ttf` を同梱し、テーマの色で 2 層に塗って表示している（`lib/widgets/app_icon.dart` の `Ic` と `AppIcon`）。追加するときは Phosphor の duotone グリフのコードポイント（主・副の 2 つ）を `Ic` に登録する。pub の `phosphor_flutter` は Flutter 3.44 でコンパイルできないため使っていない。
+No emoji anywhere. Decorative icons come from [Phosphor Icons](https://phosphoricons.com/) (MIT License): the duotone font `assets/fonts/Phosphor-Duotone.ttf` is bundled and drawn in two layers tinted by the current skin (`Ic` and `AppIcon` in `lib/widgets/app_icon.dart`). To add one, register the two duotone code points (primary and secondary) in `Ic`. The `phosphor_flutter` package is not used because it does not compile on Flutter 3.44.
 
-## 注意
+## Notes
 
-- 食品リストの栄養値は 1 食分の目安。パッケージ表示がある場合はそちらを優先して自分で入力したものに置き換える前提
-- Android のヘルスケア連携は Health Connect アプリが必要。`minSdk 26`、`FlutterFragmentActivity`、Manifest の権限は設定済み
-- iOS は HealthKit の Capability を Xcode 側で有効にする必要がある（Info.plist の説明文は追加済み）。Windows では iOS ビルド不可
+- Nutrition values in the built-in food list are per-serving estimates. Prefer the package label and replace them with your own entries.
+- Health sync on Android needs the Health Connect app. `minSdk 26`, `FlutterFragmentActivity` and the manifest permissions are already configured.
+- On iOS the HealthKit capability still has to be enabled in Xcode; the Info.plist descriptions are in place. iOS builds are not possible on Windows.
