@@ -9,11 +9,13 @@ import '../../services/health_sync.dart';
 import '../../services/nutrition.dart';
 import '../../services/suggestions.dart';
 import '../../state/app_state.dart';
+import '../../theme/skin.dart';
 import '../../state/body_state.dart';
 import '../../state/meal_state.dart';
+import '../../widgets/cover.dart';
 import '../../widgets/hero_card.dart';
-import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
+import '../../widgets/ring_progress.dart';
 import 'food_picker_screen.dart';
 
 class MealsScreen extends StatefulWidget {
@@ -206,22 +208,24 @@ class _MacroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: t.labelMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
+          Text(label,
+              style: t.labelMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
           Text('${value.round()}g',
               style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
+          const SizedBox(height: 10),
+          Center(
+            child: RingProgress(
               value: target <= 0 ? 0 : (value / target).clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor: skin.divider,
               color: color,
+              trackColor: skin.divider,
+              size: 48,
+              stroke: 5,
+              child: Text('$pct%',
+                  style: TextStyle(
+                      color: skin.subText, fontSize: 11, fontWeight: FontWeight.w800)),
             ),
           ),
-          const SizedBox(height: 4),
-          Text('$pct%', style: t.labelSmall?.copyWith(color: skin.subText)),
         ],
       ),
     );
@@ -255,29 +259,32 @@ class _SlotCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              IconTile(slot.ic, size: 44, color: skin.accentSoft),
+              CoverThumb(ic: slot.ic, tint: _slotTint(skin, slot), size: 58),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(slot.label(l),
-                        style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w700)),
+                        style: t.labelSmall
+                            ?.copyWith(color: skin.subText, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
                     Text(
                       d == null
-                          ? '—'
+                          ? l.noRecords
                           : d.items.map((i) => foodNameByStored(i.name, l)).join(', '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: t.bodySmall?.copyWith(color: skin.subText),
+                      style: t.bodyLarge?.copyWith(
+                          color: d == null ? skin.subText : skin.text,
+                          fontWeight: FontWeight.w700),
                     ),
+                    if (d != null)
+                      Text('${totals.kcal.round()} kcal',
+                          style: t.bodySmall?.copyWith(color: skin.subText)),
                   ],
                 ),
               ),
-              if (d != null)
-                Text('${totals.kcal.round()} kcal',
-                    style: t.bodyMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),
-              const SizedBox(width: 6),
               if (d != null && canSync)
                 IconButton(
                   tooltip: d.meal.healthSynced ? l.synced : l.sync,
@@ -289,9 +296,10 @@ class _SlotCard extends StatelessWidget {
                   ),
                   onPressed: d.meal.healthSynced ? null : () => meal.syncMealToHealth(d),
                 ),
-              Icon(
-                d == null ? Icons.add_circle_outline_rounded : Icons.check_circle_rounded,
-                color: d == null ? skin.subText : skin.button,
+              RoundAction(
+                icon: d == null ? Icons.add_rounded : Icons.check_rounded,
+                background: d == null ? skin.divider : skin.button,
+                foreground: d == null ? skin.subText : skin.buttonText,
               ),
             ],
           ),
@@ -338,3 +346,10 @@ class _SlotCard extends StatelessWidget {
     );
   }
 }
+
+Color _slotTint(Skin skin, MealSlot slot) => switch (slot) {
+      MealSlot.breakfast => skin.accent,
+      MealSlot.lunch => skin.button,
+      MealSlot.dinner => skin.heading,
+      MealSlot.snack => Color.lerp(skin.accent, skin.button, 0.5)!,
+    };

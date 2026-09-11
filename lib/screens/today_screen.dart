@@ -13,7 +13,7 @@ import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
 import '../widgets/app_icon.dart';
-import '../widgets/group_badge.dart';
+import '../widgets/cover.dart';
 import '../widgets/hero_card.dart';
 import '../widgets/icon_tile.dart';
 import '../widgets/pastel_card.dart';
@@ -510,7 +510,7 @@ class _TrainingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              GroupBadge(suggestion.group, size: 32),
+              CoverThumb(ic: suggestion.group.ic, tint: suggestion.group.color, size: 46),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

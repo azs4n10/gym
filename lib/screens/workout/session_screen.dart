@@ -11,6 +11,7 @@ import '../../services/health_sync.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/cover.dart';
 import '../../widgets/cardio_sheet.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/pastel_card.dart';
@@ -84,26 +85,29 @@ class _SessionScreenState extends State<SessionScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
         children: [
-          Row(
-            children: [
-              Icon(Icons.schedule_rounded, size: 18, color: skin.subText),
-              const SizedBox(width: 4),
-              Text(
-                l.minutes(minutes),
-                style: t.bodyMedium?.copyWith(color: skin.subText, fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              if (d.sets.isNotEmpty) ...[
-                Icon(Icons.fitness_center_rounded, size: 16, color: skin.heading),
-                const SizedBox(width: 4),
-                Text(
-                  l.totalVolume(d.volumeKg.round()),
-                  style: t.bodyMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w700),
-                ),
+          _SessionHero(detail: d, isOpen: isOpen),
+          const SizedBox(height: 14),
+          PastelCard(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              children: [
+                Expanded(child: MetricColumn(label: l.duration, value: l.minutes(minutes))),
+                const _MetricDivider(),
+                Expanded(
+                    child: MetricColumn(label: l.volume, value: '${d.volumeKg.round()} kg')),
+                const _MetricDivider(),
+                Expanded(child: MetricColumn(label: l.level, value: '${d.sets.length}')),
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 18),
+          if (d.exerciseOrder.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+              child: Text(l.exerciseList,
+                  style: t.titleMedium
+                      ?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+            ),
           for (final exId in d.exerciseOrder)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -451,6 +455,76 @@ class _MetaCardState extends State<_MetaCard> {
             Text(widget.detail.session.note, style: TextStyle(color: skin.text)),
         ],
       ),
+    );
+  }
+}
+
+class _MetricDivider extends StatelessWidget {
+  const _MetricDivider();
+
+  @override
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 34, color: context.skin.divider);
+}
+
+/// Cover block at the top of a session, standing in for the photo used on the
+/// reference detail screen.
+class _SessionHero extends StatelessWidget {
+  const _SessionHero({required this.detail, required this.isOpen});
+
+  final SessionDetail detail;
+  final bool isOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final l = context.l;
+    final w = context.read<WorkoutState>();
+    final t = Theme.of(context).textTheme;
+
+    final groups = <MuscleGroup>[];
+    for (final id in detail.exerciseOrder) {
+      final e = w.exerciseById(id);
+      final g = e == null ? null : MuscleGroup.parse(e.muscleGroup);
+      if (g != null && !groups.contains(g)) groups.add(g);
+    }
+    final lead = groups.isEmpty ? null : groups.first;
+    final tint = lead?.color ?? skin.accent;
+    final ic = lead?.ic ?? (detail.cardio.isEmpty ? Ic.workout : Ic.cardio);
+    final title = groups.isEmpty
+        ? (detail.cardio.isEmpty ? l.workouts : l.cardio)
+        : groups.map((g) => g.label(l)).join(' · ');
+
+    return Stack(
+      children: [
+        Cover(ic: ic, tint: tint, width: double.infinity, height: 168, radius: 26, iconScale: 0.9),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 18,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(isOpen ? l.workoutInProgress : l.dateLong(detail.session.startedAt),
+                    style: TextStyle(
+                        color: skin.buttonText, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 8),
+              Text(title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.headlineSmall
+                      ?.copyWith(color: skin.buttonText, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

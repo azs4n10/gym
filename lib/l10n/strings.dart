@@ -158,6 +158,10 @@ abstract class L {
   String get permissionDenied;
   String get foodDisclaimer;
   String get language;
+  String get sort;
+  String get recent;
+  String get level;
+  String get volume;
 
   String hi(String name);
   String get todaysProgress;
@@ -469,6 +473,14 @@ class LEn extends L {
   String get foodDisclaimer => 'Food values are estimates.';
   @override
   String get language => 'Language';
+  @override
+  String get sort => 'Sort';
+  @override
+  String get recent => 'Recent';
+  @override
+  String get level => 'Sets';
+  @override
+  String get volume => 'Volume';
 
   @override
   String hi(String name) => name.isEmpty ? 'Hi there' : 'Hi, $name';
@@ -791,6 +803,14 @@ class LJa extends L {
   String get foodDisclaimer => '食品の栄養値は目安です。';
   @override
   String get language => '言語';
+  @override
+  String get sort => '並び替え';
+  @override
+  String get recent => '最近';
+  @override
+  String get level => 'セット';
+  @override
+  String get volume => '総重量';
 
   @override
   String hi(String name) => name.isEmpty ? 'こんにちは' : '$nameさん、こんにちは';

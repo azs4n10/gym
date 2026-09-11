@@ -258,6 +258,13 @@ class WorkoutState extends ChangeNotifier {
     await load();
   }
 
+  DateTime? lastDayFor(int exerciseId) {
+    for (final s in _sessions) {
+      if (s.setsFor(exerciseId).isNotEmpty) return s.day;
+    }
+    return null;
+  }
+
   WorkoutSet? lastSetFor(int exerciseId, {int? excludeSession}) {
     for (final s in _sessions) {
       if (s.session.id == excludeSession) continue;
