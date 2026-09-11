@@ -206,15 +206,15 @@ class _WideCard extends StatelessWidget {
   const _WideCard({
     required this.title,
     required this.meta,
-    required this.ic,
     required this.tint,
+    required this.panel,
     required this.onTap,
   });
 
   final String title;
   final String meta;
-  final Ic ic;
   final Color tint;
+  final Widget panel;
   final VoidCallback onTap;
 
   @override
@@ -258,7 +258,7 @@ class _WideCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Cover(ic: ic, tint: tint, width: 132, height: 108, radius: 0, iconScale: 0.66),
+              Cover(tint: tint, width: 132, height: 108, radius: 0, child: panel),
             ],
           ),
         ),
@@ -282,8 +282,8 @@ class _ExerciseCard extends StatelessWidget {
     return _WideCard(
       title: exerciseName(exercise, l),
       meta: meta,
-      ic: g.ic,
       tint: g.color,
+      panel: _RecordPanel(last: last),
       onTap: () => _start(context),
     );
   }
@@ -313,8 +313,8 @@ class _CardioCard extends StatelessWidget {
     return _WideCard(
       title: kind.label(l),
       meta: l.cardio,
-      ic: Ic.cardio,
       tint: skin.accent,
+      panel: AppIcon(Ic.cardio, size: 38, color: skin.card),
       onTap: () => _start(context),
     );
   }
@@ -331,5 +331,37 @@ class _CardioCard extends StatelessWidget {
         MaterialPageRoute(builder: (_) => SessionScreen(sessionId: id)),
       );
     }
+  }
+}
+
+/// Right-hand panel of an exercise card: the last set in large type, so the
+/// coloured area carries information instead of decoration.
+class _RecordPanel extends StatelessWidget {
+  const _RecordPanel({required this.last});
+
+  final WorkoutSet? last;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final l = context.l;
+    final t = Theme.of(context).textTheme;
+    final set = last;
+    if (set == null) {
+      return Text(l.startNew,
+          style: t.labelLarge?.copyWith(color: skin.card, fontWeight: FontWeight.w700));
+    }
+    final bodyweight = set.weightKg == 0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(bodyweight ? '${set.reps}' : fmtKg(set.weightKg),
+            style: t.headlineSmall
+                ?.copyWith(color: skin.card, fontWeight: FontWeight.w800, height: 1)),
+        const SizedBox(height: 2),
+        Text(bodyweight ? l.repsUnit : 'kg × ${set.reps}',
+            style: t.labelSmall?.copyWith(color: skin.card.withValues(alpha: 0.85))),
+      ],
+    );
   }
 }

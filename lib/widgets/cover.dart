@@ -3,25 +3,28 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 import 'app_icon.dart';
 
-/// Gradient panel that stands in for the photography used in the reference
-/// layouts: a tinted field with the icon set large and faded behind it.
+/// Tinted panel that stands in for the photography used in the reference
+/// layouts. It either centres an icon or shows whatever is passed as [child];
+/// nothing is ever cropped by the rounded corners.
 class Cover extends StatelessWidget {
   const Cover({
     super.key,
-    required this.ic,
+    this.ic,
     required this.tint,
     this.width = 120,
     this.height = 104,
     this.radius = 22,
-    this.iconScale = 0.62,
+    this.iconSize,
+    this.child,
   });
 
-  final Ic ic;
+  final Ic? ic;
   final Color tint;
   final double width;
   final double height;
   final double radius;
-  final double iconScale;
+  final double? iconSize;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
@@ -40,18 +43,16 @@ class Cover extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [tint.withValues(alpha: 0.55), deep.withValues(alpha: 0.85)],
+                  colors: [tint.withValues(alpha: 0.6), deep.withValues(alpha: 0.9)],
                 ),
               ),
             ),
-            Positioned(
-              right: -height * 0.12,
-              bottom: -height * 0.12,
-              child: Opacity(
-                opacity: 0.9,
-                child: AppIcon(ic, size: height * iconScale, color: skin.card),
+            if (child != null)
+              Center(child: child)
+            else if (ic != null)
+              Center(
+                child: AppIcon(ic!, size: iconSize ?? height * 0.42, color: skin.card),
               ),
-            ),
           ],
         ),
       ),
@@ -68,12 +69,18 @@ class CoverThumb extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) =>
-      Cover(ic: ic, tint: tint, width: size, height: size, radius: size * 0.32, iconScale: 0.5);
+  Widget build(BuildContext context) => Cover(
+        ic: ic,
+        tint: tint,
+        width: size,
+        height: size,
+        radius: size * 0.32,
+        iconSize: size * 0.46,
+      );
 }
 
 /// Small round button with a filled background, as used at the corner of the
-/// workout cards in the reference layouts.
+/// cards in the reference layouts.
 class RoundAction extends StatelessWidget {
   const RoundAction({
     super.key,
