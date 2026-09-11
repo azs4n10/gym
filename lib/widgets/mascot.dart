@@ -50,6 +50,13 @@ class _MascotPainter extends CustomPainter {
   static const Offset _head = Offset(48, 50);
   static const double _headR = 30;
 
+  /// Wavy lower edge of the head patch.
+  static final Path _capEdge = Path()
+    ..moveTo(12, 40)
+    ..quadraticBezierTo(26, 31, 38, 38)
+    ..quadraticBezierTo(50, 45, 62, 35)
+    ..quadraticBezierTo(73, 28, 84, 36);
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / 100);
@@ -65,22 +72,27 @@ class _MascotPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round;
     _paw(canvas, body, line, blushPaint);
-    _ears(canvas, body, patchPaint, line);
+    _ears(canvas, patchPaint, line);
 
-    // head
+    // head, with the lilac cap sitting over the top like the reference sheet
     canvas.drawCircle(_head, _headR, body);
     canvas.save();
     canvas.clipPath(Path()..addOval(Rect.fromCircle(center: _head, radius: _headR)));
-    final mark = Rect.fromCenter(center: const Offset(24, 40), width: 46, height: 54);
-    canvas.drawOval(mark, patchPaint);
-    canvas.drawOval(mark, line);
+    canvas.drawPath(
+      Path.from(_capEdge)
+        ..lineTo(84, 12)
+        ..lineTo(12, 12)
+        ..close(),
+      patchPaint,
+    );
+    canvas.drawPath(_capEdge, line);
     canvas.restore();
     canvas.drawCircle(_head, _headR, line);
 
     _face(canvas, line, inkFill, blushPaint);
   }
 
-  void _ears(Canvas canvas, Paint body, Paint patchPaint, Paint line) {
+  void _ears(Canvas canvas, Paint patchPaint, Paint line) {
     final left = Path()
       ..moveTo(26, 34)
       ..lineTo(16, 6)
@@ -92,17 +104,9 @@ class _MascotPainter extends CustomPainter {
       ..lineTo(52, 20)
       ..close();
     canvas.drawPath(left, patchPaint);
-    canvas.drawPath(right, body);
+    canvas.drawPath(right, patchPaint);
     canvas.drawPath(left, line);
     canvas.drawPath(right, line);
-
-    // inner ear
-    final innerRight = Path()
-      ..moveTo(68, 30)
-      ..lineTo(74, 14)
-      ..lineTo(58, 21)
-      ..close();
-    canvas.drawPath(innerRight, patchPaint);
   }
 
   void _face(Canvas canvas, Paint line, Paint inkFill, Paint blushPaint) {
@@ -159,7 +163,7 @@ class _MascotPainter extends CustomPainter {
       );
     }
 
-    if (mood == MascotMood.happy) _star(canvas, const Offset(14, 18), 9, line);
+    if (mood == MascotMood.happy) _star(canvas, const Offset(9, 26), 8, line);
   }
 
   /// Four-point sparkle, the one sticker the mascot carries itself.
@@ -176,16 +180,16 @@ class _MascotPainter extends CustomPainter {
   }
 
   void _paw(Canvas canvas, Paint body, Paint line, Paint blushPaint) {
-    final paw = RRect.fromLTRBR(66, 58, 92, 96, const Radius.circular(13));
+    final paw = RRect.fromLTRBR(64, 60, 92, 98, const Radius.circular(14));
     canvas.drawRRect(paw, body);
     canvas.drawRRect(paw, line);
     canvas.drawOval(
-      Rect.fromCenter(center: const Offset(79, 82), width: 13, height: 11),
+      Rect.fromCenter(center: const Offset(78, 84), width: 14, height: 12),
       blushPaint,
     );
     for (final dx in [-6.5, 0.0, 6.5]) {
       canvas.drawOval(
-        Rect.fromCenter(center: Offset(79 + dx, 70), width: 6, height: 7),
+        Rect.fromCenter(center: Offset(78 + dx, 72), width: 6, height: 7),
         blushPaint,
       );
     }
