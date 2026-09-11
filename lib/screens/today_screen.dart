@@ -15,7 +15,6 @@ import '../state/workout_state.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/cover.dart';
 import '../widgets/icon_tile.dart';
-import '../widgets/mascot.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
 import '../widgets/window_card.dart';
@@ -61,10 +60,6 @@ class TodayScreen extends StatelessWidget {
     final goal = app.profile.weeklyGoalDays;
     final progress = goal == 0 ? 0.0 : (streak.thisWeek / goal).clamp(0.0, 1.0);
     final name = app.profile.nickname;
-    final mood = todaySessions.isNotEmpty || open != null
-        ? MascotMood.happy
-        : (streak.thisWeek == 0 ? MascotMood.sleepy : MascotMood.idle);
-
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -72,8 +67,6 @@ class TodayScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                Mascot(size: 64, mood: mood),
-                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
