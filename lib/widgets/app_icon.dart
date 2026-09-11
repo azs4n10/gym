@@ -44,7 +44,7 @@ enum Ic {
   weeks(IconData(0xe713, fontFamily: _family), IconData(0xe712, fontFamily: _family)),
   month(IconData(0xe109, fontFamily: _family), IconData(0xe108, fontFamily: _family)),
   search(IconData(0xe30d, fontFamily: _family), IconData(0xe30c, fontFamily: _family)),
-  empty(IconData(0xe62b, fontFamily: _family), IconData(0xe62a, fontFamily: _family)),
+  empty(IconData(0xe4ab, fontFamily: _family), IconData(0xe4aa, fontFamily: _family)),
   mood1(IconData(0xe443, fontFamily: _family), IconData(0xe442, fontFamily: _family)),
   mood2(IconData(0xe43f, fontFamily: _family), IconData(0xe43e, fontFamily: _family)),
   mood3(IconData(0xe43b, fontFamily: _family), IconData(0xe43a, fontFamily: _family)),
