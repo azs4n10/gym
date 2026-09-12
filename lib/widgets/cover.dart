@@ -55,7 +55,7 @@ class Cover extends StatelessWidget {
               BlobField(
                 color: Color.lerp(tint, skin.card, 0.3)!,
                 light: Color.lerp(tint, skin.card, 0.62)!,
-                dark: Color.lerp(tint, skin.ink, 0.22)!,
+                dark: Color.lerp(tint, skin.heading, 0.18)!,
                 seed: seed,
               ),
             if (child != null)
