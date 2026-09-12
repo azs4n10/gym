@@ -1,0 +1,88 @@
+# Codemagic build definitions. Pick a workflow in the Codemagic UI, or let it
+# run on a push. Nothing here needs a paid Apple account except ios-signed.
+
+definitions:
+  base: &base
+    environment:
+      flutter: 3.44.0
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+
+workflows:
+  android:
+    name: Android APK
+    instance_type: linux_x2
+    max_build_duration: 30
+    <<: *base
+    scripts:
+      - name: Fetch packages
+        script: flutter pub get
+      - name: Analyze
+        script: flutter analyze
+      - name: Test
+        script: flutter test
+      - name: Build APK
+        # The release build type falls back to the debug key, so the APK is
+        # installable by sideloading. Replace with a real keystore before any
+        # store upload.
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - CHANGE_ME@example.com
+
+  ios-unsigned:
+    name: iOS (compile check, no signing)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    <<: *base
+    scripts:
+      - name: Fetch packages
+        script: flutter pub get
+      - name: Install pods
+        script: find . -name "Podfile" -execdir pod install \;
+      - name: Build without signing
+        # Proves the iOS project, the HealthKit entitlement and the pods all
+        # line up. The result cannot be installed on a device.
+        script: flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/iphoneos/*.app
+      - /tmp/xcodebuild_logs/*.log
+
+  ios-signed:
+    name: iOS IPA (needs an Apple Developer account)
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      flutter: 3.44.0
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: dev.natume.gym
+      groups:
+        - appstore_credentials
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+    scripts:
+      - name: Fetch packages
+        script: flutter pub get
+      - name: Set up signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "dev.natume.gym" \
+            --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Install pods
+        script: find . -name "Podfile" -execdir pod install \;
+      - name: Build IPA
+        script: flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
