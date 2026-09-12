@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/enums.dart';
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import 'app_icon.dart';
 
 class GroupBadge extends StatelessWidget {
@@ -20,7 +21,7 @@ class GroupBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: group.color,
         shape: BoxShape.circle,
-        border: Border.all(color: skin.ink, width: 1.4),
+        border: Border.all(color: skin.ink, width: kThinBorder),
       ),
       child: AppIcon(group.ic, size: size * 0.62, color: skin.ink),
     );

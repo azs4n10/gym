@@ -6,11 +6,13 @@ import '../l10n/strings.dart';
 import '../models/enums.dart';
 import '../services/streaks.dart';
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
+import '../widgets/sticker.dart';
 import '../widgets/app_icon.dart';
-import '../widgets/hero_card.dart';
+import '../widgets/page_header.dart';
 import '../widgets/icon_tile.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/window_card.dart';
@@ -63,7 +65,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       body: SafeArea(
         child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        children: [
+        children: staggered([
           PageHeader(l.calendar),
           Row(
             children: [
@@ -216,7 +218,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ],
             ),
           ),
-        ],
+        ]),
         ),
       ),
     );
@@ -277,9 +279,9 @@ class _DayCell extends StatelessWidget {
                         : Colors.transparent,
                 shape: BoxShape.circle,
                 border: isSelected
-                    ? Border.all(color: skin.ink, width: 2.4)
+                    ? Border.all(color: skin.ink, width: kBorderWidth)
                     : gym || isToday
-                        ? Border.all(color: skin.ink, width: 1.5)
+                        ? Border.all(color: skin.ink, width: kThinBorder)
                         : null,
               ),
               child: Text('${d.day}',

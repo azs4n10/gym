@@ -9,12 +9,14 @@ import '../../services/health_sync.dart';
 import '../../services/nutrition.dart';
 import '../../services/suggestions.dart';
 import '../../state/app_state.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/skin.dart';
 import '../../state/body_state.dart';
 import '../../state/meal_state.dart';
+import '../../widgets/sticker.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/cover.dart';
-import '../../widgets/hero_card.dart';
+import '../../widgets/page_header.dart';
 import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/ring_progress.dart';
@@ -66,7 +68,7 @@ class _MealsScreenState extends State<MealsScreen> {
       body: SafeArea(
         child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-        children: [
+        children: staggered([
           PageHeader(
             isToday ? l.todayMeals : l.dateLong(_day),
             actions: [
@@ -106,7 +108,7 @@ class _MealsScreenState extends State<MealsScreen> {
                       decoration: BoxDecoration(
                         color: remain.kcal >= 0 ? skin.buttonSoft : skin.accentSoft,
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: skin.ink, width: 1.4),
+                        border: Border.all(color: skin.ink, width: kThinBorder),
                       ),
                       child: Text(
                         remain.kcal >= 0
@@ -124,7 +126,7 @@ class _MealsScreenState extends State<MealsScreen> {
                   decoration: BoxDecoration(
                     color: skin.background,
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: skin.ink, width: 1.6),
+                    border: Border.all(color: skin.ink, width: kThinBorder),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(999),
@@ -190,7 +192,7 @@ class _MealsScreenState extends State<MealsScreen> {
               ],
             ),
           ),
-        ],
+        ]),
         ),
       ),
     );

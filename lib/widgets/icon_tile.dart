@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import 'app_icon.dart';
+import 'sticker.dart';
 
 /// Rounded soft-colored square with an icon inside, as used in the quick-action
 /// grid and list leadings.
@@ -17,16 +18,13 @@ class IconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
-    return Container(
+    return StickerBox(
       width: size,
       height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color ?? skin.buttonSoft,
-        borderRadius: BorderRadius.circular(size * 0.32),
-        border: Border.all(color: skin.ink, width: kBorderWidth),
-      ),
-      child: AppIcon(ic, size: size * 0.52, color: iconColor),
+      radius: size * 0.32,
+      color: color ?? skin.buttonSoft,
+      shadow: false,
+      child: Center(child: AppIcon(ic, size: size * 0.52, color: iconColor)),
     );
   }
 }
@@ -49,22 +47,17 @@ class CircleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
-    final enabled = onTap != null;
-    return InkResponse(
-      onTap: onTap,
-      radius: size * 0.62,
-      child: Opacity(
-        opacity: enabled ? 1 : 0.4,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: background ?? skin.card,
-            shape: BoxShape.circle,
-            border: Border.all(color: skin.ink, width: size >= 34 ? 2 : 1.6),
-          ),
-          child: Icon(icon, size: size * 0.48, color: skin.ink),
-        ),
+    return Opacity(
+      opacity: onTap != null ? 1 : 0.4,
+      child: StickerBox(
+        width: size,
+        height: size,
+        radius: size / 2,
+        color: background ?? skin.card,
+        borderWidth: size >= 34 ? kBorderWidth : kThinBorder,
+        shadow: false,
+        onTap: onTap,
+        child: Center(child: Icon(icon, size: size * 0.48, color: skin.ink)),
       ),
     );
   }
@@ -80,15 +73,14 @@ class GoButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
-    return Container(
+    return StickerBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: skin.button,
-        shape: BoxShape.circle,
-        border: Border.all(color: skin.ink, width: 1.6),
-      ),
-      child: Icon(icon, size: size * 0.5, color: skin.ink),
+      radius: size / 2,
+      color: skin.button,
+      borderWidth: kThinBorder,
+      shadow: false,
+      child: Center(child: Icon(icon, size: size * 0.5, color: skin.ink)),
     );
   }
 }

@@ -9,6 +9,7 @@ import '../../l10n/strings.dart';
 import '../../models/enums.dart';
 import '../../services/health_sync.dart';
 import '../../state/app_state.dart';
+import '../../theme/app_theme.dart';
 import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/cover.dart';
@@ -441,7 +442,7 @@ class _MetaCardState extends State<_MetaCard> {
                     decoration: BoxDecoration(
                       color: mood == i ? skin.button : Colors.transparent,
                       shape: BoxShape.circle,
-                      border: mood == i ? Border.all(color: skin.ink, width: 1.6) : null,
+                      border: mood == i ? Border.all(color: skin.ink, width: kThinBorder) : null,
                     ),
                     child: AppIcon(moodIc(i),
                         size: mood == i ? 32 : 26,

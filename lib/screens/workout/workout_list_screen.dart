@@ -12,7 +12,7 @@ import '../../widgets/cardio_sheet.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/icon_tile.dart';
-import '../../widgets/hero_card.dart';
+import '../../widgets/page_header.dart';
 import '../../widgets/pastel_card.dart';
 import 'exercise_picker_screen.dart';
 import 'history_screen.dart';

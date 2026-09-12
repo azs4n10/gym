@@ -9,9 +9,11 @@ import '../services/nutrition.dart';
 import '../services/streaks.dart';
 import '../services/suggestions.dart';
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import '../state/body_state.dart';
 import '../state/meal_state.dart';
 import '../state/workout_state.dart';
+import '../widgets/sticker.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/cover.dart';
 import '../widgets/icon_tile.dart';
@@ -64,7 +66,7 @@ class TodayScreen extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          children: [
+          children: staggered([
             Row(
               children: [
                 Expanded(
@@ -313,7 +315,7 @@ class TodayScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ],
+          ]),
         ),
       ),
     );
@@ -384,7 +386,7 @@ class _Pill extends StatelessWidget {
       decoration: BoxDecoration(
         color: skin.buttonSoft,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: skin.ink, width: 1.6),
+        border: Border.all(color: skin.ink, width: kThinBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -433,7 +435,7 @@ class _WeekBars extends StatelessWidget {
                           ? (i == todayIndex ? skin.heading : skin.button)
                           : skin.card,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: skin.ink, width: 1.6),
+                      border: Border.all(color: skin.ink, width: kThinBorder),
                     ),
                   ),
                   const SizedBox(height: 6),

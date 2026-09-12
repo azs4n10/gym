@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import 'sticker.dart';
 
 /// Card framed like an old desktop window: a tinted title bar with the name on
 /// the left and three round buttons on the right, over an outlined body.
@@ -28,57 +29,38 @@ class WindowCard extends StatelessWidget {
     final skin = context.skin;
     final t = Theme.of(context).textTheme;
     final bar = tint ?? skin.button;
-    final shape = BorderRadius.circular(kCardRadius);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: skin.card,
-        borderRadius: shape,
-        border: Border.all(color: skin.ink, width: kBorderWidth),
-        boxShadow: [
-          BoxShadow(color: skin.shadow, blurRadius: 0, offset: const Offset(3, 4)),
-        ],
-      ),
-      child: ClipRRect(
-        // Clip to the inner edge, otherwise the title bar paints over the
-        // border and the top corners lose their outline.
-        borderRadius: BorderRadius.circular(kCardRadius - kBorderWidth),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    return StickerBox(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 7, 10, 7),
+            decoration: BoxDecoration(
+              color: bar,
+              border: Border(bottom: BorderSide(color: skin.ink, width: kBorderWidth)),
+            ),
+            child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.fromLTRB(14, 7, 10, 7),
-                  decoration: BoxDecoration(
-                    color: bar,
-                    border: Border(bottom: BorderSide(color: skin.ink, width: kBorderWidth)),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: t.labelLarge?.copyWith(
-                            color: skin.ink,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ),
-                      if (trailing != null) trailing! else const _WindowButtons(),
-                    ],
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.labelLarge?.copyWith(
+                      color: skin.ink,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
-                Padding(padding: padding, child: child),
+                if (trailing != null) trailing! else const _WindowButtons(),
               ],
             ),
           ),
-        ),
+          Padding(padding: padding, child: child),
+        ],
       ),
     );
   }
@@ -101,7 +83,7 @@ class _WindowButtons extends StatelessWidget {
             decoration: BoxDecoration(
               color: c,
               shape: BoxShape.circle,
-              border: Border.all(color: skin.ink, width: 1.4),
+              border: Border.all(color: skin.ink, width: kThinBorder),
             ),
           ),
       ],

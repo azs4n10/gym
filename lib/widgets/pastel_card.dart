@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import 'sticker.dart';
 import 'app_icon.dart';
 
 /// Sticker-style surface: pastel fill, ink outline, hard offset shadow.
@@ -25,25 +26,12 @@ class PastelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final skin = context.skin;
-    final shape = BorderRadius.circular(radius);
-    final body = Padding(padding: padding, child: child);
-    return Container(
-      decoration: BoxDecoration(
-        color: color ?? skin.card,
-        borderRadius: shape,
-        border: Border.all(color: borderColor ?? skin.ink, width: kBorderWidth),
-        boxShadow: [
-          BoxShadow(color: skin.shadow, blurRadius: 0, offset: const Offset(3, 4)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - kBorderWidth),
-        child: Material(
-          color: Colors.transparent,
-          child: onTap == null ? body : InkWell(onTap: onTap, child: body),
-        ),
-      ),
+    return StickerBox(
+      radius: radius,
+      color: color,
+      borderColor: borderColor,
+      onTap: onTap,
+      child: Padding(padding: padding, child: child),
     );
   }
 }

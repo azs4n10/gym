@@ -6,9 +6,11 @@ import '../data/database.dart';
 import '../l10n/strings.dart';
 import '../services/health_sync.dart';
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import '../state/body_state.dart';
+import '../widgets/sticker.dart';
 import '../widgets/app_icon.dart';
-import '../widgets/hero_card.dart';
+import '../widgets/page_header.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
 import '../widgets/stepper_field.dart';
@@ -48,7 +50,7 @@ class _BodyScreenState extends State<BodyScreen> {
       body: SafeArea(
         child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-        children: [
+        children: staggered([
           PageHeader(l.body),
           WindowCard(
             title: l.weight,
@@ -76,7 +78,7 @@ class _BodyScreenState extends State<BodyScreen> {
                           decoration: BoxDecoration(
                             color: skin.buttonSoft,
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: skin.ink, width: 1.4),
+                            border: Border.all(color: skin.ink, width: kThinBorder),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -216,7 +218,7 @@ class _BodyScreenState extends State<BodyScreen> {
                     ],
                   ),
           ),
-        ],
+        ]),
         ),
       ),
     );
@@ -241,7 +243,7 @@ class _RangePill extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? skin.button : skin.card,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: skin.ink, width: 1.6),
+          border: Border.all(color: skin.ink, width: kThinBorder),
         ),
         child: Text(
           label,

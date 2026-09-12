@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import 'sticker.dart';
 import 'app_icon.dart';
 
 /// Tinted panel that stands in for the photography used in the reference
@@ -33,17 +34,15 @@ class Cover extends StatelessWidget {
   Widget build(BuildContext context) {
     final skin = context.skin;
     final deep = Color.lerp(tint, skin.heading, 0.35)!;
-    final inset = outlined ? kBorderWidth : 0.0;
-    return Container(
+    return StickerBox(
       width: width,
       height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        border: outlined ? Border.all(color: skin.ink, width: kBorderWidth) : null,
-      ),
-      child: ClipRRect(
-        // Clip inside the border so the gradient cannot paint over it.
-        borderRadius: BorderRadius.circular(radius - inset),
+      radius: radius,
+      shadow: false,
+      borderWidth: outlined ? kBorderWidth : 0,
+      child: SizedBox(
+        width: width,
+        height: height,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -113,7 +112,7 @@ class RoundAction extends StatelessWidget {
       decoration: BoxDecoration(
         color: background ?? skin.card,
         shape: BoxShape.circle,
-        border: Border.all(color: skin.ink, width: 1.6),
+        border: Border.all(color: skin.ink, width: kThinBorder),
       ),
       child: Icon(icon, size: size * 0.5, color: foreground ?? skin.ink),
     );

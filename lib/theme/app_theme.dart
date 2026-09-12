@@ -6,6 +6,9 @@ import 'skin.dart';
 /// Everything is outlined rather than shadowed: one ink colour draws the
 /// borders, fills stay pastel, and corners are generously rounded.
 const double kBorderWidth = 2;
+
+/// Outline for small parts: buttons, chips, dots, swatch rings.
+const double kThinBorder = 1.6;
 const double kCardRadius = 22;
 
 ThemeData buildTheme(Skin skin, {String font = 'rounded'}) {
@@ -111,7 +114,7 @@ ThemeData buildTheme(Skin skin, {String font = 'rounded'}) {
     chipTheme: ChipThemeData(
       backgroundColor: skin.card,
       selectedColor: skin.button,
-      side: BorderSide(color: skin.ink, width: 1.6),
+      side: BorderSide(color: skin.ink, width: kThinBorder),
       labelStyle: textTheme.labelLarge?.copyWith(
         fontWeight: FontWeight.w700,
         color: skin.ink,
@@ -144,7 +147,7 @@ ThemeData buildTheme(Skin skin, {String font = 'rounded'}) {
       backgroundColor: skin.card,
       indicatorColor: skin.button,
       surfaceTintColor: Colors.transparent,
-      indicatorShape: StadiumBorder(side: BorderSide(color: skin.ink, width: 1.6)),
+      indicatorShape: StadiumBorder(side: BorderSide(color: skin.ink, width: kThinBorder)),
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
           color: states.contains(WidgetState.selected) ? skin.ink : skin.subText,

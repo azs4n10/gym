@@ -5,8 +5,10 @@ import '../models/enums.dart';
 import '../services/health_sync.dart';
 import '../services/nutrition.dart';
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import '../state/body_state.dart';
 import '../theme/skin.dart';
+import '../widgets/sticker.dart';
 import '../widgets/grid_background.dart';
 import '../widgets/stepper_field.dart';
 import '../widgets/window_card.dart';
@@ -55,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         skin: skin,
         child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
-        children: [
+        children: staggered([
           WindowCard(
             title: l.language,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -248,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 14),
           Text(l.foodDisclaimer, style: t.bodySmall?.copyWith(color: skin.subText)),
-        ],
+        ]),
         ),
       ),
     );
@@ -280,7 +282,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: skin.buttonSoft,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: skin.ink, width: 1.4),
+        border: Border.all(color: skin.ink, width: kThinBorder),
       ),
       child: Text(text, style: TextStyle(color: skin.ink, fontWeight: FontWeight.w800)),
     );
@@ -337,7 +339,7 @@ class _SkinSwatch extends StatelessWidget {
         decoration: BoxDecoration(
           color: c,
           shape: BoxShape.circle,
-          border: Border.all(color: skin.ink, width: 1.2),
+          border: Border.all(color: skin.ink, width: kThinBorder),
         ),
       );
 }
