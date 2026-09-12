@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import 'blob_field.dart';
 import 'sticker.dart';
 import 'app_icon.dart';
 
@@ -19,6 +20,7 @@ class Cover extends StatelessWidget {
     this.iconSize,
     this.child,
     this.outlined = true,
+    this.seed = 0,
   });
 
   final Ic? ic;
@@ -29,6 +31,9 @@ class Cover extends StatelessWidget {
   final double? iconSize;
   final Widget? child;
   final bool outlined;
+
+  /// Fixes which arrangement of shapes this panel gets.
+  final int seed;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +51,13 @@ class Cover extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             ColoredBox(color: tint),
+            if (width > 70)
+              BlobField(
+                color: Color.lerp(tint, skin.card, 0.3)!,
+                light: Color.lerp(tint, skin.card, 0.62)!,
+                dark: Color.lerp(tint, skin.ink, 0.22)!,
+                seed: seed,
+              ),
             if (child != null)
               Center(child: child)
             else if (ic != null)
@@ -61,16 +73,24 @@ class Cover extends StatelessWidget {
 
 /// Square cover used as the leading element of a list row.
 class CoverThumb extends StatelessWidget {
-  const CoverThumb({super.key, required this.ic, required this.tint, this.size = 56});
+  const CoverThumb({
+    super.key,
+    required this.ic,
+    required this.tint,
+    this.size = 56,
+    this.seed = 0,
+  });
 
   final Ic ic;
   final Color tint;
   final double size;
+  final int seed;
 
   @override
   Widget build(BuildContext context) => Cover(
         ic: ic,
         tint: tint,
+        seed: seed,
         width: size,
         height: size,
         radius: size * 0.32,

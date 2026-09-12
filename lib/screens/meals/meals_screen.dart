@@ -273,7 +273,7 @@ class _SlotCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CoverThumb(ic: slot.ic, tint: _slotTint(skin, slot), size: 58),
+              CoverThumb(ic: slot.ic, tint: _slotTint(skin, slot), size: 58, seed: slot.index),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

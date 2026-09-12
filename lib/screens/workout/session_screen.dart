@@ -501,7 +501,15 @@ class _SessionHero extends StatelessWidget {
 
     return Stack(
       children: [
-        Cover(ic: ic, tint: tint, width: double.infinity, height: 168, radius: 26, iconSize: 64),
+        Cover(
+          ic: ic,
+          tint: tint,
+          width: double.infinity,
+          height: 168,
+          radius: 26,
+          iconSize: 64,
+          seed: detail.session.id,
+        ),
         Positioned(
           left: 20,
           right: 20,

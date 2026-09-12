@@ -266,6 +266,7 @@ class _WideCard extends StatelessWidget {
                   border: Border(left: BorderSide(color: skin.ink, width: 2)),
                 ),
                 child: Cover(
+                  seed: title.hashCode,
                   tint: tint,
                   width: 130,
                   height: 106,
