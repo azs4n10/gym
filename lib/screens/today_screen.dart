@@ -514,7 +514,7 @@ class _TrainingCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: WindowCard(
         title: suggestion.group.label(l),
-        tint: suggestion.group.color,
+        tint: suggestion.group.color(skin),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,22 +1,35 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
+import '../theme/skin.dart';
 import '../widgets/app_icon.dart';
 
 enum MuscleGroup {
-  chest('Chest', '胸', Ic.chest, Color(0xFFF2A7B8)),
-  back('Back', '背中', Ic.back, Color(0xFFA8C5E8)),
-  shoulders('Shoulders', '肩', Ic.shoulders, Color(0xFFC9B6E4)),
-  arms('Arms', '腕', Ic.arms, Color(0xFFF5C48A)),
-  legs('Legs', '脚', Ic.legs, Color(0xFF9FD3C7)),
-  glutes('Glutes', 'お尻', Ic.glutes, Color(0xFFF7B7A3)),
-  core('Core', 'お腹', Ic.core, Color(0xFFF3D67F));
+  chest('Chest', '胸', Ic.chest, 0),
+  back('Back', '背中', Ic.back, -75),
+  shoulders('Shoulders', '肩', Ic.shoulders, -50),
+  arms('Arms', '腕', Ic.arms, 50),
+  legs('Legs', '脚', Ic.legs, 75),
+  glutes('Glutes', 'お尻', Ic.glutes, 25),
+  core('Core', 'お腹', Ic.core, -25);
 
-  const MuscleGroup(this.en, this.ja, this.ic, this.color);
+  const MuscleGroup(this.en, this.ja, this.ic, this.hueShift);
   final String en;
   final String ja;
   final Ic ic;
-  final Color color;
+
+  /// Each group needs to be told apart at a glance, so the hue is rotated off
+  /// the skin's own button colour rather than picked independently. That keeps
+  /// the seven within the palette whichever skin is active.
+  final double hueShift;
+
+  Color color(Skin skin) {
+    final base = HSLColor.fromColor(skin.button);
+    return base
+        .withHue((base.hue + hueShift) % 360)
+        .withSaturation(base.saturation.clamp(0.3, 0.75))
+        .toColor();
+  }
 
   String label(L l) => l.isJa ? ja : en;
 

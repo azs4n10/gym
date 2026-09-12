@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../state/app_state.dart';
+
 class RingProgress extends StatelessWidget {
   const RingProgress({
     super.key,
@@ -106,7 +108,7 @@ class MacroBar extends StatelessWidget {
             Text(
               '${value.round()} / ${target.round()}$unit',
               style: TextStyle(
-                color: over ? const Color(0xFFE05A7A) : textColor,
+                color: over ? _overColor(context) : textColor,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -130,4 +132,11 @@ class MacroBar extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Warning tone for a passed target: the skin's own heading pushed to red, so
+/// it reads as a warning without leaving the palette.
+Color _overColor(BuildContext context) {
+  final base = HSLColor.fromColor(context.skin.heading);
+  return base.withHue(352).withSaturation(base.saturation.clamp(0.5, 0.85)).toColor();
 }

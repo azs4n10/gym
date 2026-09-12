@@ -33,7 +33,6 @@ class Cover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
-    final deep = Color.lerp(tint, skin.heading, 0.35)!;
     return StickerBox(
       width: width,
       height: height,
@@ -46,20 +45,12 @@ class Cover extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [tint.withValues(alpha: 0.6), deep.withValues(alpha: 0.9)],
-                ),
-              ),
-            ),
+            ColoredBox(color: tint),
             if (child != null)
               Center(child: child)
             else if (ic != null)
               Center(
-                child: AppIcon(ic!, size: iconSize ?? height * 0.42, color: skin.card),
+                child: AppIcon(ic!, size: iconSize ?? height * 0.42, color: skin.ink),
               ),
           ],
         ),

@@ -19,7 +19,7 @@ class GroupBadge extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: group.color,
+        color: group.color(skin),
         shape: BoxShape.circle,
         border: Border.all(color: skin.ink, width: kThinBorder),
       ),

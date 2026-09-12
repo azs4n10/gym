@@ -297,7 +297,7 @@ class _ExerciseCard extends StatelessWidget {
     return _WideCard(
       title: exerciseName(exercise, l),
       meta: meta,
-      tint: g.color,
+      tint: g.color(context.skin),
       panel: _RecordPanel(last: last),
       onTap: () => _start(context),
     );

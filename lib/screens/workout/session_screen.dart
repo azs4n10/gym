@@ -270,7 +270,7 @@ class _ExerciseBlock extends StatelessWidget {
 
     return WindowCard(
       title: exerciseName(ex, l),
-      tint: group.color,
+      tint: group.color(skin),
       padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,7 +493,7 @@ class _SessionHero extends StatelessWidget {
       if (g != null && !groups.contains(g)) groups.add(g);
     }
     final lead = groups.isEmpty ? null : groups.first;
-    final tint = lead?.color ?? skin.accent;
+    final tint = lead?.color(skin) ?? skin.accent;
     final ic = lead?.ic ?? (detail.cardio.isEmpty ? Ic.workout : Ic.cardio);
     final title = groups.isEmpty
         ? (detail.cardio.isEmpty ? l.workouts : l.cardio)

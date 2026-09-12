@@ -349,11 +349,7 @@ class _WeightChart extends StatelessWidget {
             ),
             belowBarData: BarAreaData(
               show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [skin.button.withValues(alpha: 0.35), skin.button.withValues(alpha: 0)],
-              ),
+              color: skin.button.withValues(alpha: 0.22),
             ),
           ),
         ],
