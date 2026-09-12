@@ -69,3 +69,28 @@ No emoji anywhere. Decorative icons come from [Phosphor Icons](https://phosphori
 - Nutrition values in the built-in food list are per-serving estimates. Prefer the package label and replace them with your own entries.
 - Health sync on Android needs the Health Connect app. `minSdk 26`, `FlutterFragmentActivity` and the manifest permissions are already configured.
 - On iOS the HealthKit capability still has to be enabled in Xcode; the Info.plist descriptions are in place. iOS builds are not possible on Windows.
+
+## Health integration
+
+Apple Health and Health Connect are wired through `lib/services/health_sync.dart`.
+The integration is disabled on the web build, because the platform APIs are not
+reachable from a browser: `isSupported` returns false and the Settings toggle
+is greyed out. Use a native build to exercise it.
+
+What is written: workouts (strength and each cardio type mapped to its own
+activity type), weight, body fat percentage, and meals with their slot and
+macros. Step count is read back.
+
+### Android
+
+`minSdk` is 26, `MainActivity` extends `FlutterFragmentActivity`, and the nine
+Health Connect permissions plus the rationale intent filters are declared in
+`android/app/src/main/AndroidManifest.xml`. Build with `flutter build apk`.
+Health Connect must be installed on the device.
+
+### iOS
+
+`ios/Runner/Runner.entitlements` declares the HealthKit entitlement and is
+referenced from all three build configurations. The usage descriptions are in
+`Info.plist`, and the deployment target is 15.0 as the plugin requires. Enable
+the HealthKit capability on the App ID in the developer portal before signing.
