@@ -7,7 +7,6 @@ import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/group_badge.dart';
-import '../../widgets/grid_background.dart';
 import '../../widgets/pastel_card.dart';
 import 'session_screen.dart';
 
@@ -24,9 +23,7 @@ class HistoryScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.history)),
-      body: GridBackground(
-        skin: skin,
-        child: sessions.isEmpty
+      body: sessions.isEmpty
           ? EmptyHint(ic: Ic.workout, text: l.noWorkoutsYet)
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -92,7 +89,6 @@ class HistoryScreen extends StatelessWidget {
                 );
               },
             ),
-      ),
     );
   }
 

@@ -8,7 +8,6 @@ import '../../models/enums.dart';
 import '../../state/app_state.dart';
 import '../../state/meal_state.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/grid_background.dart';
 import '../../widgets/pastel_card.dart';
 import '../../widgets/stepper_field.dart';
 
@@ -65,9 +64,7 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
         icon: const Icon(Icons.add_rounded),
         label: Text(l.custom),
       ),
-      body: GridBackground(
-        skin: skin,
-        child: Column(
+      body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -149,7 +146,6 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
           ),
         ],
         ),
-      ),
     );
   }
 

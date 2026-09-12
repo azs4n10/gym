@@ -9,7 +9,6 @@ import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/group_badge.dart';
-import '../../widgets/grid_background.dart';
 import '../../widgets/pastel_card.dart';
 
 class ExercisePickerScreen extends StatefulWidget {
@@ -45,9 +44,7 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
         icon: const Icon(Icons.add_rounded),
         label: Text(l.newExercise),
       ),
-      body: GridBackground(
-        skin: skin,
-        child: Column(
+      body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -138,7 +135,6 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
           ),
         ],
         ),
-      ),
     );
   }
 

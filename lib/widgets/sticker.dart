@@ -39,6 +39,7 @@ class StickerBox extends StatefulWidget {
 
 class _StickerBoxState extends State<StickerBox> {
   bool _down = false;
+  Offset _origin = Offset.zero;
 
   void _set(bool v) {
     if (widget.onTap != null && _down != v) setState(() => _down = v);
@@ -49,8 +50,9 @@ class _StickerBoxState extends State<StickerBox> {
     final skin = context.skin;
     final sunk = _down && widget.shadow;
     final box = AnimatedContainer(
-      duration: const Duration(milliseconds: 90),
-      curve: Curves.easeOut,
+      // Sink fast, come back with a small overshoot so a tap feels springy.
+      duration: Duration(milliseconds: _down ? 70 : 170),
+      curve: _down ? Curves.easeOut : Curves.easeOutBack,
       width: widget.width,
       height: widget.height,
       transform: Matrix4.translationValues(
@@ -79,13 +81,23 @@ class _StickerBoxState extends State<StickerBox> {
     );
 
     if (widget.onTap == null) return box;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _set(true),
-      onTapUp: (_) => _set(false),
-      onTapCancel: () => _set(false),
-      onTap: widget.onTap,
-      child: Semantics(button: true, child: box),
+    // Listener rather than onTapDown: the surface has to move the instant the
+    // finger lands, not after the tap recogniser has waited out its deadline.
+    return Listener(
+      onPointerDown: (e) {
+        _origin = e.position;
+        _set(true);
+      },
+      onPointerMove: (e) {
+        if ((e.position - _origin).distance > 12) _set(false);
+      },
+      onPointerUp: (_) => _set(false),
+      onPointerCancel: (_) => _set(false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Semantics(button: true, child: box),
+      ),
     );
   }
 }
@@ -124,7 +136,10 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
     super.initState();
     final delay = Duration(milliseconds: 30 * widget.index.clamp(0, 10));
     Future<void>.delayed(delay, () {
-      if (mounted) _c.forward();
+      if (!mounted) return;
+      _c.forward().whenComplete(() {
+        if (mounted) setState(() {});
+      });
     });
   }
 
@@ -135,12 +150,16 @@ class _AppearState extends State<Appear> with SingleTickerProviderStateMixin {
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _t,
-        builder: (_, child) => Opacity(
-          opacity: _t.value,
-          child: Transform.translate(offset: Offset(0, 12 * (1 - _t.value)), child: child),
-        ),
-        child: widget.child,
-      );
+  Widget build(BuildContext context) {
+    // Once played, get out of the way: no opacity layer, no transform.
+    if (_c.isCompleted) return widget.child;
+    return AnimatedBuilder(
+      animation: _t,
+      builder: (_, child) => Opacity(
+        opacity: _t.value,
+        child: Transform.translate(offset: Offset(0, 12 * (1 - _t.value)), child: child),
+      ),
+      child: widget.child,
+    );
+  }
 }

@@ -37,7 +37,7 @@ ThemeData buildTheme(Skin skin, {String font = 'rounded'}) {
       surface: skin.card,
       onSurface: skin.text,
     ),
-    scaffoldBackgroundColor: skin.background,
+    scaffoldBackgroundColor: Colors.transparent,
     canvasColor: skin.card,
     textTheme: textTheme,
     dividerColor: skin.divider,

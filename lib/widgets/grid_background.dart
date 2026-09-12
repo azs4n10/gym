@@ -12,9 +12,20 @@ class GridBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
         decoration: BoxDecoration(color: skin.background),
-        child: CustomPaint(
-          painter: _GridPainter(skin.grid),
-          child: child,
+        child: Stack(
+          children: [
+            // Its own layer, so card animations do not redraw the ruling.
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _GridPainter(skin.grid),
+                  isComplex: true,
+                  willChange: false,
+                ),
+              ),
+            ),
+            child,
+          ],
         ),
       );
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
-import '../widgets/grid_background.dart';
 import 'body_screen.dart';
 import 'calendar_screen.dart';
 import 'meals/meals_screen.dart';
@@ -19,9 +18,25 @@ class HomeShell extends StatefulWidget {
 }
 
 class HomeShellState extends State<HomeShell> {
+  final _pages = PageController();
   int _index = 0;
 
-  void goTo(int index) => setState(() => _index = index);
+  void goTo(int index) {
+    setState(() => _index = index);
+    if (_pages.hasClients) {
+      _pages.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +59,12 @@ class HomeShellState extends State<HomeShell> {
       (Icons.monitor_weight_outlined, Icons.monitor_weight_rounded, l.navBody),
       (Icons.restaurant_outlined, Icons.restaurant_rounded, l.navMeals),
     ];
-    final body = GridBackground(
-      skin: skin,
-      child: IndexedStack(index: _index, children: pages),
+    // Swiping sideways moves between tabs; each page is kept alive so its
+    // search box, month and range survive the trip.
+    final body = PageView(
+      controller: _pages,
+      onPageChanged: (i) => setState(() => _index = i),
+      children: [for (final p in pages) _KeepAlive(child: p)],
     );
 
     if (sideNav) {
@@ -104,5 +122,24 @@ class HomeShellState extends State<HomeShell> {
         ],
       ),
     );
+  }
+}
+
+class _KeepAlive extends StatefulWidget {
+  const _KeepAlive({required this.child});
+  final Widget child;
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

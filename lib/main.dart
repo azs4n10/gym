@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'data/connection.dart';
 import 'data/database.dart';
 import 'screens/home_shell.dart';
+import 'widgets/grid_background.dart';
 import 'state/app_state.dart';
 import 'state/body_state.dart';
 import 'state/meal_state.dart';
@@ -106,13 +107,14 @@ class _PhoneFrame extends StatelessWidget {
     final skin = context.watch<AppState>().skin;
     return LayoutBuilder(
       builder: (context, c) {
-        if (c.maxWidth < 900) return child;
+        final page = GridBackground(skin: skin, child: child);
+        if (c.maxWidth < 900) return page;
         return ColoredBox(
           color: Color.lerp(skin.background, skin.heading, 0.12)!,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 640),
-              child: child,
+              child: page,
             ),
           ),
         );

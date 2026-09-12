@@ -14,7 +14,6 @@ import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/cardio_sheet.dart';
-import '../../widgets/grid_background.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/icon_tile.dart';
 import '../../widgets/pastel_card.dart';
@@ -86,9 +85,7 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
         ],
       ),
-      body: GridBackground(
-        skin: skin,
-        child: ListView(
+      body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
           children: [
           _SessionHero(detail: d, isOpen: isOpen),
@@ -192,7 +189,6 @@ class _SessionScreenState extends State<SessionScreen> {
           _MetaCard(detail: d, editable: isOpen),
         ],
         ),
-      ),
       bottomNavigationBar: isOpen
           ? SafeArea(
               child: Padding(

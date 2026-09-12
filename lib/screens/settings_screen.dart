@@ -9,7 +9,6 @@ import '../theme/app_theme.dart';
 import '../state/body_state.dart';
 import '../theme/skin.dart';
 import '../widgets/sticker.dart';
-import '../widgets/grid_background.dart';
 import '../widgets/stepper_field.dart';
 import '../widgets/window_card.dart';
 
@@ -53,9 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.settings)),
-      body: GridBackground(
-        skin: skin,
-        child: ListView(
+      body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
         children: staggered([
           WindowCard(
@@ -252,7 +249,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(l.foodDisclaimer, style: t.bodySmall?.copyWith(color: skin.subText)),
         ]),
         ),
-      ),
     );
   }
 
