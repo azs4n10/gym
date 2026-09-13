@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../data/database.dart';
 import '../../data/seed/exercises_seed.dart';
 import '../../l10n/strings.dart';
+import '../../data/exercise_moves.dart';
 import '../../models/enums.dart';
 import '../../state/app_state.dart';
 import '../../state/workout_state.dart';
@@ -11,6 +12,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/cardio_sheet.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/group_badge.dart';
+import '../../widgets/exercise_figure.dart';
 import '../../widgets/icon_tile.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/pastel_card.dart';
@@ -212,6 +214,7 @@ class _WideCard extends StatelessWidget {
     required this.tint,
     required this.panel,
     required this.onTap,
+    this.move,
   });
 
   final String title;
@@ -219,6 +222,9 @@ class _WideCard extends StatelessWidget {
   final Color tint;
   final Widget panel;
   final VoidCallback onTap;
+
+  /// Drawn in the side panel when the exercise has a movement defined.
+  final Move? move;
 
   @override
   Widget build(BuildContext context) {
@@ -266,13 +272,19 @@ class _WideCard extends StatelessWidget {
                   border: Border(left: BorderSide(color: skin.ink, width: 2)),
                 ),
                 child: Cover(
-                  seed: title.hashCode,
                   tint: tint,
                   width: 130,
                   height: 106,
                   radius: 0,
                   outlined: false,
-                  child: panel,
+                  child: move == null
+                      ? panel
+                      : ExerciseFigure(
+                          move: move!,
+                          size: 96,
+                          animate: true,
+                          phase: (title.hashCode % 100) / 100,
+                        ),
                 ),
               ),
             ],
@@ -298,6 +310,7 @@ class _ExerciseCard extends StatelessWidget {
     return _WideCard(
       title: exerciseName(exercise, l),
       meta: meta,
+      move: moveFor(exercise.name),
       tint: g.color(context.skin),
       panel: _RecordPanel(last: last),
       onTap: () => _start(context),

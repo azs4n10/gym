@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
-import 'blob_field.dart';
 import 'sticker.dart';
 import 'app_icon.dart';
 
@@ -51,13 +50,6 @@ class Cover extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             ColoredBox(color: tint),
-            if (width > 70)
-              BlobField(
-                color: Color.lerp(tint, skin.card, 0.3)!,
-                light: Color.lerp(tint, skin.card, 0.62)!,
-                dark: Color.lerp(tint, skin.heading, 0.18)!,
-                seed: seed,
-              ),
             if (child != null)
               Center(child: child)
             else if (ic != null)

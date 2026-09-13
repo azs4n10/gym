@@ -3,7 +3,18 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 
 /// Equipment drawn around the figure.
-enum Gear { bench, barbellHands, barbellShoulders, dumbbells, pullBar, floor }
+enum Gear {
+  bench,
+  barbellHands,
+  barbellShoulders,
+  barbellHip,
+  dumbbells,
+  pullBar,
+  floor,
+  machine,
+  cableHigh,
+  cableLow,
+}
 
 /// One side-on pose, in a 100x100 box. Only one arm and one leg are drawn:
 /// exercise diagrams read better in profile, and it keeps the lines few enough
@@ -28,6 +39,32 @@ class Pose {
   final Offset knee;
   final Offset ankle;
   final double headR;
+
+  Pose copyWith({
+    Offset? head,
+    Offset? neck,
+    Offset? hip,
+    Offset? elbow,
+    Offset? hand,
+    Offset? knee,
+    Offset? ankle,
+  }) =>
+      Pose(
+        head: head ?? this.head,
+        neck: neck ?? this.neck,
+        hip: hip ?? this.hip,
+        elbow: elbow ?? this.elbow,
+        hand: hand ?? this.hand,
+        knee: knee ?? this.knee,
+        ankle: ankle ?? this.ankle,
+        headR: headR,
+      );
+
+  /// Same body, different arm.
+  Pose arm(Offset elbow, Offset hand) => copyWith(elbow: elbow, hand: hand);
+
+  /// Same body, different leg.
+  Pose leg(Offset knee, Offset ankle) => copyWith(knee: knee, ankle: ankle);
 
   static Offset _l(Offset a, Offset b, double t) => Offset.lerp(a, b, t)!;
 
@@ -59,12 +96,16 @@ class ExerciseFigure extends StatefulWidget {
     this.size = 64,
     this.animate = false,
     this.color,
+    this.phase = 0,
   });
 
   final Move move;
   final double size;
   final bool animate;
   final Color? color;
+
+  /// 0-1 offset into the loop, so neighbouring rows do not move as one.
+  final double phase;
 
   @override
   State<ExerciseFigure> createState() => _ExerciseFigureState();
@@ -78,7 +119,8 @@ class _ExerciseFigureState extends State<ExerciseFigure>
   void initState() {
     super.initState();
     if (widget.animate) {
-      _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))
+      _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))
+        ..value = widget.phase.clamp(0.0, 1.0)
         ..repeat(reverse: true);
     }
   }
@@ -105,9 +147,11 @@ class _ExerciseFigureState extends State<ExerciseFigure>
       height: widget.size,
       child: c == null
           ? CustomPaint(painter: painter(0), isComplex: true, willChange: false)
-          : AnimatedBuilder(
-              animation: c,
-              builder: (_, _) => CustomPaint(painter: painter(c.value)),
+          : RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: c,
+                builder: (_, _) => CustomPaint(painter: painter(c.value)),
+              ),
             ),
     );
   }
@@ -154,7 +198,21 @@ class _FigurePainter extends CustomPainter {
       canvas.drawLine(const Offset(86, 71), const Offset(86, 90), kit);
     }
     if (gear.contains(Gear.pullBar)) {
-      canvas.drawLine(const Offset(14, 10), const Offset(86, 10), kit);
+      canvas.drawLine(const Offset(14, 9), const Offset(86, 9), kit);
+    }
+    if (gear.contains(Gear.machine)) {
+      canvas.drawRRect(
+        RRect.fromLTRBR(6, 30, 26, 92, const Radius.circular(6)),
+        kitFill,
+      );
+    }
+    if (gear.contains(Gear.cableHigh)) {
+      canvas.drawLine(const Offset(92, 12), pose.hand, kit..strokeWidth = 3);
+      canvas.drawCircle(const Offset(92, 12), 5, kitFill);
+    }
+    if (gear.contains(Gear.cableLow)) {
+      canvas.drawLine(const Offset(92, 88), pose.hand, kit..strokeWidth = 3);
+      canvas.drawCircle(const Offset(92, 88), 5, kitFill);
     }
 
     // torso, then the near arm and leg
@@ -174,6 +232,7 @@ class _FigurePainter extends CustomPainter {
       limb,
     );
     if (gear.contains(Gear.barbellShoulders)) _bar(canvas, pose.neck, kitFill, kit);
+    if (gear.contains(Gear.barbellHip)) _bar(canvas, pose.hip, kitFill, kit);
     canvas.drawCircle(pose.head, pose.headR, Paint()..color = ink);
     if (gear.contains(Gear.barbellHands)) _bar(canvas, pose.hand, kitFill, kit);
     if (gear.contains(Gear.dumbbells)) {
