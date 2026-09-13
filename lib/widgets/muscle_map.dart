@@ -55,16 +55,16 @@ class _MusclePainter extends CustomPainter {
     // Front-facing silhouette, built from a few rounded blocks.
     canvas.drawCircle(const Offset(50, 15), 11, pale);
     canvas.drawRRect(
-      RRect.fromLTRBR(33, 28, 67, 60, const Radius.circular(11)),
+      RRect.fromLTRBR(31, 28, 69, 60, const Radius.circular(11)),
       pale,
     );
     for (final dx in [-1.0, 1.0]) {
       // arms
       canvas.drawRRect(
         RRect.fromLTRBR(
-          50 + dx * 33 - (dx > 0 ? 0 : 8),
-          30,
-          50 + dx * 33 + (dx > 0 ? 8 : 0),
+          50 + dx * 27 - (dx > 0 ? 0 : 9),
+          29,
+          50 + dx * 27 + (dx > 0 ? 9 : 0),
           64,
           const Radius.circular(5),
         ),
@@ -98,34 +98,28 @@ class _MusclePainter extends CustomPainter {
           );
         }
       case MuscleGroup.back:
-        // Lats: wide at the armpit, tapering to the waist, with the spine.
-        for (final dx in [-1.0, 1.0]) {
-          canvas.drawPath(
-            Path()
-              ..moveTo(50 + dx * 16, 31)
-              ..lineTo(50 + dx * 16, 44)
-              ..lineTo(50 + dx * 4, 54)
-              ..lineTo(50 + dx * 4, 38)
-              ..close(),
-            lit,
-          );
-        }
-        canvas.drawRRect(
-          RRect.fromLTRBR(48.5, 30, 51.5, 56, const Radius.circular(1.5)),
+        // Lats: one wedge, wide at the armpits and tapering to the waist.
+        canvas.drawPath(
+          Path()
+            ..moveTo(33, 31)
+            ..lineTo(67, 31)
+            ..lineTo(58, 56)
+            ..lineTo(42, 56)
+            ..close(),
           lit,
         );
       case MuscleGroup.shoulders:
         for (final dx in [-1.0, 1.0]) {
-          canvas.drawCircle(Offset(50 + dx * 30, 34), 8, lit);
+          canvas.drawCircle(Offset(50 + dx * 27, 33), 8.5, lit);
         }
       case MuscleGroup.arms:
         for (final dx in [-1.0, 1.0]) {
           canvas.drawRRect(
             RRect.fromLTRBR(
-              50 + dx * 33 - (dx > 0 ? 0 : 8),
+              50 + dx * 27 - (dx > 0 ? 0 : 9),
               34,
-              50 + dx * 33 + (dx > 0 ? 8 : 0),
-              52,
+              50 + dx * 27 + (dx > 0 ? 9 : 0),
+              53,
               const Radius.circular(5),
             ),
             lit,

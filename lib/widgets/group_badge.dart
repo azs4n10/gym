@@ -23,7 +23,7 @@ class GroupBadge extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: skin.ink, width: kThinBorder),
       ),
-      child: MuscleMap(group: group, size: size * 0.78),
+      child: size < 24 ? null : MuscleMap(group: group, size: size * 0.78),
     );
   }
 }
