@@ -96,6 +96,7 @@ class ExerciseFigure extends StatefulWidget {
     this.size = 64,
     this.animate = false,
     this.color,
+    this.gearColor,
     this.phase = 0,
   });
 
@@ -103,6 +104,10 @@ class ExerciseFigure extends StatefulWidget {
   final double size;
   final bool animate;
   final Color? color;
+
+  /// Colour of the bench, bar and floor. Must contrast with whatever sits
+  /// behind the figure, which is usually a tinted panel.
+  final Color? gearColor;
 
   /// 0-1 offset into the loop, so neighbouring rows do not move as one.
   final double phase;
@@ -139,7 +144,7 @@ class _ExerciseFigureState extends State<ExerciseFigure>
           pose: Pose.lerp(widget.move.start, widget.move.end, Curves.easeInOut.transform(t)),
           gear: widget.move.gear,
           ink: ink,
-          accent: skin.button,
+          accent: widget.gearColor ?? skin.button,
         );
     final c = _c;
     return SizedBox(

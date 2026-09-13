@@ -281,8 +281,9 @@ class _WideCard extends StatelessWidget {
                       ? panel
                       : ExerciseFigure(
                           move: move!,
-                          size: 96,
+                          size: 100,
                           animate: true,
+                          gearColor: skin.card,
                           phase: (title.hashCode % 100) / 100,
                         ),
                 ),
