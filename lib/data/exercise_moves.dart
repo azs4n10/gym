@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/enums.dart';
 import '../widgets/exercise_figure.dart';
 
 // Base bodies. Every entry below is one of these with a different arm or leg.
@@ -460,3 +461,122 @@ final Map<String, Move> exerciseMoves = {
 };
 
 Move? moveFor(String name) => exerciseMoves[name];
+
+// Cardio. Same figure, looping through the stride or stroke.
+
+const _cycle = Pose(
+  head: Offset(56, 22),
+  neck: Offset(52, 36),
+  hip: Offset(38, 56),
+  elbow: Offset(62, 44),
+  hand: Offset(74, 50),
+  knee: Offset(56, 66),
+  ankle: Offset(48, 80),
+  headR: 7.5,
+);
+
+/// Movements for the cardio types.
+final Map<CardioType, Move> cardioMoves = {
+  CardioType.running: Move(
+    start: _stand
+        .copyWith(head: const Offset(55, 15), neck: const Offset(52, 32))
+        .arm(const Offset(62, 44), const Offset(70, 34))
+        .leg(const Offset(66, 68), const Offset(78, 82)),
+    end: _stand
+        .copyWith(head: const Offset(55, 15), neck: const Offset(52, 32))
+        .arm(const Offset(40, 44), const Offset(32, 36))
+        .leg(const Offset(36, 70), const Offset(26, 86)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.walking: Move(
+    start: _stand
+        .arm(const Offset(56, 46), const Offset(62, 56))
+        .leg(const Offset(60, 72), const Offset(68, 88)),
+    end: _stand
+        .arm(const Offset(48, 46), const Offset(42, 56))
+        .leg(const Offset(44, 74), const Offset(34, 88)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.cycling: Move(
+    start: _cycle.leg(const Offset(58, 62), const Offset(52, 78)),
+    end: _cycle.leg(const Offset(52, 70), const Offset(40, 74)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.elliptical: Move(
+    start: _stand
+        .arm(const Offset(62, 40), const Offset(74, 34))
+        .leg(const Offset(62, 70), const Offset(72, 84)),
+    end: _stand
+        .arm(const Offset(40, 40), const Offset(30, 36))
+        .leg(const Offset(42, 72), const Offset(30, 86)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.stairs: Move(
+    start: _stand
+        .copyWith(hip: const Offset(50, 58))
+        .arm(const Offset(58, 46), const Offset(64, 54))
+        .leg(const Offset(66, 64), const Offset(72, 80)),
+    end: _stand
+        .copyWith(hip: const Offset(50, 50))
+        .arm(const Offset(44, 40), const Offset(38, 48))
+        .leg(const Offset(58, 58), const Offset(64, 72)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.rowing: Move(
+    start: _seat
+        .copyWith(knee: const Offset(70, 56), ankle: const Offset(84, 62))
+        .arm(const Offset(62, 48), const Offset(80, 50)),
+    end: _seat
+        .copyWith(knee: const Offset(76, 66), ankle: const Offset(84, 62))
+        .arm(const Offset(34, 50), const Offset(48, 52)),
+    gear: const [Gear.machine],
+  ),
+  CardioType.swimming: Move(
+    start: _floorDown
+        .copyWith(
+          head: const Offset(80, 52),
+          neck: const Offset(68, 54),
+          hip: const Offset(40, 58),
+          knee: const Offset(26, 54),
+          ankle: const Offset(12, 60),
+        )
+        .arm(const Offset(80, 40), const Offset(90, 30)),
+    end: _floorDown
+        .copyWith(
+          head: const Offset(80, 52),
+          neck: const Offset(68, 54),
+          hip: const Offset(40, 58),
+          knee: const Offset(26, 62),
+          ankle: const Offset(12, 52),
+        )
+        .arm(const Offset(64, 68), const Offset(50, 72)),
+  ),
+  CardioType.hiit: Move(
+    start: _stand
+        .arm(const Offset(56, 46), const Offset(57, 60))
+        .leg(const Offset(51, 74), const Offset(49, 90)),
+    end: _stand
+        .copyWith(head: const Offset(53, 8), neck: const Offset(51, 25), hip: const Offset(50, 49))
+        .arm(const Offset(60, 26), const Offset(66, 12))
+        .leg(const Offset(56, 64), const Offset(62, 78)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.yoga: Move(
+    start: _stand
+        .arm(const Offset(58, 40), const Offset(52, 26))
+        .leg(const Offset(51, 74), const Offset(49, 90)),
+    end: _kneel
+        .copyWith(head: const Offset(62, 40), neck: const Offset(56, 52))
+        .arm(const Offset(66, 66), const Offset(78, 78)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.other: Move(
+    start: _stand
+        .arm(const Offset(56, 46), const Offset(57, 60))
+        .leg(const Offset(56, 72), const Offset(62, 88)),
+    end: _stand
+        .arm(const Offset(46, 44), const Offset(42, 54))
+        .leg(const Offset(46, 74), const Offset(38, 88)),
+    gear: const [Gear.floor],
+  ),
+};

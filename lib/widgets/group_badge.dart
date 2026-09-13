@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/enums.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
-import 'app_icon.dart';
+import 'muscle_map.dart';
 
 class GroupBadge extends StatelessWidget {
   const GroupBadge(this.group, {super.key, this.size = 28});
@@ -23,7 +23,7 @@ class GroupBadge extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: skin.ink, width: kThinBorder),
       ),
-      child: AppIcon(group.ic, size: size * 0.62, color: skin.ink),
+      child: MuscleMap(group: group, size: size * 0.78),
     );
   }
 }

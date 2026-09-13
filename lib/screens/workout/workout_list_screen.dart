@@ -345,6 +345,7 @@ class _CardioCard extends StatelessWidget {
       meta: l.cardio,
       tint: skin.accent,
       panel: AppIcon(Ic.cardio, size: 38, color: skin.card),
+      move: cardioMoves[kind],
       onTap: () => _start(context),
     );
   }
