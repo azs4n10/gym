@@ -124,7 +124,7 @@ class _ExerciseFigureState extends State<ExerciseFigure>
   void initState() {
     super.initState();
     if (widget.animate) {
-      _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))
+      _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
         ..value = widget.phase.clamp(0.0, 1.0)
         ..repeat(reverse: true);
     }
