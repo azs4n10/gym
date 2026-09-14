@@ -494,7 +494,7 @@ class _SessionHero extends StatelessWidget {
     }
     final lead = groups.isEmpty ? null : groups.first;
     final tint = lead?.color(skin) ?? skin.accent;
-    final ic = lead?.ic ?? (detail.cardio.isEmpty ? Ic.workout : Ic.cardio);
+    final ic = detail.cardio.isEmpty ? Ic.workout : Ic.cardio;
     final title = groups.isEmpty
         ? (detail.cardio.isEmpty ? l.workouts : l.cardio)
         : groups.map((g) => g.label(l)).join(' · ');

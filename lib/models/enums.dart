@@ -5,18 +5,17 @@ import '../theme/skin.dart';
 import '../widgets/app_icon.dart';
 
 enum MuscleGroup {
-  chest('Chest', '胸', Ic.chest, 0),
-  back('Back', '背中', Ic.back, -75),
-  shoulders('Shoulders', '肩', Ic.shoulders, -50),
-  arms('Arms', '腕', Ic.arms, 50),
-  legs('Legs', '脚', Ic.legs, 75),
-  glutes('Glutes', 'お尻', Ic.glutes, 25),
-  core('Core', 'お腹', Ic.core, -25);
+  chest('Chest', '胸', 0),
+  back('Back', '背中', -75),
+  shoulders('Shoulders', '肩', -50),
+  arms('Arms', '腕', 50),
+  legs('Legs', '脚', 75),
+  glutes('Glutes', 'お尻', 25),
+  core('Core', 'お腹', -25);
 
-  const MuscleGroup(this.en, this.ja, this.ic, this.hueShift);
+  const MuscleGroup(this.en, this.ja, this.hueShift);
   final String en;
   final String ja;
-  final Ic ic;
 
   /// Each group needs to be told apart at a glance, so the hue is rotated off
   /// the skin's own button colour rather than picked independently. That keeps
@@ -53,6 +52,7 @@ enum CardioType {
   final String en;
   final String ja;
 
+
   String label(L l) => l.isJa ? ja : en;
 
   static CardioType parse(String name) =>
@@ -68,6 +68,7 @@ enum MealSlot {
   const MealSlot(this.en, this.ja, this.ic);
   final String en;
   final String ja;
+
   final Ic ic;
 
   String label(L l) => l.isJa ? ja : en;
@@ -93,6 +94,7 @@ enum Sex {
   final String en;
   final String ja;
 
+
   String label(L l) => l.isJa ? ja : en;
 
   static Sex parse(String name) =>
@@ -107,6 +109,7 @@ enum Goal {
   const Goal(this.en, this.ja, this.kcalOffset);
   final String en;
   final String ja;
+
   final int kcalOffset;
 
   String label(L l) => l.isJa ? ja : en;
@@ -124,6 +127,7 @@ enum ActivityLevel {
   const ActivityLevel(this.en, this.ja, this.factor);
   final String en;
   final String ja;
+
   final double factor;
 
   String label(L l) => l.isJa ? ja : en;
@@ -143,6 +147,7 @@ enum FoodTag {
   const FoodTag(this.en, this.ja);
   final String en;
   final String ja;
+
 
   String label(L l) => l.isJa ? ja : en;
 
