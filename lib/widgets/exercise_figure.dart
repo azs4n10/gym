@@ -36,7 +36,6 @@ enum Gear {
   wheel,
   bike,
   pedals,
-  step,
   water,
   foot,
   calfBlock,
@@ -109,65 +108,95 @@ class Pose {
       );
 }
 
+/// A movement. A lift is two poses played back and forth; a stride or a
+/// stroke is a cycle, sampled from a function of phase and played forward.
 class Move {
-  const Move({
-    required this.start,
-    required this.end,
-    this.gear = const [],
-    this.view = Facing.side,
-  });
-  final Pose start;
-  final Pose end;
+  const Move({required this.start, required this.end, this.gear = const [], this.view = Facing.side})
+      : frames = const [],
+        cycle = null;
+
+  /// Several poses played back and forth, in order.
+  const Move.frames(this.frames, {this.gear = const [], this.view = Facing.side})
+      : start = null,
+        end = null,
+        cycle = null;
+
+  /// A looping motion: [cycle] gives the pose at a phase from 0 to 2π.
+  const Move.cycle(this.cycle, {this.gear = const [], this.view = Facing.side})
+      : frames = const [],
+        start = null,
+        end = null;
+
+  final Pose? start;
+  final Pose? end;
+  final List<Pose> frames;
+  final Pose Function(double phase)? cycle;
   final List<Gear> gear;
   final Facing view;
+
+  bool get loops => cycle != null;
+
+  /// Pose at [t] in 0..1. For back-and-forth moves the controller reverses,
+  /// so 0..1 runs the movement once through.
+  Pose at(double t) {
+    if (cycle != null) return cycle!(t * 2 * math.pi);
+    final list = frames.isNotEmpty ? frames : [start!, end!];
+    if (list.length == 1) return list.first;
+    final scaled = t.clamp(0.0, 1.0) * (list.length - 1);
+    final i = scaled.floor().clamp(0, list.length - 2);
+    return Pose.lerp(list[i], list[i + 1], scaled - i);
+  }
 }
 
 // Segment lengths, in the 100x100 box.
-const _torsoLen = 30.0;
+const torsoLen = 30.0;
 const _headLen = 11.0;
 const _headR = 7.5;
-const _upperArm = 14.0;
-const _forearm = 13.0;
-const _thigh = 18.0;
-const _shin = 17.0;
+const upperArmLen = 14.0;
+const forearmLen = 13.0;
+const thighLen = 18.0;
+const shinLen = 17.0;
 
 /// Where the floor is drawn. Poses put their feet just above it.
-const _floorY = 94.0;
+const floorY = 94.0;
 
-Offset _dir(double deg) {
+Offset dirOf(double deg) {
   final r = deg * math.pi / 180;
   return Offset(math.sin(r), math.cos(r));
 }
+
+/// Angle, in this file's convention, of a direction vector.
+double angleOf(Offset d) => math.atan2(d.dx, d.dy) * 180 / math.pi;
 
 /// Joint positions worked out from a pose.
 class Skeleton {
   Skeleton(Pose p, {bool front = false}) {
     hip = p.hip;
-    final up = _dir(180 - p.torso);
-    neck = hip + up * _torsoLen;
+    final up = dirOf(180 - p.torso);
+    neck = hip + up * torsoLen;
     head = neck + up * _headLen;
-    elbow = neck + _dir(p.arm.upper) * _upperArm;
-    hand = elbow + _dir(p.arm.lower) * _forearm;
-    knee = hip + _dir(p.leg.upper) * _thigh;
-    ankle = knee + _dir(p.leg.lower) * _shin;
+    elbow = neck + dirOf(p.arm.upper) * upperArmLen;
+    hand = elbow + dirOf(p.arm.lower) * forearmLen;
+    knee = hip + dirOf(p.leg.upper) * thighLen;
+    ankle = knee + dirOf(p.leg.lower) * shinLen;
 
     // Far side. From the front it is the opposite limb, so its "forward"
     // points the other way.
     final flip = front ? -1.0 : 1.0;
     Offset far(double deg) {
-      final d = _dir(deg);
+      final d = dirOf(deg);
       return Offset(d.dx * flip, d.dy);
     }
 
     final a2 = p.arm2 ?? (front ? p.arm : null);
     final l2 = p.leg2 ?? (front ? p.leg : null);
     if (a2 != null) {
-      elbow2 = neck + far(a2.upper) * _upperArm;
-      hand2 = elbow2! + far(a2.lower) * _forearm;
+      elbow2 = neck + far(a2.upper) * upperArmLen;
+      hand2 = elbow2! + far(a2.lower) * forearmLen;
     }
     if (l2 != null) {
-      knee2 = hip + far(l2.upper) * _thigh;
-      ankle2 = knee2! + far(l2.lower) * _shin;
+      knee2 = hip + far(l2.upper) * thighLen;
+      ankle2 = knee2! + far(l2.lower) * shinLen;
     }
   }
 
@@ -175,7 +204,7 @@ class Skeleton {
   Offset? elbow2, hand2, knee2, ankle2;
 }
 
-/// Draws a movement. Static by default; [animate] loops between the poses.
+/// Draws a movement. Static by default; [animate] plays it.
 class ExerciseFigure extends StatefulWidget {
   const ExerciseFigure({
     super.key,
@@ -210,9 +239,13 @@ class _ExerciseFigureState extends State<ExerciseFigure>
   void initState() {
     super.initState();
     if (widget.animate) {
-      _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+      final loops = widget.move.loops;
+      _c = AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: loops ? 1300 : 900),
+      )
         ..value = widget.phase.clamp(0.0, 1.0)
-        ..repeat(reverse: true);
+        ..repeat(reverse: !loops);
     }
   }
 
@@ -225,8 +258,9 @@ class _ExerciseFigureState extends State<ExerciseFigure>
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
+    final loops = widget.move.loops;
     _FigurePainter painter(double t) => _FigurePainter(
-          pose: Pose.lerp(widget.move.start, widget.move.end, Curves.easeInOut.transform(t)),
+          pose: widget.move.at(loops ? t : Curves.easeInOut.transform(t)),
           gear: widget.move.gear,
           view: widget.move.view,
           ink: widget.color ?? skin.ink,
@@ -270,7 +304,7 @@ class _FigurePainter extends CustomPainter {
     canvas.scale(size.width / 100);
     final s = Skeleton(pose, front: view == Facing.front);
     final limb = _line(ink, 6);
-    final farLimb = _line(ink.withValues(alpha: view == Facing.front ? 1 : 0.55), 6);
+    final farLimb = _line(ink.withValues(alpha: view == Facing.front ? 1 : 0.5), 6);
 
     _behind(canvas, s);
 
@@ -308,7 +342,7 @@ class _FigurePainter extends CustomPainter {
     final cable = _line(kit, 3);
 
     if (has(Gear.floor)) {
-      canvas.drawLine(const Offset(4, _floorY), const Offset(96, _floorY), mid);
+      canvas.drawLine(const Offset(4, floorY), const Offset(96, floorY), mid);
     }
     if (has(Gear.water)) {
       final y = s.hip.dy + 3;
@@ -320,11 +354,10 @@ class _FigurePainter extends CustomPainter {
       canvas.drawPath(path, cable);
     }
     if (has(Gear.frame)) {
-      canvas.drawRRect(RRect.fromLTRBR(4, 20, 14, _floorY, const Radius.circular(4)), fill);
+      canvas.drawRRect(RRect.fromLTRBR(4, 20, 14, floorY, const Radius.circular(4)), fill);
     }
     if (has(Gear.post)) {
-      final x = s.hand.dx + 5;
-      canvas.drawLine(Offset(x, 18), Offset(x, _floorY), thin);
+      canvas.drawLine(const Offset(84, 16), const Offset(84, floorY), thin);
     }
     if (has(Gear.seat)) {
       // Pad under the hips reaching toward the knee, on a post.
@@ -337,7 +370,7 @@ class _FigurePainter extends CustomPainter {
         fill,
       );
       final postX = (back + front) / 2;
-      canvas.drawLine(Offset(postX, top + 7), Offset(postX, _floorY), thin);
+      canvas.drawLine(Offset(postX, top + 7), Offset(postX, floorY), thin);
     }
     if (has(Gear.bench)) {
       // A pad along the back of the torso: the side the arm is not on.
@@ -351,31 +384,25 @@ class _FigurePainter extends CustomPainter {
       final b = s.neck + unit * 12 + off;
       canvas.drawLine(a, b, thick);
       for (final p in [a, b]) {
-        canvas.drawLine(p, Offset(p.dx, _floorY), thin);
+        canvas.drawLine(p, Offset(p.dx, floorY), thin);
       }
     }
     if (has(Gear.benchShoulders)) {
       final y = s.neck.dy + 7;
       canvas.drawLine(Offset(s.neck.dx - 8, y), Offset(s.neck.dx + 14, y), thick);
       for (final x in [s.neck.dx - 8, s.neck.dx + 14]) {
-        canvas.drawLine(Offset(x, y), Offset(x, _floorY), thin);
+        canvas.drawLine(Offset(x, y), Offset(x, floorY), thin);
       }
     }
     if (has(Gear.benchHand2) && s.hand2 != null) {
       final h = s.hand2!;
       canvas.drawLine(Offset(h.dx - 10, h.dy + 4), Offset(h.dx + 10, h.dy + 4), thick);
-      canvas.drawLine(Offset(h.dx, h.dy + 4), Offset(h.dx, _floorY), thin);
+      canvas.drawLine(Offset(h.dx, h.dy + 4), Offset(h.dx, floorY), thin);
     }
     if (has(Gear.benchFoot2) && s.ankle2 != null) {
       final a = s.ankle2!;
       canvas.drawLine(Offset(a.dx - 8, a.dy + 4), Offset(a.dx + 8, a.dy + 4), thick);
-      canvas.drawLine(Offset(a.dx, a.dy + 4), Offset(a.dx, _floorY), thin);
-    }
-    if (has(Gear.step)) {
-      canvas.drawRRect(
-        RRect.fromLTRBR(s.ankle.dx - 8, s.ankle.dy + 3, s.ankle.dx + 12, _floorY, const Radius.circular(3)),
-        fill,
-      );
+      canvas.drawLine(Offset(a.dx, a.dy + 4), Offset(a.dx, floorY), thin);
     }
     if (has(Gear.pedals)) {
       for (final a in [s.ankle, if (s.ankle2 != null) s.ankle2!]) {
@@ -383,13 +410,14 @@ class _FigurePainter extends CustomPainter {
       }
     }
     if (has(Gear.bike)) {
-      final rear = Offset(s.hip.dx - 20, 83);
-      final front = Offset(s.hand.dx + 6, 83);
-      canvas.drawCircle(rear, 10, cable);
-      canvas.drawCircle(front, 10, cable);
-      final crank = Offset(s.hip.dx + 8, 76);
-      _stroke(canvas, [rear, crank, s.hip + const Offset(-4, 4), rear], thin);
-      _stroke(canvas, [crank, Offset(s.hand.dx, s.hand.dy + 4), front], thin);
+      final rear = Offset(s.hip.dx - 22, 82);
+      final front = Offset(s.hand.dx + 4, 82);
+      final crank = Offset(s.hip.dx + 6, 78);
+      canvas.drawCircle(rear, 11, cable);
+      canvas.drawCircle(front, 11, cable);
+      _stroke(canvas, [rear, crank, s.hip + const Offset(-2, 5), rear], thin);
+      _stroke(canvas, [s.hip + const Offset(-2, 5), Offset(s.hand.dx - 2, s.hand.dy + 6), front], thin);
+      canvas.drawLine(crank, Offset(s.hand.dx - 2, s.hand.dy + 6), thin);
     }
     if (has(Gear.pullBar)) {
       canvas.drawLine(Offset(10, s.hand.dy), Offset(90, s.hand.dy), mid);
@@ -397,7 +425,7 @@ class _FigurePainter extends CustomPainter {
     if (has(Gear.dipBars)) {
       final y = s.hand.dy;
       canvas.drawLine(Offset(s.hand.dx - 12, y), Offset(s.hand.dx + 12, y), mid);
-      canvas.drawLine(Offset(s.hand.dx, y), Offset(s.hand.dx, _floorY), thin);
+      canvas.drawLine(Offset(s.hand.dx, y), Offset(s.hand.dx, floorY), thin);
     }
     if (has(Gear.cableHigh)) {
       _cable(canvas, const Offset(92, 8), s.hand, cable, fill);
@@ -415,13 +443,13 @@ class _FigurePainter extends CustomPainter {
     }
     if (has(Gear.calfBlock)) {
       canvas.drawRRect(
-        RRect.fromLTRBR(s.ankle.dx + 4, 86, s.ankle.dx + 18, _floorY, const Radius.circular(2)),
+        RRect.fromLTRBR(s.ankle.dx + 4, 86, s.ankle.dx + 20, floorY, const Radius.circular(2)),
         fill,
       );
     }
     if (has(Gear.foot)) {
       // Toes stay put on the block, so a raised ankle reads as a lifted heel.
-      canvas.drawLine(s.ankle, Offset(s.ankle.dx + 11, 85), _line(ink, 6));
+      canvas.drawLine(s.ankle, Offset(s.ankle.dx + 12, 85), _line(ink, 6));
     }
     if (has(Gear.plateFeet)) {
       // A platform square to the shin.
@@ -444,17 +472,10 @@ class _FigurePainter extends CustomPainter {
     final fill = Paint()..color = kit;
     final both = view == Facing.front;
     void pad(Offset at) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: at, width: 10, height: 10),
-          const Radius.circular(3),
-        ),
-        fill,
-      );
-      if (both) {
+      for (final p in [at, if (both) _mirror(at)]) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: _mirror(at), width: 10, height: 10),
+            Rect.fromCenter(center: p, width: 10, height: 10),
             const Radius.circular(3),
           ),
           fill,

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models/enums.dart';
@@ -223,7 +225,7 @@ final Map<String, Move> exerciseMoves = {
   ),
   'Calf raise': Move(
     start: const Pose(hip: Offset(50, 58)),
-    end: const Pose(hip: Offset(50, 46)),
+    end: const Pose(hip: Offset(50, 44)),
     gear: const [Gear.calfBlock, Gear.foot, Gear.floor],
   ),
 
@@ -263,8 +265,8 @@ final Map<String, Move> exerciseMoves = {
     gear: const [Gear.floor],
   ),
   'Crunch': Move(
-    start: _floorUp.copyWith(arm: const Limb(150, 45)),
-    end: _floorUp.copyWith(torso: 70, arm: const Limb(150, 45)),
+    start: _floorUp.copyWith(arm: const Limb(180, 55)),
+    end: _floorUp.copyWith(torso: 70, arm: const Limb(180, 55)),
     gear: const [Gear.floor],
   ),
   'Leg raise': Move(
@@ -282,65 +284,195 @@ final Map<String, Move> exerciseMoves = {
     end: _hang.copyWith(leg: const Limb(-150, -90)),
     gear: const [Gear.pullBar],
   ),
-  'Russian twist': Move(
-    start: const Pose(hip: Offset(50, 64), arm: Limb(55, 47), arm2: Limb(-27, -84), leg: Limb(25, -60)),
-    end: const Pose(hip: Offset(50, 64), arm: Limb(-27, -84), arm2: Limb(55, 47), leg: Limb(25, -60)),
-    gear: const [Gear.floor],
+  // Hands together sweep across at chest height; the middle frame keeps them
+  // up instead of letting the swing dip through the lap.
+  'Russian twist': const Move.frames(
+    [
+      Pose(hip: Offset(50, 64), arm: Limb(55, 47), arm2: Limb(-27, -84), leg: Limb(25, -60)),
+      Pose(hip: Offset(50, 64), arm: Limb(59, -77), arm2: Limb(-59, 77), leg: Limb(25, -60)),
+      Pose(hip: Offset(50, 64), arm: Limb(-27, -84), arm2: Limb(55, 47), leg: Limb(25, -60)),
+    ],
+    gear: [Gear.floor],
     view: Facing.front,
   ),
 };
 
-/// Movements for the cardio types. Strides alternate the two sides.
+// Cardio. Gait and strokes are cycles: each is a function of phase, sampled
+// as the loop plays forward, so a stride never runs backwards.
+
+/// Leg angles that put the foot at [foot], knee bent to the front (or up).
+Limb _legTo(Offset hip, Offset foot, {bool kneeUp = false}) {
+  final v = foot - hip;
+  final d = v.distance.clamp(thighLen - shinLen + 0.5, thighLen + shinLen - 0.5);
+  final u = v / v.distance;
+  final cosA = (thighLen * thighLen + d * d - shinLen * shinLen) / (2 * thighLen * d);
+  final a = math.acos(cosA.clamp(-1.0, 1.0));
+  Offset rot(double r) => Offset(
+        u.dx * math.cos(r) - u.dy * math.sin(r),
+        u.dx * math.sin(r) + u.dy * math.cos(r),
+      );
+  final k1 = hip + rot(a) * thighLen;
+  final k2 = hip + rot(-a) * thighLen;
+  final knee = kneeUp ? (k1.dy < k2.dy ? k1 : k2) : (k1.dx > k2.dx ? k1 : k2);
+  final ankle = knee + (foot - knee) / (foot - knee).distance * shinLen;
+  return Limb(angleOf(knee - hip), angleOf(ankle - knee));
+}
+
+double _sin(double x) => math.sin(x);
+double _cos(double x) => math.cos(x);
+
+/// Running: thigh swings, knee folds during the swing and stays near straight
+/// through the stance, arms pump against the legs.
+Pose _run(double p) {
+  Limb leg(double q) {
+    final thigh = 8 + 38 * _sin(q);
+    final flex = 20 + 70 * (1 + _cos(q + 0.5)) / 2;
+    return Limb(thigh, thigh - flex);
+  }
+
+  Limb arm(double q) {
+    final upper = -40 * _sin(q);
+    return Limb(upper, upper + 85);
+  }
+
+  return Pose(
+    hip: Offset(50, 55 + 1.5 * _cos(2 * p)),
+    torso: 12,
+    arm: arm(p),
+    arm2: arm(p + math.pi),
+    leg: leg(p),
+    leg2: leg(p + math.pi),
+  );
+}
+
+Pose _walk(double p) {
+  Limb leg(double q) {
+    final thigh = 24 * _sin(q);
+    final flex = 5 + 40 * (1 + _cos(q + 0.5)) / 2;
+    return Limb(thigh, thigh - flex);
+  }
+
+  Limb arm(double q) {
+    final upper = -18 * _sin(q);
+    return Limb(upper, upper + 8);
+  }
+
+  return Pose(
+    hip: const Offset(50, 55),
+    torso: 3,
+    arm: arm(p),
+    arm2: arm(p + math.pi),
+    leg: leg(p),
+    leg2: leg(p + math.pi),
+  );
+}
+
+/// Feet go round the crank; the knees are found from that.
+Pose _cycle(double p) {
+  const hip = Offset(40, 50);
+  const crank = Offset(46, 76);
+  Offset foot(double q) => crank + Offset(8 * _sin(q), 8 * _cos(q));
+  return Pose(
+    hip: hip,
+    torso: 35,
+    arm: const Limb(70, 30),
+    leg: _legTo(hip, foot(p)),
+    leg2: _legTo(hip, foot(p + math.pi)),
+  );
+}
+
+/// Feet glide round a flat ellipse while the hands ride the moving handles.
+Pose _elliptical(double p) {
+  const hip = Offset(48, 55);
+  Offset foot(double q) => Offset(50 + 13 * _cos(q), 84 + 4 * _sin(q));
+  Limb arm(double q) {
+    final upper = 55 + 18 * _sin(q);
+    return Limb(upper, upper - 15);
+  }
+
+  return Pose(
+    hip: hip,
+    torso: 6,
+    arm: arm(p),
+    arm2: arm(p + math.pi),
+    leg: _legTo(hip, foot(p)),
+    leg2: _legTo(hip, foot(p + math.pi)),
+  );
+}
+
+/// Stepper: the two pedals rise and fall against each other.
+Pose _stepper(double p) {
+  const hip = Offset(48, 54);
+  return Pose(
+    hip: hip,
+    torso: 10,
+    arm: const Limb(40, 20),
+    arm2: const Limb(40, 20),
+    leg: _legTo(hip, Offset(56, 80 + 7 * _sin(p))),
+    leg2: _legTo(hip, Offset(44, 80 - 7 * _sin(p))),
+  );
+}
+
+/// Catch, drive, finish, recovery. The seat slides, the feet stay on the
+/// plate, and the arms pull only once the legs are most of the way.
+Pose _row(double p) {
+  final hip = Offset(40 + 6 * _cos(p), 66);
+  final pull = (1 - _cos(p - 0.7)) / 2;
+  return Pose(
+    hip: hip,
+    torso: 2 + 18 * _cos(p),
+    arm: Limb(90 - 125 * pull, 90 - 40 * pull),
+    leg: _legTo(hip, const Offset(62, 82), kneeUp: true),
+  );
+}
+
+/// Freestyle: each arm goes once round the shoulder, bent while it recovers
+/// over the water and near straight while it pulls beneath; a flutter kick.
+Pose _swim(double p) {
+  Limb arm(double q) {
+    final upper = 90 - q * 180 / math.pi;
+    final bend = -15 + 45 * _sin(q);
+    return Limb(upper, upper + bend);
+  }
+
+  Limb leg(double q) {
+    final thigh = -92 + 10 * _sin(3 * q);
+    return Limb(thigh, thigh + 12 * _sin(3 * q + 1));
+  }
+
+  return Pose(
+    hip: const Offset(38, 58),
+    torso: 90,
+    arm: arm(p),
+    arm2: arm(p + math.pi),
+    leg: leg(p),
+    leg2: leg(p + math.pi),
+  );
+}
+
+/// Movements for the cardio types.
 final Map<CardioType, Move> cardioMoves = {
-  CardioType.running: Move(
-    start: const Pose(hip: Offset(50, 56), torso: 12, arm: Limb(-40, 50), arm2: Limb(40, 130), leg: Limb(45, 20), leg2: Limb(-30, -75)),
-    end: const Pose(hip: Offset(50, 56), torso: 12, arm: Limb(40, 130), arm2: Limb(-40, 50), leg: Limb(-30, -75), leg2: Limb(45, 20)),
-    gear: const [Gear.floor],
+  CardioType.running: const Move.cycle(_run, gear: [Gear.floor]),
+  CardioType.walking: const Move.cycle(_walk, gear: [Gear.floor]),
+  CardioType.cycling: const Move.cycle(_cycle, gear: [Gear.bike, Gear.floor]),
+  CardioType.elliptical: const Move.cycle(_elliptical, gear: [Gear.pedals, Gear.post, Gear.floor]),
+  CardioType.stairs: const Move.cycle(_stepper, gear: [Gear.pedals, Gear.post, Gear.floor]),
+  CardioType.rowing: const Move.cycle(_row, gear: [Gear.seat, Gear.plateFeet, Gear.cableFront]),
+  CardioType.swimming: const Move.cycle(_swim, gear: [Gear.water]),
+  CardioType.hiit: const Move(
+    start: Pose(hip: Offset(46, 70), torso: 30, arm: Limb(-40, -40), leg: Limb(80, -35)),
+    end: Pose(hip: Offset(50, 48), arm: Limb(110, 110), leg: Limb(10, -10)),
+    gear: [Gear.floor],
   ),
-  CardioType.walking: Move(
-    start: const Pose(hip: Offset(50, 55), torso: 3, arm: Limb(-25, -25), arm2: Limb(25, 25), leg: Limb(25, 15), leg2: Limb(-25, -15)),
-    end: const Pose(hip: Offset(50, 55), torso: 3, arm: Limb(25, 25), arm2: Limb(-25, -25), leg: Limb(-25, -15), leg2: Limb(25, 15)),
-    gear: const [Gear.floor],
+  CardioType.yoga: const Move(
+    start: Pose(hip: Offset(50, 55), arm: Limb(20, 160)),
+    end: Pose(hip: Offset(48, 56), torso: 100),
+    gear: [Gear.floor],
   ),
-  CardioType.cycling: Move(
-    start: const Pose(hip: Offset(42, 52), torso: 35, arm: Limb(70, 30), leg: Limb(60, -10), leg2: Limb(10, 20)),
-    end: const Pose(hip: Offset(42, 52), torso: 35, arm: Limb(70, 30), leg: Limb(10, 20), leg2: Limb(60, -10)),
-    gear: const [Gear.bike, Gear.floor],
-  ),
-  CardioType.elliptical: Move(
-    start: const Pose(hip: Offset(48, 55), torso: 5, arm: Limb(60, 60), arm2: Limb(30, 30), leg: Limb(25, 5), leg2: Limb(-25, -5)),
-    end: const Pose(hip: Offset(48, 55), torso: 5, arm: Limb(30, 30), arm2: Limb(60, 60), leg: Limb(-25, -5), leg2: Limb(25, 5)),
-    gear: const [Gear.pedals, Gear.post, Gear.floor],
-  ),
-  CardioType.stairs: Move(
-    start: const Pose(hip: Offset(48, 56), torso: 10, arm: Limb(40, 20), arm2: Limb(40, 20), leg: Limb(70, -20), leg2: Limb(-5, 0)),
-    end: const Pose(hip: Offset(48, 50), torso: 10, arm: Limb(40, 20), arm2: Limb(40, 20), leg: Limb(40, 10), leg2: Limb(-20, -40)),
-    gear: const [Gear.step, Gear.post, Gear.floor],
-  ),
-  CardioType.rowing: Move(
-    start: const Pose(hip: Offset(40, 66), torso: 15, arm: Limb(90, 90), leg: Limb(90, 20)),
-    end: const Pose(hip: Offset(34, 66), torso: -15, arm: Limb(-40, 40), leg: Limb(80, 70)),
-    gear: const [Gear.seat, Gear.plateFeet, Gear.cableFront],
-  ),
-  CardioType.swimming: Move(
-    start: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(135, 60), arm2: Limb(-30, -100), leg: Limb(-85, -95), leg2: Limb(-95, -85)),
-    end: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(-30, -100), arm2: Limb(135, 60), leg: Limb(-95, -85), leg2: Limb(-85, -95)),
-    gear: const [Gear.water],
-  ),
-  CardioType.hiit: Move(
-    start: const Pose(hip: Offset(46, 70), torso: 30, arm: Limb(-40, -40), leg: Limb(80, -35)),
-    end: const Pose(hip: Offset(50, 48), arm: Limb(110, 110), leg: Limb(10, -10)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.yoga: Move(
-    start: const Pose(hip: Offset(50, 55), arm: Limb(20, 160)),
-    end: const Pose(hip: Offset(48, 56), torso: 100),
-    gear: const [Gear.floor],
-  ),
-  CardioType.other: Move(
-    start: const Pose(hip: Offset(50, 58), arm: Limb(8, 8), leg: Limb(4, 0)),
-    end: const Pose(hip: Offset(50, 58), arm: Limb(150, 150), leg: Limb(25, 0)),
-    gear: const [Gear.floor],
+  CardioType.other: const Move(
+    start: Pose(hip: Offset(50, 58), arm: Limb(8, 8), leg: Limb(4, 0)),
+    end: Pose(hip: Offset(50, 58), arm: Limb(150, 150), leg: Limb(25, 0)),
+    gear: [Gear.floor],
     view: Facing.front,
   ),
 };
