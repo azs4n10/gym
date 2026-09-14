@@ -3,580 +3,346 @@ import 'package:flutter/material.dart';
 import '../models/enums.dart';
 import '../widgets/exercise_figure.dart';
 
-// Base bodies. Every entry below is one of these with a different arm or leg.
+// Angles are degrees from straight down; positive swings forward. The torso
+// angle is from upright, positive leaning forward, 90 lying head-forward.
+// Limb lengths are fixed in the figure, so these can only describe positions
+// a body can reach. Feet rest at about y=90; the floor is drawn at 94.
 
-/// Upright, arms hanging.
-const _stand = Pose(
-  head: Offset(53, 16),
-  neck: Offset(51, 33),
-  hip: Offset(50, 57),
-  elbow: Offset(52, 46),
-  hand: Offset(53, 58),
-  knee: Offset(51, 74),
-  ankle: Offset(49, 90),
-  headR: 7.5,
-);
+/// Upright, arms hanging, feet on the floor.
+const _stand = Pose(hip: Offset(50, 55));
 
-/// On a flat bench, legs off the near end.
-const _bench = Pose(
-  head: Offset(84, 52),
-  neck: Offset(68, 57),
-  hip: Offset(38, 57),
-  elbow: Offset(76, 44),
-  hand: Offset(66, 43),
-  knee: Offset(26, 70),
-  ankle: Offset(30, 88),
-  headR: 7.5,
-);
+/// Sitting, thighs forward, feet down.
+const _seat = Pose(hip: Offset(40, 64), leg: Limb(80, 10));
 
-/// Sitting, thighs forward.
-const _seat = Pose(
-  head: Offset(48, 25),
-  neck: Offset(46, 41),
-  hip: Offset(40, 63),
-  elbow: Offset(56, 50),
-  hand: Offset(64, 52),
-  knee: Offset(66, 64),
-  ankle: Offset(70, 86),
-  headR: 7.5,
-);
+/// Flat on a bench, head to the front, feet on the floor.
+const _lie = Pose(hip: Offset(34, 62), torso: 90, leg: Limb(-55, 0));
 
-/// Hinged at the hip, flat back.
-const _hinge = Pose(
-  head: Offset(76, 37),
-  neck: Offset(62, 43),
-  hip: Offset(38, 53),
-  elbow: Offset(62, 58),
-  hand: Offset(62, 72),
-  knee: Offset(42, 71),
-  ankle: Offset(38, 89),
-  headR: 7.5,
-);
+/// Hinged at the hip, knees soft.
+const _hinge = Pose(hip: Offset(44, 56), torso: 70, leg: Limb(-15, 10));
 
-/// Hanging from a bar.
-const _hang = Pose(
-  head: Offset(52, 32),
-  neck: Offset(50, 42),
-  hip: Offset(50, 64),
-  elbow: Offset(49, 26),
-  hand: Offset(48, 11),
-  knee: Offset(52, 79),
-  ankle: Offset(50, 93),
-  headR: 7.5,
-);
+/// Hanging with the knees tucked back.
+const _hang = Pose(hip: Offset(50, 66), arm: Limb(180, 180), leg: Limb(-10, -70));
 
-/// On the floor, face up.
-const _floorUp = Pose(
-  head: Offset(82, 76),
-  neck: Offset(68, 80),
-  hip: Offset(38, 80),
-  elbow: Offset(74, 70),
-  hand: Offset(68, 66),
-  knee: Offset(24, 72),
-  ankle: Offset(30, 90),
-  headR: 7.5,
-);
+/// On the floor face up, knees bent, feet flat.
+const _floorUp = Pose(hip: Offset(36, 84), torso: 90, arm: Limb(-80, -80), leg: Limb(-120, -15));
 
-/// On the floor, face down, weight through the arms.
-const _floorDown = Pose(
-  head: Offset(80, 56),
-  neck: Offset(68, 60),
-  hip: Offset(44, 70),
-  elbow: Offset(72, 74),
-  hand: Offset(72, 88),
-  knee: Offset(28, 80),
-  ankle: Offset(16, 88),
-  headR: 7.5,
-);
-
-/// Kneeling.
-const _kneel = Pose(
-  head: Offset(58, 34),
-  neck: Offset(54, 48),
-  hip: Offset(46, 68),
-  elbow: Offset(62, 62),
-  hand: Offset(70, 72),
-  knee: Offset(38, 84),
-  ankle: Offset(22, 88),
-  headR: 7.5,
-);
-
-const _barOnly = [Gear.barbellHands];
-const _dbOnly = [Gear.dumbbells];
-
-/// Poses for the seeded exercises. Keys match the names in the seed data;
-/// anything missing falls back to the muscle group icon.
+/// Movements for the seeded exercises. Keys match the seed data.
 final Map<String, Move> exerciseMoves = {
   // chest
   'Bench press': Move(
-    start: _bench.arm(const Offset(76, 44), const Offset(66, 43)),
-    end: _bench.arm(const Offset(67, 43), const Offset(66, 27)),
-    gear: const [Gear.bench, Gear.barbellHands],
+    start: _lie.copyWith(arm: const Limb(-120, 125)),
+    end: _lie.copyWith(arm: const Limb(-180, 180)),
+    gear: const [Gear.bench, Gear.barbell, Gear.floor],
   ),
   'Dumbbell press': Move(
-    start: _bench.arm(const Offset(76, 45), const Offset(68, 44)),
-    end: _bench.arm(const Offset(68, 43), const Offset(67, 28)),
-    gear: const [Gear.bench, Gear.dumbbells],
+    start: _lie.copyWith(arm: const Limb(-120, 125)),
+    end: _lie.copyWith(arm: const Limb(-180, 180)),
+    gear: const [Gear.bench, Gear.dumbbell, Gear.floor],
   ),
   'Incline bench press': Move(
-    start: _seat.arm(const Offset(58, 44), const Offset(50, 40)),
-    end: _seat.arm(const Offset(50, 32), const Offset(50, 18)),
-    gear: const [Gear.bench, Gear.barbellHands],
+    start: const Pose(hip: Offset(40, 68), torso: -40, arm: Limb(60, 150), leg: Limb(80, 0)),
+    end: const Pose(hip: Offset(40, 68), torso: -40, arm: Limb(130, 130), leg: Limb(80, 0)),
+    gear: const [Gear.bench, Gear.seat, Gear.barbell, Gear.floor],
   ),
   'Chest press': Move(
-    start: _seat.arm(const Offset(38, 46), const Offset(48, 46)),
-    end: _seat.arm(const Offset(62, 44), const Offset(80, 44)),
-    gear: const [Gear.machine],
+    start: _seat.copyWith(arm: const Limb(30, 100)),
+    end: _seat.copyWith(arm: const Limb(90, 90)),
+    gear: const [Gear.seat, Gear.padHand],
   ),
   'Pec fly': Move(
-    start: _seat.arm(const Offset(34, 40), const Offset(30, 26)),
-    end: _seat.arm(const Offset(58, 38), const Offset(76, 40)),
-    gear: const [Gear.machine],
+    start: const Pose(hip: Offset(50, 58), arm: Limb(90, 90), leg: Limb(8, 8)),
+    end: const Pose(hip: Offset(50, 58), arm: Limb(51, -38), leg: Limb(8, 8)),
+    gear: const [Gear.seat, Gear.padHand],
+    view: Facing.front,
   ),
   'Dumbbell fly': Move(
-    start: _bench.arm(const Offset(78, 40), const Offset(84, 28)),
-    end: _bench.arm(const Offset(70, 42), const Offset(68, 28)),
-    gear: const [Gear.bench, Gear.dumbbells],
+    start: const Pose(hip: Offset(50, 58), arm: Limb(95, 80), leg: Limb(8, 8)),
+    end: const Pose(hip: Offset(50, 58), arm: Limb(160, 200), leg: Limb(8, 8)),
+    gear: const [Gear.dumbbell, Gear.floor],
+    view: Facing.front,
   ),
   'Cable crossover': Move(
-    start: _stand.arm(const Offset(62, 34), const Offset(76, 24)),
-    end: _stand.arm(const Offset(58, 46), const Offset(62, 58)),
+    start: const Pose(hip: Offset(50, 58), arm: Limb(135, 135), leg: Limb(8, 8)),
+    end: const Pose(hip: Offset(50, 58), arm: Limb(30, -30), leg: Limb(8, 8)),
     gear: const [Gear.cableHigh, Gear.floor],
+    view: Facing.front,
   ),
   'Push-up': Move(
-    start: _floorDown.arm(const Offset(78, 74), const Offset(72, 88)),
-    end: _floorDown
-        .copyWith(
-          head: const Offset(80, 50),
-          neck: const Offset(68, 54),
-          hip: const Offset(44, 64),
-        )
-        .arm(const Offset(72, 70), const Offset(72, 88)),
+    start: const Pose(hip: Offset(38, 72), torso: 70, arm: Limb(30, 0), leg: Limb(-66, -60)),
+    end: const Pose(hip: Offset(38, 78), torso: 70, arm: Limb(48, -18), leg: Limb(-70, -69)),
     gear: const [Gear.floor],
   ),
 
   // back
   'Lat pulldown': Move(
-    start: _seat.arm(const Offset(52, 28), const Offset(54, 12)),
-    end: _seat.arm(const Offset(60, 44), const Offset(52, 38)),
-    gear: const [Gear.cableHigh],
+    start: _seat.copyWith(arm: const Limb(170, 170)),
+    end: _seat.copyWith(arm: const Limb(-20, 100)),
+    gear: const [Gear.seat, Gear.padKnee, Gear.cableHigh],
   ),
   'Seated row': Move(
-    start: _seat.arm(const Offset(62, 52), const Offset(78, 54)),
-    end: _seat.arm(const Offset(38, 52), const Offset(50, 54)),
-    gear: const [Gear.cableLow],
+    start: const Pose(hip: Offset(36, 66), arm: Limb(90, 90), leg: Limb(80, 60)),
+    end: const Pose(hip: Offset(36, 66), torso: -10, arm: Limb(-30, 60), leg: Limb(80, 60)),
+    gear: const [Gear.seat, Gear.plateFeet, Gear.cableFront],
   ),
   'Deadlift': Move(
-    start: _hinge.arm(const Offset(62, 62), const Offset(62, 80)),
-    end: _stand.arm(const Offset(54, 46), const Offset(55, 60)),
-    gear: const [Gear.barbellHands, Gear.floor],
+    start: const Pose(hip: Offset(44, 62), torso: 70, leg: Limb(-40, 40)),
+    end: _stand,
+    gear: const [Gear.barbell, Gear.floor],
   ),
   'Bent-over row': Move(
-    start: _hinge.arm(const Offset(62, 60), const Offset(62, 76)),
-    end: _hinge.arm(const Offset(68, 44), const Offset(58, 54)),
-    gear: _barOnly,
+    start: _hinge,
+    end: _hinge.copyWith(arm: const Limb(-60, -20)),
+    gear: const [Gear.barbell, Gear.floor],
   ),
   'Dumbbell row': Move(
-    start: _hinge.arm(const Offset(60, 60), const Offset(60, 76)),
-    end: _hinge.arm(const Offset(66, 44), const Offset(56, 54)),
-    gear: const [Gear.bench, Gear.dumbbells],
+    start: _hinge.copyWith(arm2: const Limb(40, 20)),
+    end: _hinge.copyWith(arm: const Limb(-60, -20), arm2: const Limb(40, 20)),
+    gear: const [Gear.benchHand2, Gear.dumbbellUpright, Gear.floor],
   ),
   'Pull-up': Move(
     start: _hang,
-    end: _hang.copyWith(
-      head: const Offset(52, 22),
-      neck: const Offset(50, 32),
-      hip: const Offset(50, 54),
-      elbow: const Offset(58, 26),
-      hand: const Offset(48, 11),
-      knee: const Offset(54, 68),
-      ankle: const Offset(48, 82),
-    ),
+    end: _hang.copyWith(hip: const Offset(50, 52), arm: const Limb(118, 243)),
     gear: const [Gear.pullBar],
   ),
   'T-bar row': Move(
-    start: _hinge.arm(const Offset(60, 62), const Offset(58, 78)),
-    end: _hinge.arm(const Offset(66, 46), const Offset(54, 56)),
-    gear: _barOnly,
+    start: _hinge.copyWith(torso: 55, arm: const Limb(10, 10)),
+    end: _hinge.copyWith(torso: 55, arm: const Limb(-50, -10)),
+    gear: const [Gear.barbell, Gear.floor],
   ),
   'Face pull': Move(
-    start: _stand.arm(const Offset(66, 32), const Offset(80, 26)),
-    end: _stand.arm(const Offset(64, 30), const Offset(56, 26)),
+    start: _stand.copyWith(arm: const Limb(110, 110)),
+    end: _stand.copyWith(arm: const Limb(100, 245)),
     gear: const [Gear.cableHigh, Gear.floor],
   ),
 
   // shoulders
   'Shoulder press': Move(
-    start: _seat.arm(const Offset(54, 40), const Offset(50, 32)),
-    end: _seat.arm(const Offset(48, 28), const Offset(48, 14)),
-    gear: _barOnly,
+    start: _seat.copyWith(arm: const Limb(-20, 160)),
+    end: _seat.copyWith(arm: const Limb(180, 180)),
+    gear: const [Gear.seat, Gear.barbell],
   ),
   'Lateral raise': Move(
-    start: _stand.arm(const Offset(54, 46), const Offset(56, 60)),
-    end: _stand.arm(const Offset(62, 36), const Offset(76, 34)),
-    gear: const [Gear.dumbbells, Gear.floor],
+    start: const Pose(hip: Offset(50, 58), arm: Limb(5, 5), leg: Limb(8, 8)),
+    end: const Pose(hip: Offset(50, 58), arm: Limb(85, 85), leg: Limb(8, 8)),
+    gear: const [Gear.dumbbell, Gear.floor],
+    view: Facing.front,
   ),
   'Front raise': Move(
-    start: _stand.arm(const Offset(54, 46), const Offset(56, 60)),
-    end: _stand.arm(const Offset(64, 34), const Offset(78, 33)),
-    gear: const [Gear.dumbbells, Gear.floor],
+    start: _stand,
+    end: _stand.copyWith(arm: const Limb(85, 85)),
+    gear: const [Gear.dumbbell, Gear.floor],
   ),
   'Rear delt fly': Move(
-    start: _hinge.arm(const Offset(60, 60), const Offset(60, 76)),
-    end: _hinge.arm(const Offset(60, 52), const Offset(44, 44)),
-    gear: _dbOnly,
+    start: _hinge,
+    end: _hinge.copyWith(arm: const Limb(-70, -70)),
+    gear: const [Gear.dumbbell, Gear.floor],
   ),
   'Upright row': Move(
-    start: _stand.arm(const Offset(56, 48), const Offset(56, 62)),
-    end: _stand.arm(const Offset(64, 40), const Offset(54, 34)),
-    gear: const [Gear.barbellHands, Gear.floor],
+    start: _stand,
+    end: _stand.copyWith(arm: const Limb(60, -122)),
+    gear: const [Gear.barbell, Gear.floor],
   ),
   'Arnold press': Move(
-    start: _seat.arm(const Offset(56, 44), const Offset(48, 36)),
-    end: _seat.arm(const Offset(48, 28), const Offset(48, 14)),
-    gear: _dbOnly,
+    start: _seat.copyWith(arm: const Limb(40, 150)),
+    end: _seat.copyWith(arm: const Limb(180, 180)),
+    gear: const [Gear.seat, Gear.dumbbell],
   ),
 
   // arms
   'Biceps curl': Move(
-    start: _stand.arm(const Offset(54, 47), const Offset(55, 61)),
-    end: _stand.arm(const Offset(54, 47), const Offset(60, 34)),
-    gear: const [Gear.dumbbells, Gear.floor],
+    start: _stand,
+    end: _stand.copyWith(arm: const Limb(10, 150)),
+    gear: const [Gear.dumbbell, Gear.floor],
   ),
   'Hammer curl': Move(
-    start: _stand.arm(const Offset(55, 47), const Offset(57, 61)),
-    end: _stand.arm(const Offset(55, 47), const Offset(62, 36)),
-    gear: const [Gear.dumbbells, Gear.floor],
+    start: _stand,
+    end: _stand.copyWith(arm: const Limb(10, 150)),
+    gear: const [Gear.dumbbellUpright, Gear.floor],
   ),
   'Cable curl': Move(
-    start: _stand.arm(const Offset(54, 47), const Offset(58, 62)),
-    end: _stand.arm(const Offset(54, 47), const Offset(62, 36)),
+    start: _stand,
+    end: _stand.copyWith(arm: const Limb(10, 150)),
     gear: const [Gear.cableLow, Gear.floor],
   ),
   'Triceps pushdown': Move(
-    start: _stand.arm(const Offset(54, 46), const Offset(62, 38)),
-    end: _stand.arm(const Offset(54, 46), const Offset(58, 60)),
+    start: _stand.copyWith(arm: const Limb(0, 150)),
+    end: _stand.copyWith(arm: const Limb(0, 20)),
     gear: const [Gear.cableHigh, Gear.floor],
   ),
   'Skull crusher': Move(
-    start: _bench.arm(const Offset(66, 40), const Offset(78, 44)),
-    end: _bench.arm(const Offset(66, 42), const Offset(66, 26)),
-    gear: const [Gear.bench, Gear.barbellHands],
+    start: _lie.copyWith(arm: const Limb(-180, -180)),
+    end: _lie.copyWith(arm: const Limb(-180, -260)),
+    gear: const [Gear.bench, Gear.barbell, Gear.floor],
   ),
   'Triceps kickback': Move(
-    start: _hinge.arm(const Offset(56, 52), const Offset(62, 64)),
-    end: _hinge.arm(const Offset(56, 52), const Offset(40, 56)),
-    gear: _dbOnly,
+    start: _hinge.copyWith(arm: const Limb(-70, 0)),
+    end: _hinge.copyWith(arm: const Limb(-70, -70)),
+    gear: const [Gear.dumbbellUpright, Gear.floor],
   ),
   'Dips': Move(
-    start: _hang
-        .copyWith(
-          head: const Offset(54, 34),
-          neck: const Offset(52, 46),
-          hip: const Offset(50, 66),
-          knee: const Offset(62, 76),
-          ankle: const Offset(70, 90),
-        )
-        .arm(const Offset(40, 46), const Offset(44, 58)),
-    end: _hang
-        .copyWith(
-          head: const Offset(54, 24),
-          neck: const Offset(52, 36),
-          hip: const Offset(50, 56),
-          knee: const Offset(62, 66),
-          ankle: const Offset(70, 80),
-        )
-        .arm(const Offset(44, 46), const Offset(44, 58)),
-    gear: const [Gear.pullBar],
+    start: const Pose(hip: Offset(50, 60), leg: Limb(-10, -70)),
+    end: const Pose(hip: Offset(50, 72), arm: Limb(-70, 52), leg: Limb(-10, -70)),
+    gear: const [Gear.dipBars],
   ),
 
   // legs
   'Squat': Move(
-    start: _stand.arm(const Offset(40, 44), const Offset(44, 35)),
-    end: _stand
-        .copyWith(
-          head: const Offset(45, 29),
-          neck: const Offset(45, 46),
-          hip: const Offset(34, 64),
-          knee: const Offset(60, 70),
-          ankle: const Offset(49, 89),
-        )
-        .arm(const Offset(34, 55), const Offset(38, 47)),
-    gear: const [Gear.floor, Gear.barbellShoulders],
+    start: _stand.copyWith(arm: const Limb(-40, 130)),
+    end: const Pose(hip: Offset(44, 70), torso: 25, arm: Limb(-40, 130), leg: Limb(80, -35)),
+    gear: const [Gear.barbellShoulders, Gear.floor],
   ),
   'Leg press': Move(
-    start: _seat
-        .copyWith(knee: const Offset(52, 44), ankle: const Offset(34, 40))
-        .arm(const Offset(48, 54), const Offset(54, 62)),
-    end: _seat
-        .copyWith(knee: const Offset(30, 52), ankle: const Offset(14, 46))
-        .arm(const Offset(48, 54), const Offset(54, 62)),
-    gear: const [Gear.machine],
+    start: const Pose(hip: Offset(42, 70), torso: -45, arm: Limb(20, 60), leg: Limb(110, 60)),
+    end: const Pose(hip: Offset(42, 70), torso: -45, arm: Limb(20, 60), leg: Limb(130, 130)),
+    gear: const [Gear.seat, Gear.bench, Gear.plateFeet],
   ),
   'Leg extension': Move(
-    start: _seat.leg(const Offset(66, 64), const Offset(70, 86)),
-    end: _seat.leg(const Offset(66, 64), const Offset(90, 62)),
-    gear: const [Gear.machine],
+    start: _seat.copyWith(arm: const Limb(20, 60)),
+    end: _seat.copyWith(arm: const Limb(20, 60), leg: const Limb(85, 85)),
+    gear: const [Gear.seat, Gear.padAnkle, Gear.frame],
   ),
   'Leg curl': Move(
-    start: _seat.leg(const Offset(68, 62), const Offset(88, 60)),
-    end: _seat.leg(const Offset(68, 62), const Offset(72, 84)),
-    gear: const [Gear.machine],
+    start: _seat.copyWith(arm: const Limb(20, 60), leg: const Limb(85, 85)),
+    end: _seat.copyWith(arm: const Limb(20, 60), leg: const Limb(85, -30)),
+    gear: const [Gear.seat, Gear.padAnkle, Gear.frame],
   ),
   'Bulgarian split squat': Move(
-    start: _stand.leg(const Offset(46, 74), const Offset(44, 90)),
-    end: _stand
-        .copyWith(
-          head: const Offset(50, 24),
-          neck: const Offset(48, 40),
-          hip: const Offset(44, 62),
-        )
-        .leg(const Offset(52, 76), const Offset(44, 90)),
-    gear: const [Gear.bench, Gear.floor],
+    start: const Pose(hip: Offset(48, 55), torso: 10, leg2: Limb(-40, -115)),
+    end: const Pose(hip: Offset(48, 66), torso: 15, leg: Limb(60, -40), leg2: Limb(-56, -139)),
+    gear: const [Gear.benchFoot2, Gear.floor],
   ),
   'Lunge': Move(
-    start: _stand.leg(const Offset(51, 74), const Offset(49, 90)),
-    end: _stand
-        .copyWith(
-          head: const Offset(50, 26),
-          neck: const Offset(48, 42),
-          hip: const Offset(44, 64),
-        )
-        .leg(const Offset(66, 74), const Offset(70, 90)),
+    start: _stand.copyWith(leg2: const Limb(0, 0)),
+    end: const Pose(hip: Offset(46, 66), torso: 5, leg: Limb(70, -20), leg2: Limb(-45, -50)),
     gear: const [Gear.floor],
   ),
   'Romanian deadlift': Move(
-    start: _stand.arm(const Offset(54, 46), const Offset(55, 62)),
-    end: _hinge.arm(const Offset(60, 60), const Offset(60, 74)),
-    gear: const [Gear.barbellHands, Gear.floor],
+    start: _stand,
+    end: const Pose(hip: Offset(46, 58), torso: 65, leg: Limb(-10, 0)),
+    gear: const [Gear.barbell, Gear.floor],
   ),
   'Calf raise': Move(
     start: _stand,
-    end: _stand.copyWith(
-      head: const Offset(53, 10),
-      neck: const Offset(51, 27),
-      hip: const Offset(50, 51),
-      knee: const Offset(51, 68),
-      ankle: const Offset(49, 84),
-    ),
-    gear: const [Gear.floor],
+    end: _stand.copyWith(hip: const Offset(50, 48)),
+    gear: const [Gear.foot, Gear.floor],
   ),
 
   // glutes
   'Hip thrust': Move(
-    start: _floorUp
-        .copyWith(
-          head: const Offset(84, 56),
-          neck: const Offset(70, 60),
-          hip: const Offset(42, 80),
-          knee: const Offset(26, 68),
-          ankle: const Offset(24, 90),
-        )
-        .arm(const Offset(76, 62), const Offset(72, 70)),
-    end: _floorUp
-        .copyWith(
-          head: const Offset(84, 56),
-          neck: const Offset(70, 60),
-          hip: const Offset(44, 64),
-          knee: const Offset(26, 68),
-          ankle: const Offset(24, 90),
-        )
-        .arm(const Offset(76, 60), const Offset(72, 64)),
-    gear: const [Gear.bench, Gear.barbellHip, Gear.floor],
+    start: const Pose(hip: Offset(44, 78), torso: 55, arm: Limb(-50, -45), leg: Limb(-100, 20)),
+    end: const Pose(hip: Offset(46, 62), torso: 93, arm: Limb(-90, -90), leg: Limb(-60, 5)),
+    gear: const [Gear.benchShoulders, Gear.barbellHip, Gear.floor],
   ),
   'Hip abduction': Move(
-    start: _seat.leg(const Offset(64, 64), const Offset(68, 86)),
-    end: _seat.leg(const Offset(72, 66), const Offset(84, 86)),
-    gear: const [Gear.machine],
+    start: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(8, 0)),
+    end: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(40, 0)),
+    gear: const [Gear.seat, Gear.padKnee],
+    view: Facing.front,
   ),
   'Hip adduction': Move(
-    start: _seat.leg(const Offset(72, 66), const Offset(84, 86)),
-    end: _seat.leg(const Offset(64, 64), const Offset(68, 86)),
-    gear: const [Gear.machine],
+    start: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(40, 0)),
+    end: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(8, 0)),
+    gear: const [Gear.seat, Gear.padKnee],
+    view: Facing.front,
   ),
   'Cable kickback': Move(
-    start: _stand.leg(const Offset(51, 74), const Offset(49, 90)),
-    end: _stand.leg(const Offset(38, 72), const Offset(22, 80)),
-    gear: const [Gear.cableLow, Gear.floor],
+    start: const Pose(hip: Offset(52, 55), torso: 15, arm: Limb(60, 30), leg: Limb(5, 0), leg2: Limb(0, 0)),
+    end: const Pose(hip: Offset(52, 55), torso: 15, arm: Limb(60, 30), leg: Limb(-40, -40), leg2: Limb(0, 0)),
+    gear: const [Gear.post, Gear.cableAnkle, Gear.floor],
   ),
   'Glute bridge': Move(
-    start: _floorUp.copyWith(hip: const Offset(40, 82), knee: const Offset(24, 74)),
-    end: _floorUp.copyWith(hip: const Offset(42, 66), knee: const Offset(24, 74)),
+    start: _floorUp,
+    end: const Pose(hip: Offset(40, 70), torso: 110, arm: Limb(-80, -80), leg: Limb(-45, -52)),
     gear: const [Gear.floor],
   ),
 
   // core
   'Plank': Move(
-    start: _floorDown.arm(const Offset(72, 76), const Offset(78, 88)),
-    end: _floorDown
-        .copyWith(hip: const Offset(44, 68))
-        .arm(const Offset(72, 76), const Offset(78, 88)),
+    start: const Pose(hip: Offset(40, 80), torso: 75, arm: Limb(0, 90), leg: Limb(-75, -80)),
+    end: const Pose(hip: Offset(40, 77), torso: 75, arm: Limb(0, 90), leg: Limb(-75, -80)),
     gear: const [Gear.floor],
   ),
   'Crunch': Move(
-    start: _floorUp.arm(const Offset(76, 72), const Offset(82, 66)),
-    end: _floorUp
-        .copyWith(head: const Offset(74, 62), neck: const Offset(62, 70))
-        .arm(const Offset(68, 62), const Offset(72, 58)),
+    start: _floorUp.copyWith(arm: const Limb(-135, -90)),
+    end: _floorUp.copyWith(torso: 70, arm: const Limb(-135, -90)),
     gear: const [Gear.floor],
   ),
   'Leg raise': Move(
-    start: _floorUp.leg(const Offset(22, 80), const Offset(10, 82)),
-    end: _floorUp.leg(const Offset(26, 62), const Offset(20, 44)),
+    start: const Pose(hip: Offset(44, 84), torso: 90, arm: Limb(-80, -80), leg: Limb(-90, -90)),
+    end: const Pose(hip: Offset(44, 84), torso: 90, arm: Limb(-80, -80), leg: Limb(-170, -170)),
     gear: const [Gear.floor],
   ),
   'Ab wheel rollout': Move(
-    start: _kneel.arm(const Offset(58, 62), const Offset(64, 74)),
-    end: _kneel
-        .copyWith(head: const Offset(66, 50), neck: const Offset(56, 58))
-        .arm(const Offset(70, 68), const Offset(86, 80)),
-    gear: const [Gear.floor],
+    start: const Pose(hip: Offset(44, 70), torso: 60, leg: Limb(0, -90)),
+    end: const Pose(hip: Offset(36, 78), torso: 80, arm: Limb(80, 60), leg: Limb(40, -90)),
+    gear: const [Gear.wheel, Gear.floor],
   ),
   'Hanging leg raise': Move(
     start: _hang,
-    end: _hang.leg(const Offset(64, 58), const Offset(78, 46)),
+    end: _hang.copyWith(leg: const Limb(-150, -90)),
     gear: const [Gear.pullBar],
   ),
   'Russian twist': Move(
-    start: _floorUp
-        .copyWith(
-          head: const Offset(60, 46),
-          neck: const Offset(54, 58),
-          hip: const Offset(38, 80),
-          knee: const Offset(22, 70),
-          ankle: const Offset(20, 88),
-        )
-        .arm(const Offset(58, 66), const Offset(70, 64)),
-    end: _floorUp
-        .copyWith(
-          head: const Offset(60, 46),
-          neck: const Offset(54, 58),
-          hip: const Offset(38, 80),
-          knee: const Offset(22, 70),
-          ankle: const Offset(20, 88),
-        )
-        .arm(const Offset(50, 68), const Offset(44, 58)),
+    start: const Pose(hip: Offset(50, 64), arm: Limb(70, 70), arm2: Limb(-70, -70), leg: Limb(25, -60)),
+    end: const Pose(hip: Offset(50, 64), arm: Limb(-70, -70), arm2: Limb(70, 70), leg: Limb(25, -60)),
+    gear: const [Gear.floor],
+    view: Facing.front,
+  ),
+};
+
+/// Movements for the cardio types. Strides alternate the two sides.
+final Map<CardioType, Move> cardioMoves = {
+  CardioType.running: Move(
+    start: const Pose(hip: Offset(50, 56), torso: 10, arm: Limb(-50, 40), arm2: Limb(50, 120), leg: Limb(30, 10), leg2: Limb(-35, -90)),
+    end: const Pose(hip: Offset(50, 56), torso: 10, arm: Limb(50, 120), arm2: Limb(-50, 40), leg: Limb(-35, -90), leg2: Limb(30, 10)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.walking: Move(
+    start: const Pose(hip: Offset(50, 55), torso: 3, arm: Limb(-25, -25), arm2: Limb(25, 25), leg: Limb(25, 15), leg2: Limb(-25, -15)),
+    end: const Pose(hip: Offset(50, 55), torso: 3, arm: Limb(25, 25), arm2: Limb(-25, -25), leg: Limb(-25, -15), leg2: Limb(25, 15)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.cycling: Move(
+    start: const Pose(hip: Offset(42, 52), torso: 35, arm: Limb(70, 30), leg: Limb(60, -10), leg2: Limb(10, 20)),
+    end: const Pose(hip: Offset(42, 52), torso: 35, arm: Limb(70, 30), leg: Limb(10, 20), leg2: Limb(60, -10)),
+    gear: const [Gear.bike, Gear.floor],
+  ),
+  CardioType.elliptical: Move(
+    start: const Pose(hip: Offset(48, 55), torso: 5, arm: Limb(60, 60), arm2: Limb(30, 30), leg: Limb(25, 5), leg2: Limb(-25, -5)),
+    end: const Pose(hip: Offset(48, 55), torso: 5, arm: Limb(30, 30), arm2: Limb(60, 60), leg: Limb(-25, -5), leg2: Limb(25, 5)),
+    gear: const [Gear.pedals, Gear.post, Gear.floor],
+  ),
+  CardioType.stairs: Move(
+    start: const Pose(hip: Offset(48, 56), torso: 10, arm: Limb(40, 20), arm2: Limb(40, 20), leg: Limb(70, -20), leg2: Limb(-5, 0)),
+    end: const Pose(hip: Offset(48, 50), torso: 10, arm: Limb(40, 20), arm2: Limb(40, 20), leg: Limb(40, 10), leg2: Limb(-20, -40)),
+    gear: const [Gear.step, Gear.post, Gear.floor],
+  ),
+  CardioType.rowing: Move(
+    start: const Pose(hip: Offset(40, 66), torso: 15, arm: Limb(90, 90), leg: Limb(90, 20)),
+    end: const Pose(hip: Offset(34, 66), torso: -15, arm: Limb(-40, 40), leg: Limb(80, 70)),
+    gear: const [Gear.seat, Gear.plateFeet, Gear.cableFront],
+  ),
+  CardioType.swimming: Move(
+    start: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(100, 100), arm2: Limb(-60, 20), leg: Limb(-80, -100), leg2: Limb(-100, -80)),
+    end: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(-60, 20), arm2: Limb(100, 100), leg: Limb(-100, -80), leg2: Limb(-80, -100)),
+    gear: const [Gear.water],
+  ),
+  CardioType.hiit: Move(
+    start: const Pose(hip: Offset(50, 58), arm: Limb(5, 5), leg: Limb(3, 0)),
+    end: const Pose(hip: Offset(50, 58), arm: Limb(140, 140), leg: Limb(18, 0)),
+    gear: const [Gear.floor],
+    view: Facing.front,
+  ),
+  CardioType.yoga: Move(
+    start: const Pose(hip: Offset(36, 66), torso: 80, leg: Limb(0, -90)),
+    end: const Pose(hip: Offset(36, 60), torso: 100, leg: Limb(0, -90)),
+    gear: const [Gear.floor],
+  ),
+  CardioType.other: Move(
+    start: const Pose(hip: Offset(50, 55), arm: Limb(-30, -30), arm2: Limb(30, 30), leg: Limb(60, 0), leg2: Limb(0, 0)),
+    end: const Pose(hip: Offset(50, 55), arm: Limb(30, 30), arm2: Limb(-30, -30), leg: Limb(0, 0), leg2: Limb(60, 0)),
     gear: const [Gear.floor],
   ),
 };
 
 Move? moveFor(String name) => exerciseMoves[name];
-
-// Cardio. Same figure, looping through the stride or stroke.
-
-const _cycle = Pose(
-  head: Offset(56, 22),
-  neck: Offset(52, 36),
-  hip: Offset(38, 56),
-  elbow: Offset(62, 44),
-  hand: Offset(74, 50),
-  knee: Offset(56, 66),
-  ankle: Offset(48, 80),
-  headR: 7.5,
-);
-
-/// Movements for the cardio types.
-final Map<CardioType, Move> cardioMoves = {
-  CardioType.running: Move(
-    start: _stand
-        .copyWith(head: const Offset(55, 15), neck: const Offset(52, 32))
-        .arm(const Offset(62, 44), const Offset(70, 34))
-        .leg(const Offset(66, 68), const Offset(78, 82)),
-    end: _stand
-        .copyWith(head: const Offset(55, 15), neck: const Offset(52, 32))
-        .arm(const Offset(40, 44), const Offset(32, 36))
-        .leg(const Offset(36, 70), const Offset(26, 86)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.walking: Move(
-    start: _stand
-        .arm(const Offset(56, 46), const Offset(62, 56))
-        .leg(const Offset(60, 72), const Offset(68, 88)),
-    end: _stand
-        .arm(const Offset(48, 46), const Offset(42, 56))
-        .leg(const Offset(44, 74), const Offset(34, 88)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.cycling: Move(
-    start: _cycle.leg(const Offset(58, 62), const Offset(52, 78)),
-    end: _cycle.leg(const Offset(52, 70), const Offset(40, 74)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.elliptical: Move(
-    start: _stand
-        .arm(const Offset(62, 40), const Offset(74, 34))
-        .leg(const Offset(62, 70), const Offset(72, 84)),
-    end: _stand
-        .arm(const Offset(40, 40), const Offset(30, 36))
-        .leg(const Offset(42, 72), const Offset(30, 86)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.stairs: Move(
-    start: _stand
-        .copyWith(hip: const Offset(50, 58))
-        .arm(const Offset(58, 46), const Offset(64, 54))
-        .leg(const Offset(66, 64), const Offset(72, 80)),
-    end: _stand
-        .copyWith(hip: const Offset(50, 50))
-        .arm(const Offset(44, 40), const Offset(38, 48))
-        .leg(const Offset(58, 58), const Offset(64, 72)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.rowing: Move(
-    start: _seat
-        .copyWith(knee: const Offset(70, 56), ankle: const Offset(84, 62))
-        .arm(const Offset(62, 48), const Offset(80, 50)),
-    end: _seat
-        .copyWith(knee: const Offset(76, 66), ankle: const Offset(84, 62))
-        .arm(const Offset(34, 50), const Offset(48, 52)),
-    gear: const [Gear.machine],
-  ),
-  CardioType.swimming: Move(
-    start: _floorDown
-        .copyWith(
-          head: const Offset(80, 52),
-          neck: const Offset(68, 54),
-          hip: const Offset(40, 58),
-          knee: const Offset(26, 54),
-          ankle: const Offset(12, 60),
-        )
-        .arm(const Offset(80, 40), const Offset(90, 30)),
-    end: _floorDown
-        .copyWith(
-          head: const Offset(80, 52),
-          neck: const Offset(68, 54),
-          hip: const Offset(40, 58),
-          knee: const Offset(26, 62),
-          ankle: const Offset(12, 52),
-        )
-        .arm(const Offset(64, 68), const Offset(50, 72)),
-  ),
-  CardioType.hiit: Move(
-    start: _stand
-        .arm(const Offset(56, 46), const Offset(57, 60))
-        .leg(const Offset(51, 74), const Offset(49, 90)),
-    end: _stand
-        .copyWith(head: const Offset(53, 8), neck: const Offset(51, 25), hip: const Offset(50, 49))
-        .arm(const Offset(60, 26), const Offset(66, 12))
-        .leg(const Offset(56, 64), const Offset(62, 78)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.yoga: Move(
-    start: _stand
-        .arm(const Offset(58, 40), const Offset(52, 26))
-        .leg(const Offset(51, 74), const Offset(49, 90)),
-    end: _kneel
-        .copyWith(head: const Offset(62, 40), neck: const Offset(56, 52))
-        .arm(const Offset(66, 66), const Offset(78, 78)),
-    gear: const [Gear.floor],
-  ),
-  CardioType.other: Move(
-    start: _stand
-        .arm(const Offset(56, 46), const Offset(57, 60))
-        .leg(const Offset(56, 72), const Offset(62, 88)),
-    end: _stand
-        .arm(const Offset(46, 44), const Offset(42, 54))
-        .leg(const Offset(46, 74), const Offset(38, 88)),
-    gear: const [Gear.floor],
-  ),
-};
