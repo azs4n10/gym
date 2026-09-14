@@ -39,6 +39,9 @@ enum Gear {
   step,
   water,
   foot,
+  calfBlock,
+  padKneeOuter,
+  padKneeInner,
 }
 
 /// Two joint angles in degrees, measured from straight down; positive swings
@@ -267,7 +270,7 @@ class _FigurePainter extends CustomPainter {
     canvas.scale(size.width / 100);
     final s = Skeleton(pose, front: view == Facing.front);
     final limb = _line(ink, 6);
-    final farLimb = _line(ink.withValues(alpha: view == Facing.front ? 1 : 0.38), 6);
+    final farLimb = _line(ink.withValues(alpha: view == Facing.front ? 1 : 0.55), 6);
 
     _behind(canvas, s);
 
@@ -308,10 +311,11 @@ class _FigurePainter extends CustomPainter {
       canvas.drawLine(const Offset(4, _floorY), const Offset(96, _floorY), mid);
     }
     if (has(Gear.water)) {
-      final path = Path()..moveTo(2, 66);
+      final y = s.hip.dy + 3;
+      final path = Path()..moveTo(2, y);
       for (var x = 2.0; x < 98; x += 12) {
-        path.quadraticBezierTo(x + 3, 62, x + 6, 66);
-        path.quadraticBezierTo(x + 9, 70, x + 12, 66);
+        path.quadraticBezierTo(x + 3, y - 3, x + 6, y);
+        path.quadraticBezierTo(x + 9, y + 3, x + 12, y);
       }
       canvas.drawPath(path, cable);
     }
@@ -409,10 +413,15 @@ class _FigurePainter extends CustomPainter {
     if (has(Gear.cableAnkle)) {
       _cable(canvas, const Offset(92, 92), s.ankle, cable, fill);
     }
+    if (has(Gear.calfBlock)) {
+      canvas.drawRRect(
+        RRect.fromLTRBR(s.ankle.dx + 4, 86, s.ankle.dx + 18, _floorY, const Radius.circular(2)),
+        fill,
+      );
+    }
     if (has(Gear.foot)) {
-      // Toes stay on the floor, so a raised ankle reads as a lifted heel.
-      final ink6 = _line(ink, 6);
-      canvas.drawLine(s.ankle, Offset(s.ankle.dx + 10, _floorY - 3), ink6);
+      // Toes stay put on the block, so a raised ankle reads as a lifted heel.
+      canvas.drawLine(s.ankle, Offset(s.ankle.dx + 11, 85), _line(ink, 6));
     }
     if (has(Gear.plateFeet)) {
       // A platform square to the shin.
@@ -455,10 +464,12 @@ class _FigurePainter extends CustomPainter {
 
     if (has(Gear.padAnkle)) pad(s.ankle);
     if (has(Gear.padKnee)) pad(s.knee);
+    if (has(Gear.padKneeOuter)) pad(s.knee + const Offset(7, 0));
+    if (has(Gear.padKneeInner)) pad(s.knee + const Offset(-7, 0));
     if (has(Gear.padHand)) pad(s.hand);
     if (has(Gear.wheel)) {
-      canvas.drawCircle(s.hand + const Offset(0, 4), 6, fill);
-      canvas.drawCircle(s.hand + const Offset(0, 4), 6, _line(ink, 2));
+      canvas.drawCircle(s.hand + const Offset(0, 6), 6, fill);
+      canvas.drawCircle(s.hand + const Offset(0, 6), 6, _line(ink, 2));
     }
 
     if (has(Gear.barbell)) _barbell(canvas, s.hand, fill);

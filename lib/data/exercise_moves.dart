@@ -222,27 +222,27 @@ final Map<String, Move> exerciseMoves = {
     gear: const [Gear.barbell, Gear.floor],
   ),
   'Calf raise': Move(
-    start: _stand,
-    end: _stand.copyWith(hip: const Offset(50, 48)),
-    gear: const [Gear.foot, Gear.floor],
+    start: const Pose(hip: Offset(50, 58)),
+    end: const Pose(hip: Offset(50, 46)),
+    gear: const [Gear.calfBlock, Gear.foot, Gear.floor],
   ),
 
   // glutes
   'Hip thrust': Move(
     start: const Pose(hip: Offset(44, 78), torso: 55, arm: Limb(-50, -45), leg: Limb(-100, 20)),
-    end: const Pose(hip: Offset(46, 62), torso: 93, arm: Limb(-90, -90), leg: Limb(-60, 5)),
+    end: const Pose(hip: Offset(38.6, 61), torso: 90, arm: Limb(-90, -90), leg: Limb(-35, 5)),
     gear: const [Gear.benchShoulders, Gear.barbellHip, Gear.floor],
   ),
   'Hip abduction': Move(
     start: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(8, 0)),
     end: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(40, 0)),
-    gear: const [Gear.seat, Gear.padKnee],
+    gear: const [Gear.seat, Gear.padKneeOuter],
     view: Facing.front,
   ),
   'Hip adduction': Move(
     start: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(40, 0)),
-    end: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(8, 0)),
-    gear: const [Gear.seat, Gear.padKnee],
+    end: const Pose(hip: Offset(50, 54), arm: Limb(20, 60), leg: Limb(12, 0)),
+    gear: const [Gear.seat, Gear.padKneeInner],
     view: Facing.front,
   ),
   'Cable kickback': Move(
@@ -252,7 +252,7 @@ final Map<String, Move> exerciseMoves = {
   ),
   'Glute bridge': Move(
     start: _floorUp,
-    end: const Pose(hip: Offset(40, 70), torso: 110, arm: Limb(-80, -80), leg: Limb(-45, -52)),
+    end: const Pose(hip: Offset(38, 73), torso: 111, arm: Limb(-80, -80), leg: Limb(-77, -18)),
     gear: const [Gear.floor],
   ),
 
@@ -263,8 +263,8 @@ final Map<String, Move> exerciseMoves = {
     gear: const [Gear.floor],
   ),
   'Crunch': Move(
-    start: _floorUp.copyWith(arm: const Limb(-135, -90)),
-    end: _floorUp.copyWith(torso: 70, arm: const Limb(-135, -90)),
+    start: _floorUp.copyWith(arm: const Limb(150, 45)),
+    end: _floorUp.copyWith(torso: 70, arm: const Limb(150, 45)),
     gear: const [Gear.floor],
   ),
   'Leg raise': Move(
@@ -273,8 +273,8 @@ final Map<String, Move> exerciseMoves = {
     gear: const [Gear.floor],
   ),
   'Ab wheel rollout': Move(
-    start: const Pose(hip: Offset(44, 70), torso: 60, leg: Limb(0, -90)),
-    end: const Pose(hip: Offset(36, 78), torso: 80, arm: Limb(80, 60), leg: Limb(40, -90)),
+    start: const Pose(hip: Offset(44, 66), torso: 60, leg: Limb(0, -90)),
+    end: const Pose(hip: Offset(34, 70), torso: 80, arm: Limb(50, 50), leg: Limb(35, -90)),
     gear: const [Gear.wheel, Gear.floor],
   ),
   'Hanging leg raise': Move(
@@ -283,8 +283,8 @@ final Map<String, Move> exerciseMoves = {
     gear: const [Gear.pullBar],
   ),
   'Russian twist': Move(
-    start: const Pose(hip: Offset(50, 64), arm: Limb(70, 70), arm2: Limb(-70, -70), leg: Limb(25, -60)),
-    end: const Pose(hip: Offset(50, 64), arm: Limb(-70, -70), arm2: Limb(70, 70), leg: Limb(25, -60)),
+    start: const Pose(hip: Offset(50, 64), arm: Limb(55, 47), arm2: Limb(-27, -84), leg: Limb(25, -60)),
+    end: const Pose(hip: Offset(50, 64), arm: Limb(-27, -84), arm2: Limb(55, 47), leg: Limb(25, -60)),
     gear: const [Gear.floor],
     view: Facing.front,
   ),
@@ -293,8 +293,8 @@ final Map<String, Move> exerciseMoves = {
 /// Movements for the cardio types. Strides alternate the two sides.
 final Map<CardioType, Move> cardioMoves = {
   CardioType.running: Move(
-    start: const Pose(hip: Offset(50, 56), torso: 10, arm: Limb(-50, 40), arm2: Limb(50, 120), leg: Limb(30, 10), leg2: Limb(-35, -90)),
-    end: const Pose(hip: Offset(50, 56), torso: 10, arm: Limb(50, 120), arm2: Limb(-50, 40), leg: Limb(-35, -90), leg2: Limb(30, 10)),
+    start: const Pose(hip: Offset(50, 56), torso: 12, arm: Limb(-40, 50), arm2: Limb(40, 130), leg: Limb(45, 20), leg2: Limb(-30, -75)),
+    end: const Pose(hip: Offset(50, 56), torso: 12, arm: Limb(40, 130), arm2: Limb(-40, 50), leg: Limb(-30, -75), leg2: Limb(45, 20)),
     gear: const [Gear.floor],
   ),
   CardioType.walking: Move(
@@ -323,25 +323,25 @@ final Map<CardioType, Move> cardioMoves = {
     gear: const [Gear.seat, Gear.plateFeet, Gear.cableFront],
   ),
   CardioType.swimming: Move(
-    start: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(100, 100), arm2: Limb(-60, 20), leg: Limb(-80, -100), leg2: Limb(-100, -80)),
-    end: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(-60, 20), arm2: Limb(100, 100), leg: Limb(-100, -80), leg2: Limb(-80, -100)),
+    start: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(135, 60), arm2: Limb(-30, -100), leg: Limb(-85, -95), leg2: Limb(-95, -85)),
+    end: const Pose(hip: Offset(38, 58), torso: 90, arm: Limb(-30, -100), arm2: Limb(135, 60), leg: Limb(-95, -85), leg2: Limb(-85, -95)),
     gear: const [Gear.water],
   ),
   CardioType.hiit: Move(
-    start: const Pose(hip: Offset(50, 58), arm: Limb(5, 5), leg: Limb(3, 0)),
-    end: const Pose(hip: Offset(50, 58), arm: Limb(140, 140), leg: Limb(18, 0)),
+    start: const Pose(hip: Offset(46, 70), torso: 30, arm: Limb(-40, -40), leg: Limb(80, -35)),
+    end: const Pose(hip: Offset(50, 48), arm: Limb(110, 110), leg: Limb(10, -10)),
     gear: const [Gear.floor],
-    view: Facing.front,
   ),
   CardioType.yoga: Move(
-    start: const Pose(hip: Offset(36, 66), torso: 80, leg: Limb(0, -90)),
-    end: const Pose(hip: Offset(36, 60), torso: 100, leg: Limb(0, -90)),
+    start: const Pose(hip: Offset(50, 55), arm: Limb(20, 160)),
+    end: const Pose(hip: Offset(48, 56), torso: 100),
     gear: const [Gear.floor],
   ),
   CardioType.other: Move(
-    start: const Pose(hip: Offset(50, 55), arm: Limb(-30, -30), arm2: Limb(30, 30), leg: Limb(60, 0), leg2: Limb(0, 0)),
-    end: const Pose(hip: Offset(50, 55), arm: Limb(30, 30), arm2: Limb(-30, -30), leg: Limb(0, 0), leg2: Limb(60, 0)),
+    start: const Pose(hip: Offset(50, 58), arm: Limb(8, 8), leg: Limb(4, 0)),
+    end: const Pose(hip: Offset(50, 58), arm: Limb(150, 150), leg: Limb(25, 0)),
     gear: const [Gear.floor],
+    view: Facing.front,
   ),
 };
 
