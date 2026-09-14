@@ -170,6 +170,11 @@ abstract class L {
   String get barcodeOptional;
   String get perServing;
   String get gramsEaten;
+  String get openFoodFacts;
+  String get searchOnline;
+  String get lookingUp;
+  String get notFoundOnline;
+  String get offCredit;
   String get per100g;
   String get foodTableCredit;
 
@@ -508,6 +513,16 @@ class LEn extends L {
   String get perServing => 'Per serving';
   @override
   String get gramsEaten => 'Amount eaten (g)';
+  @override
+  String get openFoodFacts => 'Open Food Facts';
+  @override
+  String get searchOnline => 'Look up online';
+  @override
+  String get lookingUp => 'Looking up…';
+  @override
+  String get notFoundOnline => 'Not found online';
+  @override
+  String get offCredit => 'Product data from Open Food Facts (ODbL)';
   @override
   String get per100g => 'per 100 g';
   @override
@@ -859,6 +874,16 @@ class LJa extends L {
   String get perServing => '1食分';
   @override
   String get gramsEaten => '食べた量（g）';
+  @override
+  String get openFoodFacts => 'Open Food Facts';
+  @override
+  String get searchOnline => 'ネットで探す';
+  @override
+  String get lookingUp => '探しています…';
+  @override
+  String get notFoundOnline => 'ネットにはありません';
+  @override
+  String get offCredit => '商品データ：Open Food Facts（ODbL）';
   @override
   String get per100g => '100gあたり';
   @override

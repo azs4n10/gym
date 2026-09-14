@@ -6,6 +6,7 @@ import '../../data/food_catalog.dart';
 import '../../data/seed/foods_seed.dart';
 import '../../l10n/strings.dart';
 import '../../models/enums.dart';
+import '../../services/open_food_facts.dart';
 import '../../state/app_state.dart';
 import '../../state/meal_state.dart';
 import '../../widgets/app_icon.dart';
@@ -26,6 +27,31 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
   FoodTag? _tag;
   late MealSlot _slot = widget.slot;
   List<CatalogFood> _catalog = const [];
+
+  // Online lookup runs only when asked, once per query, to stay well under
+  // Open Food Facts' rate limits and to keep the picker usable offline.
+  String _onlineFor = '';
+  bool _lookingUp = false;
+  List<OffProduct> _online = const [];
+
+  bool get _isBarcode => RegExp(r'^\d{8,14}$').hasMatch(_query);
+
+  Future<void> _lookUp() async {
+    final q = _query;
+    setState(() {
+      _onlineFor = q;
+      _lookingUp = true;
+      _online = const [];
+    });
+    final found = _isBarcode
+        ? [?await OpenFoodFacts.byBarcode(q)]
+        : await OpenFoodFacts.search(q);
+    if (!mounted || _query != q) return;
+    setState(() {
+      _lookingUp = false;
+      _online = found;
+    });
+  }
 
   @override
   void initState() {
@@ -117,91 +143,171 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
             ),
           ),
           Expanded(
-            child: list.isEmpty && hits.isEmpty
-                ? EmptyHint(ic: Ic.search, text: l.notFound)
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                    itemCount: list.length + (hits.isEmpty ? 0 : hits.length + 2),
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemBuilder: (context, i) {
-                      if (i >= list.length) {
-                        final j = i - list.length;
-                        if (j == 0) return SectionTitle(l.foodTable, ic: Ic.meals);
-                        if (j == hits.length + 1) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
-                            child: Text(l.foodTableCredit,
-                                style: t.labelSmall?.copyWith(color: skin.subText)),
-                          );
-                        }
-                        final c = hits[j - 1];
-                        return PastelCard(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          onTap: () => _pickGrams(context, c),
-                          child: Row(
+            child: Builder(builder: (context) {
+              final extra = <Widget>[
+                if (hits.isNotEmpty) ...[
+                  SectionTitle(l.foodTable, ic: Ic.meals),
+                  for (final c in hits) _catalogCard(context, c),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                    child: Text(l.foodTableCredit, style: t.labelSmall?.copyWith(color: skin.subText)),
+                  ),
+                ],
+                if (_query.length >= 2 && _onlineFor != _query)
+                  PastelCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: skin.accentSoft,
+                    onTap: _lookUp,
+                    child: Row(
+                      children: [
+                        Icon(Icons.travel_explore_rounded, color: skin.ink, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${l.searchOnline} · ${l.openFoodFacts}',
+                            style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (_query.length >= 2 && _onlineFor == _query) ...[
+                  SectionTitle(l.openFoodFacts, ic: Ic.search),
+                  if (_lookingUp)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(l.lookingUp, style: t.bodySmall?.copyWith(color: skin.subText)),
+                    )
+                  else if (_online.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(l.notFoundOnline, style: t.bodySmall?.copyWith(color: skin.subText)),
+                    )
+                  else
+                    for (final o in _online) _onlineCard(context, o),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                    child: Text(l.offCredit, style: t.labelSmall?.copyWith(color: skin.subText)),
+                  ),
+                ],
+              ];
+              if (list.isEmpty && extra.isEmpty) {
+                return EmptyHint(ic: Ic.search, text: l.notFound);
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                itemCount: list.length + extra.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 6),
+                itemBuilder: (context, i) {
+                  if (i >= list.length) return extra[i - list.length];
+                  final f = list[i];
+                  return PastelCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    onTap: () => _pickServings(context, f),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(c.name,
-                                        style: t.bodyLarge?.copyWith(
-                                            color: skin.text, fontWeight: FontWeight.w800)),
-                                    Text(
-                                      '${l.per100g} · P${fmtKg(c.protein)} F${fmtKg(c.fat)} C${fmtKg(c.carbs)}',
-                                      style: t.bodySmall?.copyWith(color: skin.subText),
-                                    ),
-                                  ],
-                                ),
+                              Text(foodName(f, l),
+                                  style: t.bodyLarge?.copyWith(
+                                      color: skin.text, fontWeight: FontWeight.w800)),
+                              Text(
+                                '${foodServing(f, l)} · P${fmtKg(f.protein)} F${fmtKg(f.fat)} C${fmtKg(f.carbs)}',
+                                style: t.bodySmall?.copyWith(color: skin.subText),
                               ),
-                              Text('${c.kcal.round()}',
-                                  style: t.titleMedium?.copyWith(
-                                      color: skin.heading, fontWeight: FontWeight.w900)),
-                              Text(' kcal', style: t.labelSmall?.copyWith(color: skin.subText)),
                             ],
                           ),
-                        );
-                      }
-                      final f = list[i];
-                      return PastelCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        onTap: () => _pickServings(context, f),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(foodName(f, l),
-                                      style: t.bodyLarge?.copyWith(
-                                          color: skin.text, fontWeight: FontWeight.w800)),
-                                  Text(
-                                    '${foodServing(f, l)} · P${fmtKg(f.protein)} F${fmtKg(f.fat)} C${fmtKg(f.carbs)}',
-                                    style: t.bodySmall?.copyWith(color: skin.subText),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text('${f.kcal.round()}',
-                                style: t.titleMedium?.copyWith(
-                                    color: skin.heading, fontWeight: FontWeight.w900)),
-                            Text(' kcal', style: t.labelSmall?.copyWith(color: skin.subText)),
-                            const SizedBox(width: 6),
-                            if (f.isCustom)
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                tooltip: l.remove,
-                                icon: Icon(Icons.delete_outline_rounded, color: skin.subText, size: 20),
-                                onPressed: () => meal.deleteFoodFromLibrary(f),
-                              ),
-                          ],
                         ),
-                      );
-                    },
-                  ),
+                        Text('${f.kcal.round()}',
+                            style: t.titleMedium?.copyWith(
+                                color: skin.heading, fontWeight: FontWeight.w900)),
+                        Text(' kcal', style: t.labelSmall?.copyWith(color: skin.subText)),
+                        const SizedBox(width: 6),
+                        if (f.isCustom)
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: l.remove,
+                            icon: Icon(Icons.delete_outline_rounded, color: skin.subText, size: 20),
+                            onPressed: () => meal.deleteFoodFromLibrary(f),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }),
           ),
         ],
-        ),
+      ),
+    );
+  }
+
+  Widget _catalogCard(BuildContext context, CatalogFood c) {
+    final skin = context.skin;
+    final l = context.l;
+    final t = Theme.of(context).textTheme;
+    return PastelCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      onTap: () => _pickGrams(context, c),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(c.name,
+                    style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                Text(
+                  '${l.per100g} · P${fmtKg(c.protein)} F${fmtKg(c.fat)} C${fmtKg(c.carbs)}',
+                  style: t.bodySmall?.copyWith(color: skin.subText),
+                ),
+              ],
+            ),
+          ),
+          Text('${c.kcal.round()}',
+              style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w900)),
+          Text(' kcal', style: t.labelSmall?.copyWith(color: skin.subText)),
+        ],
+      ),
+    );
+  }
+
+  /// A product found online opens the label form filled in, so the numbers
+  /// can be checked against the package before they are kept.
+  Widget _onlineCard(BuildContext context, OffProduct o) {
+    final skin = context.skin;
+    final l = context.l;
+    final t = Theme.of(context).textTheme;
+    final basis = o.hasServing ? o.servingSize! : l.per100g;
+    final kcal = o.hasServing ? o.kcalServing! : o.kcal100;
+    final pr = o.hasServing ? o.proteinServing! : o.protein100;
+    final fa = o.hasServing ? o.fatServing! : o.fat100;
+    final ca = o.hasServing ? o.carbsServing! : o.carbs100;
+    return PastelCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      onTap: () => _addCustom(context, prefill: o),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(o.brand.isEmpty ? o.name : '${o.name} · ${o.brand}',
+                    style: t.bodyLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                Text(
+                  '$basis · P${fmtKg(pr)} F${fmtKg(fa)} C${fmtKg(ca)}',
+                  style: t.bodySmall?.copyWith(color: skin.subText),
+                ),
+              ],
+            ),
+          ),
+          Text('${kcal.round()}',
+              style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w900)),
+          Text(' kcal', style: t.labelSmall?.copyWith(color: skin.subText)),
+        ],
+      ),
     );
   }
 
@@ -337,19 +443,23 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
   /// Type the numbers off a package. Values can be given per serving or per
   /// 100 g; either way the product lands in the library once, with its barcode
   /// if given, so the next time its name or number is enough.
-  Future<void> _addCustom(BuildContext context) async {
+  Future<void> _addCustom(BuildContext context, {OffProduct? prefill}) async {
     final meal = context.read<MealState>();
     final l = context.read<AppState>().l;
     final digits = RegExp(r'^\d{6,}$').hasMatch(_query);
-    final nameC = TextEditingController(text: digits ? '' : _query);
-    final codeC = TextEditingController(text: digits ? _query : '');
-    final servingC = TextEditingController(text: l.isJa ? '1食' : '1 serving');
+    final o = prefill;
+    final hasServing = o != null && o.hasServing;
+    String n(double? v) => v == null ? '' : (v == v.roundToDouble() ? v.round().toString() : v.toStringAsFixed(1));
+    final nameC = TextEditingController(
+        text: o != null ? (o.brand.isEmpty ? o.name : '${o.name} (${o.brand})') : (digits ? '' : _query));
+    final codeC = TextEditingController(text: o?.code ?? (digits ? _query : ''));
+    final servingC = TextEditingController(text: hasServing ? o.servingSize! : (l.isJa ? '1食' : '1 serving'));
     final gramsC = TextEditingController(text: '100');
-    final kcalC = TextEditingController();
-    final pC = TextEditingController();
-    final fC = TextEditingController();
-    final cC = TextEditingController();
-    var per100 = false;
+    final kcalC = TextEditingController(text: o == null ? '' : n(hasServing ? o.kcalServing : o.kcal100));
+    final pC = TextEditingController(text: o == null ? '' : n(hasServing ? o.proteinServing : o.protein100));
+    final fC = TextEditingController(text: o == null ? '' : n(hasServing ? o.fatServing : o.fat100));
+    final cC = TextEditingController(text: o == null ? '' : n(hasServing ? o.carbsServing : o.carbs100));
+    var per100 = o != null && !hasServing;
     var tag = _tag ?? FoodTag.dish;
     var saveToLibrary = true;
 
