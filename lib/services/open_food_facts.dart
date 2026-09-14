@@ -67,7 +67,8 @@ class OffProduct {
 
 /// Open Food Facts, the open (ODbL) database of packaged foods. Both calls
 /// return nothing on any failure: the service is best effort, and the label
-/// form is always there behind it.
+/// form is always there behind it. The servers answer 503 now and then, so a
+/// request is tried three times, and a search falls back to the world site.
 class OpenFoodFacts {
   OpenFoodFacts._();
 
@@ -75,39 +76,47 @@ class OpenFoodFacts {
       'code,product_name,product_name_ja,brands,serving_size,nutriments';
   static const _timeout = Duration(seconds: 8);
 
-  static Future<OffProduct?> byBarcode(String code) async {
-    try {
-      final uri = Uri.https('world.openfoodfacts.org', '/api/v2/product/$code.json', {'fields': _fields});
-      final res = await http.get(uri).timeout(_timeout);
-      if (res.statusCode != 200) return null;
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      if (body['status'] != 1) return null;
-      return OffProduct.fromJson(body['product'] as Map<String, dynamic>);
-    } catch (_) {
-      return null;
+  static Future<Map<String, dynamic>?> _getJson(Uri uri) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final res = await http.get(uri).timeout(_timeout);
+        if (res.statusCode == 200) {
+          return jsonDecode(res.body) as Map<String, dynamic>;
+        }
+        if (res.statusCode == 404) return null;
+      } catch (_) {
+        // fall through to the next attempt
+      }
+      await Future<void>.delayed(Duration(milliseconds: 700 * (attempt + 1)));
     }
+    return null;
+  }
+
+  static Future<OffProduct?> byBarcode(String code) async {
+    final body = await _getJson(
+      Uri.https('world.openfoodfacts.org', '/api/v2/product/$code.json', {'fields': _fields}),
+    );
+    if (body == null || body['status'] != 1) return null;
+    return OffProduct.fromJson(body['product'] as Map<String, dynamic>);
   }
 
   static Future<List<OffProduct>> search(String query) async {
-    try {
-      final uri = Uri.https('jp.openfoodfacts.org', '/cgi/search.pl', {
+    for (final host in ['jp.openfoodfacts.org', 'world.openfoodfacts.org']) {
+      final body = await _getJson(Uri.https(host, '/cgi/search.pl', {
         'search_terms': query,
         'search_simple': '1',
         'action': 'process',
         'json': '1',
         'page_size': '12',
         'fields': _fields,
-      });
-      final res = await http.get(uri).timeout(_timeout);
-      if (res.statusCode != 200) return const [];
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      }));
+      if (body == null) continue;
       final list = (body['products'] as List?) ?? const [];
-      return [
-        for (final p in list)
-          ?OffProduct.fromJson(p as Map<String, dynamic>),
+      final found = [
+        for (final p in list) ?OffProduct.fromJson(p as Map<String, dynamic>),
       ];
-    } catch (_) {
-      return const [];
+      if (found.isNotEmpty) return found;
     }
+    return const [];
   }
 }
