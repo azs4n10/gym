@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../data/database.dart';
+import '../data/food_catalog.dart';
 import '../models/enums.dart';
 import '../services/health_sync.dart';
 import '../services/nutrition.dart';
@@ -149,6 +150,23 @@ class MealState extends ChangeNotifier {
         ));
     await load();
     return _foods.firstWhere((f) => f.id == id);
+  }
+
+  /// The library row for a composition-table entry, added on first use so
+  /// it can be logged, searched and deleted like any other food.
+  Future<Food> importCatalogFood(CatalogFood c) async {
+    for (final f in _foods) {
+      if (f.name == c.name && f.serving == '100g') return f;
+    }
+    return addFoodToLibrary(
+      name: c.name,
+      serving: '100g',
+      kcal: c.kcal,
+      protein: c.protein,
+      fat: c.fat,
+      carbs: c.carbs,
+      tag: c.tag,
+    );
   }
 
   Future<void> deleteFoodFromLibrary(Food f) async {

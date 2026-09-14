@@ -164,6 +164,9 @@ abstract class L {
   String get volume;
   String get summary;
   String get mood;
+  String get foodTable;
+  String get per100g;
+  String get foodTableCredit;
 
   String hi(String name);
   String get todaysProgress;
@@ -488,6 +491,12 @@ class LEn extends L {
   String get summary => 'Summary';
   @override
   String get mood => 'Mood';
+  @override
+  String get foodTable => 'Food table';
+  @override
+  String get per100g => 'per 100 g';
+  @override
+  String get foodTableCredit => 'Source: Standard Tables of Food Composition in Japan, 8th revised edition, 2023 supplement (MEXT)';
 
   @override
   String hi(String name) => name.isEmpty ? 'Hi there' : 'Hi, $name';
@@ -823,6 +832,12 @@ class LJa extends L {
   String get summary => 'サマリー';
   @override
   String get mood => '気分';
+  @override
+  String get foodTable => '食品成分表';
+  @override
+  String get per100g => '100gあたり';
+  @override
+  String get foodTableCredit => '出典：日本食品標準成分表（八訂）増補2023年（文部科学省）';
 
   @override
   String hi(String name) => name.isEmpty ? 'こんにちは' : '$nameさん、こんにちは';

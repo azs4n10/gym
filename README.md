@@ -94,3 +94,18 @@ Health Connect must be installed on the device.
 referenced from all three build configurations. The usage descriptions are in
 `Info.plist`, and the deployment target is 15.0 as the plugin requires. Enable
 the HealthKit capability on the App ID in the developer portal before signing.
+
+## Food composition data
+
+Searching for a food in the meal picker also searches the Standard Tables of
+Food Composition in Japan (8th revised edition, 2023 supplement), bundled as
+`assets/data/mext_foods.json` (2,538 entries, per 100 g of the edible part:
+energy, protein, fat, carbohydrate by difference). An entry is copied into the
+local food library the first time it is logged, so it can then be found,
+weighed and deleted like any other food.
+
+The data is published by the Ministry of Education, Culture, Sports, Science
+and Technology under the Government of Japan Standard Terms of Use (compatible
+with CC BY 4.0). Attribution, as required: 日本食品標準成分表（八訂）増補2023年
+から引用. The conversion reads the main table (第2章) Excel file and keeps only
+those four values; `tool/` does not include the converter, as it is a one-off.

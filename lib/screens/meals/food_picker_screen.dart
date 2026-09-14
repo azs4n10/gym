@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/database.dart';
+import '../../data/food_catalog.dart';
 import '../../data/seed/foods_seed.dart';
 import '../../l10n/strings.dart';
 import '../../models/enums.dart';
@@ -24,6 +25,15 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
   String _query = '';
   FoodTag? _tag;
   late MealSlot _slot = widget.slot;
+  List<CatalogFood> _catalog = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    FoodCatalog.load().then((items) {
+      if (mounted) setState(() => _catalog = items);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +46,14 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
       if (_query.isNotEmpty && !foodMatches(f, _query)) return false;
       return true;
     }).toList();
+    // Table entries only while searching, and never ones already in the library.
+    final known = {for (final f in meal.foods) f.name};
+    final hits = _query.isEmpty
+        ? const <CatalogFood>[]
+        : FoodCatalog.search(_catalog, _query)
+            .where((c) => !known.contains(c.name))
+            .where((c) => _tag == null || c.tag == _tag)
+            .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -99,13 +117,51 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
             ),
           ),
           Expanded(
-            child: list.isEmpty
+            child: list.isEmpty && hits.isEmpty
                 ? EmptyHint(ic: Ic.search, text: l.notFound)
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                    itemCount: list.length,
+                    itemCount: list.length + (hits.isEmpty ? 0 : hits.length + 2),
                     separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, i) {
+                      if (i >= list.length) {
+                        final j = i - list.length;
+                        if (j == 0) return SectionTitle(l.foodTable, ic: Ic.meals);
+                        if (j == hits.length + 1) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                            child: Text(l.foodTableCredit,
+                                style: t.labelSmall?.copyWith(color: skin.subText)),
+                          );
+                        }
+                        final c = hits[j - 1];
+                        return PastelCard(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          onTap: () => _pickGrams(context, c),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(c.name,
+                                        style: t.bodyLarge?.copyWith(
+                                            color: skin.text, fontWeight: FontWeight.w800)),
+                                    Text(
+                                      '${l.per100g} · P${fmtKg(c.protein)} F${fmtKg(c.fat)} C${fmtKg(c.carbs)}',
+                                      style: t.bodySmall?.copyWith(color: skin.subText),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text('${c.kcal.round()}',
+                                  style: t.titleMedium?.copyWith(
+                                      color: skin.heading, fontWeight: FontWeight.w900)),
+                              Text(' kcal', style: t.labelSmall?.copyWith(color: skin.subText)),
+                            ],
+                          ),
+                        );
+                      }
                       final f = list[i];
                       return PastelCard(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -204,6 +260,72 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
     if (ok == true && context.mounted) {
       final l = context.read<AppState>().l;
       await meal.addFood(widget.day, _slot, f, servings);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.added)),
+        );
+      }
+    }
+  }
+
+  /// Weigh a table entry in grams; the library row is created on first use.
+  Future<void> _pickGrams(BuildContext context, CatalogFood c) async {
+    final meal = context.read<MealState>();
+    var grams = 100.0;
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final skin = ctx.skin;
+          final l = ctx.l;
+          final t = Theme.of(ctx).textTheme;
+          final k = grams / 100;
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(c.name,
+                    style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+                Text(l.per100g, style: t.bodySmall?.copyWith(color: skin.subText)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(l.amount, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 12),
+                    StepperField(
+                      value: grams, step: 10, decimals: 0, unit: 'g', min: 5, max: 2000, width: 150,
+                      onChanged: (v) => setSheet(() => grams = v),
+                    ),
+                    const Spacer(),
+                    Text('${(c.kcal * k).round()} kcal',
+                        style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w900)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'P ${fmtKg(c.protein * k)}g · F ${fmtKg(c.fat * k)}g · C ${fmtKg(c.carbs * k)}g',
+                  style: t.bodySmall?.copyWith(color: skin.subText),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l.addTo(_slot.label(l))),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    if (ok == true && context.mounted) {
+      final l = context.read<AppState>().l;
+      final food = await meal.importCatalogFood(c);
+      await meal.addFood(widget.day, _slot, food, grams / 100);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l.added)),

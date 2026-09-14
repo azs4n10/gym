@@ -247,6 +247,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 14),
           Text(l.foodDisclaimer, style: t.bodySmall?.copyWith(color: skin.subText)),
+          const SizedBox(height: 6),
+          Text(l.foodTableCredit, style: t.bodySmall?.copyWith(color: skin.subText)),
         ]),
         ),
     );
