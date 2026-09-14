@@ -127,6 +127,7 @@ String foodNameByStored(String stored, L l) =>
 bool foodMatches(Food f, String query) {
   final q = query.toLowerCase();
   if (f.name.toLowerCase().contains(q)) return true;
+  if (f.barcode != null && f.barcode!.contains(q)) return true;
   final ja = _foodJa[f.name];
   return ja != null && ja.$1.contains(query);
 }

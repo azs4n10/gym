@@ -62,6 +62,7 @@ class Foods extends Table {
   RealColumn get carbs => real()();
   TextColumn get tag => text()();
   BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
+  TextColumn get barcode => text().nullable()();
 }
 
 class Meals extends Table {
@@ -99,10 +100,13 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) await m.addColumn(foods, foods.barcode);
+        },
         onCreate: (m) async {
           await m.createAll();
           await batch((b) {

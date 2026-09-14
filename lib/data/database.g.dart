@@ -2079,6 +2079,17 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _barcodeMeta = const VerificationMeta(
+    'barcode',
+  );
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+    'barcode',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2090,6 +2101,7 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     carbs,
     tag,
     isCustom,
+    barcode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2168,6 +2180,12 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         isCustom.isAcceptableOrUnknown(data['is_custom']!, _isCustomMeta),
       );
     }
+    if (data.containsKey('barcode')) {
+      context.handle(
+        _barcodeMeta,
+        barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta),
+      );
+    }
     return context;
   }
 
@@ -2213,6 +2231,10 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_custom'],
       )!,
+      barcode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}barcode'],
+      ),
     );
   }
 
@@ -2232,6 +2254,7 @@ class Food extends DataClass implements Insertable<Food> {
   final double carbs;
   final String tag;
   final bool isCustom;
+  final String? barcode;
   const Food({
     required this.id,
     required this.name,
@@ -2242,6 +2265,7 @@ class Food extends DataClass implements Insertable<Food> {
     required this.carbs,
     required this.tag,
     required this.isCustom,
+    this.barcode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2255,6 +2279,9 @@ class Food extends DataClass implements Insertable<Food> {
     map['carbs'] = Variable<double>(carbs);
     map['tag'] = Variable<String>(tag);
     map['is_custom'] = Variable<bool>(isCustom);
+    if (!nullToAbsent || barcode != null) {
+      map['barcode'] = Variable<String>(barcode);
+    }
     return map;
   }
 
@@ -2269,6 +2296,9 @@ class Food extends DataClass implements Insertable<Food> {
       carbs: Value(carbs),
       tag: Value(tag),
       isCustom: Value(isCustom),
+      barcode: barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcode),
     );
   }
 
@@ -2287,6 +2317,7 @@ class Food extends DataClass implements Insertable<Food> {
       carbs: serializer.fromJson<double>(json['carbs']),
       tag: serializer.fromJson<String>(json['tag']),
       isCustom: serializer.fromJson<bool>(json['isCustom']),
+      barcode: serializer.fromJson<String?>(json['barcode']),
     );
   }
   @override
@@ -2302,6 +2333,7 @@ class Food extends DataClass implements Insertable<Food> {
       'carbs': serializer.toJson<double>(carbs),
       'tag': serializer.toJson<String>(tag),
       'isCustom': serializer.toJson<bool>(isCustom),
+      'barcode': serializer.toJson<String?>(barcode),
     };
   }
 
@@ -2315,6 +2347,7 @@ class Food extends DataClass implements Insertable<Food> {
     double? carbs,
     String? tag,
     bool? isCustom,
+    Value<String?> barcode = const Value.absent(),
   }) => Food(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -2325,6 +2358,7 @@ class Food extends DataClass implements Insertable<Food> {
     carbs: carbs ?? this.carbs,
     tag: tag ?? this.tag,
     isCustom: isCustom ?? this.isCustom,
+    barcode: barcode.present ? barcode.value : this.barcode,
   );
   Food copyWithCompanion(FoodsCompanion data) {
     return Food(
@@ -2337,6 +2371,7 @@ class Food extends DataClass implements Insertable<Food> {
       carbs: data.carbs.present ? data.carbs.value : this.carbs,
       tag: data.tag.present ? data.tag.value : this.tag,
       isCustom: data.isCustom.present ? data.isCustom.value : this.isCustom,
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
     );
   }
 
@@ -2351,14 +2386,25 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('fat: $fat, ')
           ..write('carbs: $carbs, ')
           ..write('tag: $tag, ')
-          ..write('isCustom: $isCustom')
+          ..write('isCustom: $isCustom, ')
+          ..write('barcode: $barcode')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, serving, kcal, protein, fat, carbs, tag, isCustom);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    serving,
+    kcal,
+    protein,
+    fat,
+    carbs,
+    tag,
+    isCustom,
+    barcode,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2371,7 +2417,8 @@ class Food extends DataClass implements Insertable<Food> {
           other.fat == this.fat &&
           other.carbs == this.carbs &&
           other.tag == this.tag &&
-          other.isCustom == this.isCustom);
+          other.isCustom == this.isCustom &&
+          other.barcode == this.barcode);
 }
 
 class FoodsCompanion extends UpdateCompanion<Food> {
@@ -2384,6 +2431,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<double> carbs;
   final Value<String> tag;
   final Value<bool> isCustom;
+  final Value<String?> barcode;
   const FoodsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -2394,6 +2442,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.carbs = const Value.absent(),
     this.tag = const Value.absent(),
     this.isCustom = const Value.absent(),
+    this.barcode = const Value.absent(),
   });
   FoodsCompanion.insert({
     this.id = const Value.absent(),
@@ -2405,6 +2454,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     required double carbs,
     required String tag,
     this.isCustom = const Value.absent(),
+    this.barcode = const Value.absent(),
   }) : name = Value(name),
        serving = Value(serving),
        kcal = Value(kcal),
@@ -2422,6 +2472,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<double>? carbs,
     Expression<String>? tag,
     Expression<bool>? isCustom,
+    Expression<String>? barcode,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2433,6 +2484,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (carbs != null) 'carbs': carbs,
       if (tag != null) 'tag': tag,
       if (isCustom != null) 'is_custom': isCustom,
+      if (barcode != null) 'barcode': barcode,
     });
   }
 
@@ -2446,6 +2498,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<double>? carbs,
     Value<String>? tag,
     Value<bool>? isCustom,
+    Value<String?>? barcode,
   }) {
     return FoodsCompanion(
       id: id ?? this.id,
@@ -2457,6 +2510,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       carbs: carbs ?? this.carbs,
       tag: tag ?? this.tag,
       isCustom: isCustom ?? this.isCustom,
+      barcode: barcode ?? this.barcode,
     );
   }
 
@@ -2490,6 +2544,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     if (isCustom.present) {
       map['is_custom'] = Variable<bool>(isCustom.value);
     }
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
+    }
     return map;
   }
 
@@ -2504,7 +2561,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('fat: $fat, ')
           ..write('carbs: $carbs, ')
           ..write('tag: $tag, ')
-          ..write('isCustom: $isCustom')
+          ..write('isCustom: $isCustom, ')
+          ..write('barcode: $barcode')
           ..write(')'))
         .toString();
   }
@@ -5162,6 +5220,7 @@ typedef $$FoodsTableCreateCompanionBuilder =
       required double carbs,
       required String tag,
       Value<bool> isCustom,
+      Value<String?> barcode,
     });
 typedef $$FoodsTableUpdateCompanionBuilder =
     FoodsCompanion Function({
@@ -5174,6 +5233,7 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<double> carbs,
       Value<String> tag,
       Value<bool> isCustom,
+      Value<String?> barcode,
     });
 
 class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
@@ -5226,6 +5286,11 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<bool> get isCustom => $composableBuilder(
     column: $table.isCustom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get barcode => $composableBuilder(
+    column: $table.barcode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5283,6 +5348,11 @@ class $$FoodsTableOrderingComposer
     column: $table.isCustom,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get barcode => $composableBuilder(
+    column: $table.barcode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FoodsTableAnnotationComposer
@@ -5320,6 +5390,9 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<bool> get isCustom =>
       $composableBuilder(column: $table.isCustom, builder: (column) => column);
+
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
 }
 
 class $$FoodsTableTableManager
@@ -5359,6 +5432,7 @@ class $$FoodsTableTableManager
                 Value<double> carbs = const Value.absent(),
                 Value<String> tag = const Value.absent(),
                 Value<bool> isCustom = const Value.absent(),
+                Value<String?> barcode = const Value.absent(),
               }) => FoodsCompanion(
                 id: id,
                 name: name,
@@ -5369,6 +5443,7 @@ class $$FoodsTableTableManager
                 carbs: carbs,
                 tag: tag,
                 isCustom: isCustom,
+                barcode: barcode,
               ),
           createCompanionCallback:
               ({
@@ -5381,6 +5456,7 @@ class $$FoodsTableTableManager
                 required double carbs,
                 required String tag,
                 Value<bool> isCustom = const Value.absent(),
+                Value<String?> barcode = const Value.absent(),
               }) => FoodsCompanion.insert(
                 id: id,
                 name: name,
@@ -5391,6 +5467,7 @@ class $$FoodsTableTableManager
                 carbs: carbs,
                 tag: tag,
                 isCustom: isCustom,
+                barcode: barcode,
               ),
           withReferenceMapper: (p0) => p0
               .map(

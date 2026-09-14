@@ -80,7 +80,7 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
         heroTag: 'food-fab',
         onPressed: () => _addCustom(context),
         icon: const Icon(Icons.add_rounded),
-        label: Text(l.custom),
+        label: Text(l.fromLabel),
       ),
       body: Column(
         children: [
@@ -334,14 +334,26 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
     }
   }
 
+  /// Type the numbers off a package. Values can be given per serving or per
+  /// 100 g; either way the product lands in the library once, with its barcode
+  /// if given, so the next time its name or number is enough.
   Future<void> _addCustom(BuildContext context) async {
     final meal = context.read<MealState>();
     final l = context.read<AppState>().l;
-    final nameC = TextEditingController(text: _query);
+    final digits = RegExp(r'^\d{6,}$').hasMatch(_query);
+    final nameC = TextEditingController(text: digits ? '' : _query);
+    final codeC = TextEditingController(text: digits ? _query : '');
     final servingC = TextEditingController(text: l.isJa ? '1食' : '1 serving');
-    var kcal = 0.0, p = 0.0, f = 0.0, c = 0.0;
+    final gramsC = TextEditingController(text: '100');
+    final kcalC = TextEditingController();
+    final pC = TextEditingController();
+    final fC = TextEditingController();
+    final cC = TextEditingController();
+    var per100 = false;
     var tag = _tag ?? FoodTag.dish;
     var saveToLibrary = true;
+
+    double numOf(TextEditingController c) => double.tryParse(c.text.trim().replaceAll(',', '.')) ?? 0;
 
     final ok = await showModalBottomSheet<bool>(
       context: context,
@@ -350,6 +362,16 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
         builder: (ctx, setSheet) {
           final skin = ctx.skin;
           final t = Theme.of(ctx).textTheme;
+          Widget num(String label, TextEditingController c) => Expanded(
+                child: TextField(
+                  controller: c,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.right,
+                  decoration: InputDecoration(labelText: label, isDense: true),
+                  onChanged: (_) => setSheet(() {}),
+                ),
+              );
+          final k = per100 ? numOf(gramsC) / 100 : 1.0;
           return Padding(
             padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
             child: SingleChildScrollView(
@@ -357,17 +379,45 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l.custom,
+                  Text(l.fromLabel,
                       style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 10),
-                  TextField(controller: nameC, decoration: InputDecoration(hintText: l.name)),
+                  TextField(controller: nameC, decoration: InputDecoration(labelText: l.productName, isDense: true)),
                   const SizedBox(height: 8),
-                  TextField(controller: servingC, decoration: InputDecoration(hintText: l.servingHint)),
+                  TextField(
+                    controller: codeC,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: l.barcodeOptional, isDense: true),
+                  ),
                   const SizedBox(height: 10),
-                  _row('kcal', StepperField(value: kcal, step: 10, decimals: 0, max: 5000, onChanged: (v) => setSheet(() => kcal = v))),
-                  _row('P (g)', StepperField(value: p, step: 1, max: 500, onChanged: (v) => setSheet(() => p = v))),
-                  _row('F (g)', StepperField(value: f, step: 1, max: 500, onChanged: (v) => setSheet(() => f = v))),
-                  _row('C (g)', StepperField(value: c, step: 1, max: 1000, onChanged: (v) => setSheet(() => c = v))),
+                  SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(value: false, label: Text(l.perServing)),
+                      ButtonSegment(value: true, label: Text(l.per100g)),
+                    ],
+                    selected: {per100},
+                    onSelectionChanged: (v) => setSheet(() => per100 = v.first),
+                  ),
+                  const SizedBox(height: 8),
+                  if (per100)
+                    TextField(
+                      controller: gramsC,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(labelText: l.gramsEaten, isDense: true),
+                      onChanged: (_) => setSheet(() {}),
+                    )
+                  else
+                    TextField(controller: servingC, decoration: InputDecoration(labelText: l.servingHint, isDense: true)),
+                  const SizedBox(height: 8),
+                  Row(children: [num('kcal', kcalC), const SizedBox(width: 8), num('P (g)', pC)]),
+                  const SizedBox(height: 8),
+                  Row(children: [num('F (g)', fC), const SizedBox(width: 8), num('C (g)', cC)]),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${(numOf(kcalC) * k).round()} kcal · P ${fmtKg(numOf(pC) * k)}g · F ${fmtKg(numOf(fC) * k)}g · C ${fmtKg(numOf(cC) * k)}g',
+                    style: t.bodySmall?.copyWith(color: skin.subText),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
@@ -403,18 +453,27 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
     );
 
     final name = nameC.text.trim();
-    final serving = servingC.text.trim().isEmpty ? (l.isJa ? '1食' : '1 serving') : servingC.text.trim();
-    nameC.dispose();
-    servingC.dispose();
+    final code = codeC.text.trim();
+    final serving = per100
+        ? '100g'
+        : (servingC.text.trim().isEmpty ? (l.isJa ? '1食' : '1 serving') : servingC.text.trim());
+    final grams = numOf(gramsC);
+    final kcal = numOf(kcalC), p = numOf(pC), f = numOf(fC), c = numOf(cC);
+    for (final ctl in [nameC, codeC, servingC, gramsC, kcalC, pC, fC, cC]) {
+      ctl.dispose();
+    }
     if (ok != true || name.isEmpty || !context.mounted) return;
 
+    final servings = per100 ? grams / 100 : 1.0;
     if (saveToLibrary) {
       final food = await meal.addFoodToLibrary(
         name: name, serving: serving, kcal: kcal, protein: p, fat: f, carbs: c, tag: tag,
+        barcode: code.isEmpty ? null : code,
       );
-      await meal.addFood(widget.day, _slot, food, 1);
+      await meal.addFood(widget.day, _slot, food, servings);
     } else {
-      await meal.addCustomItem(widget.day, _slot, name: name, kcal: kcal, protein: p, fat: f, carbs: c);
+      await meal.addCustomItem(widget.day, _slot,
+          name: name, kcal: kcal * servings, protein: p * servings, fat: f * servings, carbs: c * servings);
     }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -422,14 +481,4 @@ class _FoodPickerScreenState extends State<FoodPickerScreen> {
       );
     }
   }
-
-  Widget _row(String label, Widget field) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          children: [
-            SizedBox(width: 56, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
-            field,
-          ],
-        ),
-      );
 }

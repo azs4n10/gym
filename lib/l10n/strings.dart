@@ -165,6 +165,11 @@ abstract class L {
   String get summary;
   String get mood;
   String get foodTable;
+  String get fromLabel;
+  String get productName;
+  String get barcodeOptional;
+  String get perServing;
+  String get gramsEaten;
   String get per100g;
   String get foodTableCredit;
 
@@ -493,6 +498,16 @@ class LEn extends L {
   String get mood => 'Mood';
   @override
   String get foodTable => 'Food table';
+  @override
+  String get fromLabel => 'From the label';
+  @override
+  String get productName => 'Product name';
+  @override
+  String get barcodeOptional => 'Barcode (optional)';
+  @override
+  String get perServing => 'Per serving';
+  @override
+  String get gramsEaten => 'Amount eaten (g)';
   @override
   String get per100g => 'per 100 g';
   @override
@@ -834,6 +849,16 @@ class LJa extends L {
   String get mood => '気分';
   @override
   String get foodTable => '食品成分表';
+  @override
+  String get fromLabel => '表示から入力';
+  @override
+  String get productName => '商品名';
+  @override
+  String get barcodeOptional => 'バーコード（任意）';
+  @override
+  String get perServing => '1食分';
+  @override
+  String get gramsEaten => '食べた量（g）';
   @override
   String get per100g => '100gあたり';
   @override

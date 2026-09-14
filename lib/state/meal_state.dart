@@ -137,7 +137,14 @@ class MealState extends ChangeNotifier {
     required double fat,
     required double carbs,
     required FoodTag tag,
+    String? barcode,
   }) async {
+    final code = barcode == null || barcode.isEmpty ? null : barcode;
+    if (code != null) {
+      for (final f in _foods) {
+        if (f.barcode == code) return f;
+      }
+    }
     final id = await db.into(db.foods).insert(FoodsCompanion.insert(
           name: name,
           serving: serving,
@@ -147,6 +154,7 @@ class MealState extends ChangeNotifier {
           carbs: carbs,
           tag: tag.name,
           isCustom: const Value(true),
+          barcode: Value(code),
         ));
     await load();
     return _foods.firstWhere((f) => f.id == id);
