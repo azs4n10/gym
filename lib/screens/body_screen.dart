@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../state/body_state.dart';
 import '../widgets/sticker.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/count_up.dart';
 import '../widgets/page_header.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
@@ -64,9 +65,15 @@ class _BodyScreenState extends State<BodyScreen> {
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Text(latest == null ? '--' : fmtKg(latest.weightKg),
-                              style: t.displaySmall?.copyWith(
-                                  color: skin.heading, fontWeight: FontWeight.w800)),
+                          if (latest == null)
+                            Text('--',
+                                style: t.displaySmall?.copyWith(
+                                    color: skin.heading, fontWeight: FontWeight.w800))
+                          else
+                            CountUp(latest.weightKg,
+                                decimals: 1,
+                                style: t.displaySmall?.copyWith(
+                                    color: skin.heading, fontWeight: FontWeight.w800)),
                           const SizedBox(width: 4),
                           Text('kg', style: t.bodyMedium?.copyWith(color: skin.subText)),
                         ],

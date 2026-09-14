@@ -97,6 +97,15 @@ class _WindowCardState extends State<WindowCard> {
               color: bar,
               border: Border(bottom: BorderSide(color: skin.ink, width: kBorderWidth)),
             ),
+            // A sheen over the top half of the bar.
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.white.withValues(alpha: 0.34), Colors.white.withValues(alpha: 0)],
+                stops: const [0, 0.62],
+              ),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -180,6 +189,7 @@ class _WindowDotState extends State<_WindowDot> {
   Widget build(BuildContext context) {
     final skin = context.skin;
     final glow = _down || widget.lit;
+    final c = glow ? Color.lerp(widget.color, widget.glowColor, 0.55)! : widget.color;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _set(true),
@@ -197,7 +207,13 @@ class _WindowDotState extends State<_WindowDot> {
             width: _down ? 13 : 11,
             height: _down ? 13 : 11,
             decoration: BoxDecoration(
-              color: glow ? Color.lerp(widget.color, widget.glowColor, 0.55) : widget.color,
+              // Lit from the upper left, so the dot reads as a small sphere.
+              gradient: RadialGradient(
+                center: const Alignment(-0.35, -0.4),
+                radius: 0.9,
+                colors: [Color.lerp(c, Colors.white, 0.75)!, c, Color.lerp(c, skin.ink, 0.22)!],
+                stops: const [0, 0.5, 1],
+              ),
               shape: BoxShape.circle,
               border: Border.all(color: skin.ink, width: kThinBorder),
               boxShadow: [

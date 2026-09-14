@@ -76,7 +76,18 @@ class _StickerBoxState extends State<StickerBox> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(widget.radius - widget.borderWidth),
-        child: widget.child,
+        child: DecoratedBox(
+          // A pale line inside the top edge and a shade inside the bottom
+          // give the surface a bevel, like a window on an old desktop.
+          position: DecorationPosition.foreground,
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.55), width: 1.5),
+              bottom: BorderSide(color: skin.ink.withValues(alpha: 0.08), width: 2),
+            ),
+          ),
+          child: widget.child,
+        ),
       ),
     );
 

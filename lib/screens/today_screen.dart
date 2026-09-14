@@ -16,6 +16,7 @@ import '../state/workout_state.dart';
 import '../widgets/sticker.dart';
 import '../widgets/app_icon.dart';
 import '../widgets/cover.dart';
+import '../widgets/count_up.dart';
 import '../widgets/icon_tile.dart';
 import '../widgets/pastel_card.dart';
 import '../widgets/ring_progress.dart';
@@ -112,7 +113,7 @@ class TodayScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.baseline,
                           textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Text('${streak.thisWeek}',
+                            CountUp(streak.thisWeek.toDouble(),
                                 style: t.displayMedium?.copyWith(
                                     color: skin.heading,
                                     fontWeight: FontWeight.w800,

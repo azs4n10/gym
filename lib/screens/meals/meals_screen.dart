@@ -15,6 +15,7 @@ import '../../state/body_state.dart';
 import '../../state/meal_state.dart';
 import '../../widgets/sticker.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/count_up.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/icon_tile.dart';
@@ -96,7 +97,7 @@ class _MealsScreenState extends State<MealsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text('${eaten.kcal.round()}',
+                    CountUp(eaten.kcal,
                         style: t.displayMedium?.copyWith(
                             color: skin.heading, fontWeight: FontWeight.w800, height: 1)),
                     const SizedBox(width: 6),
