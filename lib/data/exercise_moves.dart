@@ -223,10 +223,12 @@ final Map<String, Move> exerciseMoves = {
     end: const Pose(hip: Offset(46, 58), torso: 65, leg: Limb(-10, 0)),
     gear: const [Gear.barbell, Gear.floor],
   ),
+  // Toes on a step, heel dropping below it and rising well above; the foot
+  // pivots about the toes, so the body rises exactly as much as the heel.
   'Calf raise': Move(
-    start: const Pose(hip: Offset(50, 58)),
-    end: const Pose(hip: Offset(50, 44)),
-    gear: const [Gear.calfBlock, Gear.foot, Gear.floor],
+    start: const Pose(hip: Offset(44.4, 54.6), arm: Limb(70, 40), foot: -15),
+    end: const Pose(hip: Offset(45, 46.6), arm: Limb(70, 40), foot: 24),
+    gear: const [Gear.calfBlock, Gear.rail, Gear.floor],
   ),
 
   // glutes
@@ -426,25 +428,37 @@ Pose _row(double p) {
   );
 }
 
-/// Freestyle: each arm goes once round the shoulder, bent while it recovers
-/// over the water and near straight while it pulls beneath; a flutter kick.
-Pose _swim(double p) {
-  Limb arm(double q) {
-    final upper = 90 - q * 180 / math.pi;
-    final bend = -15 + 45 * _sin(q);
-    return Limb(upper, upper + bend);
-  }
+/// Limb interpolated round a ring of key positions, [q] in radians.
+Limb _ring(List<Limb> keys, double q) {
+  final n = keys.length;
+  var f = (q / (2 * math.pi)) % 1;
+  if (f < 0) f += 1;
+  final x = f * n;
+  final i = x.floor() % n;
+  return Limb.lerp(keys[i], keys[(i + 1) % n], x - i);
+}
 
+/// Freestyle, side on. The arm passes through entry, a high-elbow catch,
+/// the push past the hip, a high-elbow recovery and the reach forward; the
+/// other arm is half a cycle behind. A small flutter kick.
+Pose _swim(double p) {
+  const stroke = [
+    Limb(90, 80), // entry, arm long at the surface
+    Limb(40, -20), // catch: elbow high, forearm down under the chest
+    Limb(-70, -60), // push through past the hip
+    Limb(-150, -30), // recovery: elbow up behind, hand relaxed at the water
+    Limb(170, 120), // reach over the water
+  ];
   Limb leg(double q) {
-    final thigh = -92 + 10 * _sin(3 * q);
-    return Limb(thigh, thigh + 12 * _sin(3 * q + 1));
+    final thigh = -92 + 6 * _sin(3 * q);
+    return Limb(thigh, thigh + 8 * _sin(3 * q + 1));
   }
 
   return Pose(
-    hip: const Offset(38, 58),
+    hip: const Offset(34, 58),
     torso: 90,
-    arm: arm(p),
-    arm2: arm(p + math.pi),
+    arm: _ring(stroke, p),
+    arm2: _ring(stroke, p + math.pi),
     leg: leg(p),
     leg2: leg(p + math.pi),
   );

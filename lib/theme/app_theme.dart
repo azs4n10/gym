@@ -161,8 +161,8 @@ ThemeData buildTheme(Skin skin, {String font = 'rounded'}) {
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: skin.button,
-      foregroundColor: skin.ink,
+      backgroundColor: skin.heading,
+      foregroundColor: skin.card,
       elevation: 0,
       focusElevation: 0,
       hoverElevation: 0,

@@ -196,10 +196,10 @@ class _SortButton extends StatelessWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: skin.heading,
+          color: skin.card,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(Icons.tune_rounded, color: skin.buttonText, size: 20),
+        child: Icon(Icons.tune_rounded, color: skin.ink, size: 20),
       ),
     );
   }

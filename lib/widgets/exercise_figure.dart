@@ -37,7 +37,7 @@ enum Gear {
   bike,
   pedals,
   water,
-  foot,
+  rail,
   calfBlock,
   padKneeOuter,
   padKneeInner,
@@ -64,6 +64,7 @@ class Pose {
     this.leg = const Limb(0, 0),
     this.arm2,
     this.leg2,
+    this.foot,
   });
 
   /// Where the hip sits in the 100x100 box.
@@ -81,6 +82,10 @@ class Pose {
   final Limb? arm2;
   final Limb? leg2;
 
+  /// Heel raise in degrees, when the foot matters: 0 is flat on the ground,
+  /// positive lifts the heel, negative drops it below the toes.
+  final double? foot;
+
   Pose copyWith({
     Offset? hip,
     double? torso,
@@ -88,6 +93,7 @@ class Pose {
     Limb? leg,
     Limb? arm2,
     Limb? leg2,
+    double? foot,
   }) =>
       Pose(
         hip: hip ?? this.hip,
@@ -96,6 +102,7 @@ class Pose {
         leg: leg ?? this.leg,
         arm2: arm2 ?? this.arm2,
         leg2: leg2 ?? this.leg2,
+        foot: foot ?? this.foot,
       );
 
   static Pose lerp(Pose a, Pose b, double t) => Pose(
@@ -105,6 +112,7 @@ class Pose {
         leg: Limb.lerp(a.leg, b.leg, t),
         arm2: a.arm2 != null && b.arm2 != null ? Limb.lerp(a.arm2!, b.arm2!, t) : null,
         leg2: a.leg2 != null && b.leg2 != null ? Limb.lerp(a.leg2!, b.leg2!, t) : null,
+        foot: a.foot != null && b.foot != null ? a.foot! + (b.foot! - a.foot!) * t : null,
       );
 }
 
@@ -156,6 +164,7 @@ const upperArmLen = 14.0;
 const forearmLen = 13.0;
 const thighLen = 18.0;
 const shinLen = 17.0;
+const footLen = 12.0;
 
 /// Where the floor is drawn. Poses put their feet just above it.
 const floorY = 94.0;
@@ -179,6 +188,7 @@ class Skeleton {
     hand = elbow + dirOf(p.arm.lower) * forearmLen;
     knee = hip + dirOf(p.leg.upper) * thighLen;
     ankle = knee + dirOf(p.leg.lower) * shinLen;
+    if (p.foot != null) toe = ankle + dirOf(90 - p.foot!) * footLen;
 
     // Far side. From the front it is the opposite limb, so its "forward"
     // points the other way.
@@ -201,7 +211,7 @@ class Skeleton {
   }
 
   late final Offset hip, neck, head, elbow, hand, knee, ankle;
-  Offset? elbow2, hand2, knee2, ankle2;
+  Offset? elbow2, hand2, knee2, ankle2, toe;
 }
 
 /// Draws a movement. Static by default; [animate] plays it.
@@ -214,12 +224,16 @@ class ExerciseFigure extends StatefulWidget {
     this.color,
     this.gearColor,
     this.phase = 0,
+    this.bold = false,
   });
 
   final Move move;
   final double size;
   final bool animate;
   final Color? color;
+
+  /// Heavier strokes and a bigger head, for icon sizes.
+  final bool bold;
 
   /// Colour of the bench, bar and floor; must contrast with the backdrop.
   final Color? gearColor;
@@ -265,6 +279,7 @@ class _ExerciseFigureState extends State<ExerciseFigure>
           view: widget.move.view,
           ink: widget.color ?? skin.ink,
           kit: widget.gearColor ?? skin.button,
+          bold: widget.bold,
         );
     final c = _c;
     return SizedBox(
@@ -289,6 +304,7 @@ class _FigurePainter extends CustomPainter {
     required this.view,
     required this.ink,
     required this.kit,
+    this.bold = false,
   });
 
   final Pose pose;
@@ -296,6 +312,7 @@ class _FigurePainter extends CustomPainter {
   final Facing view;
   final Color ink;
   final Color kit;
+  final bool bold;
 
   bool has(Gear g) => gear.contains(g);
 
@@ -303,8 +320,9 @@ class _FigurePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / 100);
     final s = Skeleton(pose, front: view == Facing.front);
-    final limb = _line(ink, 6);
-    final farLimb = _line(ink.withValues(alpha: view == Facing.front ? 1 : 0.5), 6);
+    final w = bold ? 11.0 : 6.0;
+    final limb = _line(ink, w);
+    final farLimb = _line(ink.withValues(alpha: view == Facing.front ? 1 : 0.5), w);
 
     _behind(canvas, s);
 
@@ -312,10 +330,10 @@ class _FigurePainter extends CustomPainter {
     if (s.knee2 != null) _stroke(canvas, [s.hip, s.knee2!, s.ankle2!], farLimb);
     canvas.drawLine(s.neck, s.hip, limb);
     _stroke(canvas, [s.neck, s.elbow, s.hand], limb);
-    _stroke(canvas, [s.hip, s.knee, s.ankle], limb);
+    _stroke(canvas, [s.hip, s.knee, s.ankle, if (s.toe != null) s.toe!], limb);
 
     _held(canvas, s);
-    canvas.drawCircle(s.head, _headR, Paint()..color = ink);
+    canvas.drawCircle(s.head, bold ? 10.5 : _headR, Paint()..color = ink);
   }
 
   Paint _line(Color c, double w) => Paint()
@@ -358,6 +376,10 @@ class _FigurePainter extends CustomPainter {
     }
     if (has(Gear.post)) {
       canvas.drawLine(const Offset(84, 16), const Offset(84, floorY), thin);
+    }
+    if (has(Gear.rail)) {
+      final x = s.hand.dx + 5;
+      canvas.drawLine(Offset(x, 16), Offset(x, floorY), thin);
     }
     if (has(Gear.seat)) {
       // Pad under the hips reaching toward the knee, on a post.
@@ -441,15 +463,13 @@ class _FigurePainter extends CustomPainter {
     if (has(Gear.cableAnkle)) {
       _cable(canvas, const Offset(92, 92), s.ankle, cable, fill);
     }
-    if (has(Gear.calfBlock)) {
+    if (has(Gear.calfBlock) && s.toe != null) {
+      // A step under the toes; the heel hangs off the back of it.
+      final t = s.toe!;
       canvas.drawRRect(
-        RRect.fromLTRBR(s.ankle.dx + 4, 86, s.ankle.dx + 20, floorY, const Radius.circular(2)),
+        RRect.fromLTRBR(t.dx - 6, t.dy + 3, t.dx + 10, floorY, const Radius.circular(2)),
         fill,
       );
-    }
-    if (has(Gear.foot)) {
-      // Toes stay put on the block, so a raised ankle reads as a lifted heel.
-      canvas.drawLine(s.ankle, Offset(s.ankle.dx + 12, 85), _line(ink, 6));
     }
     if (has(Gear.plateFeet)) {
       // A platform square to the shin.

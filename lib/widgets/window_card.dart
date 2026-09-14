@@ -6,6 +6,9 @@ import 'sticker.dart';
 
 /// Card framed like an old desktop window: a tinted title bar with the name on
 /// the left and three round buttons on the right, over an outlined body.
+/// The buttons do what their colours suggest on a desktop: the pale one folds
+/// the panel away, the middle one recolours the bar, the dark one opens the
+/// panel full screen.
 class WindowCard extends StatefulWidget {
   const WindowCard({
     super.key,
@@ -30,20 +33,66 @@ class WindowCard extends StatefulWidget {
 
 class _WindowCardState extends State<WindowCard> {
   bool _folded = false;
+  int _tintStep = 0;
+
+  Color _bar(BuildContext context) {
+    final skin = context.skin;
+    final base = widget.tint ?? skin.button;
+    return switch (_tintStep % 3) {
+      0 => base,
+      1 => skin.accent,
+      _ => Color.lerp(skin.heading, skin.card, 0.45)!,
+    };
+  }
+
+  void _openFull(BuildContext context) {
+    final skin = context.skin;
+    final t = Theme.of(context).textTheme;
+    final bar = _bar(context);
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 240),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (_, a, _) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: bar,
+            foregroundColor: skin.ink,
+            title: Text(
+              widget.title,
+              style: t.titleMedium?.copyWith(color: skin.ink, fontWeight: FontWeight.w800),
+            ),
+            shape: Border(bottom: BorderSide(color: skin.ink, width: kBorderWidth)),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+            child: widget.child,
+          ),
+        ),
+        transitionsBuilder: (_, a, _, child) => FadeTransition(
+          opacity: a,
+          child: ScaleTransition(
+            scale: Tween(begin: 0.96, end: 1.0).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
     final t = Theme.of(context).textTheme;
-    final bar = widget.tint ?? skin.button;
+    final bar = _bar(context);
 
     return StickerBox(
       onTap: widget.onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 3, 6, 3),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            padding: const EdgeInsets.fromLTRB(14, 2, 4, 2),
             decoration: BoxDecoration(
               color: bar,
               border: Border(bottom: BorderSide(color: skin.ink, width: kBorderWidth)),
@@ -64,11 +113,26 @@ class _WindowCardState extends State<WindowCard> {
                 ),
                 if (widget.trailing != null)
                   widget.trailing!
-                else
-                  _WindowButtons(
-                    folded: _folded,
+                else ...[
+                  _WindowDot(
+                    color: skin.card,
+                    glowColor: skin.button,
+                    lit: _folded,
                     onTap: () => setState(() => _folded = !_folded),
                   ),
+                  _WindowDot(
+                    color: skin.accent,
+                    glowColor: skin.accent,
+                    lit: _tintStep % 3 != 0,
+                    onTap: () => setState(() => _tintStep++),
+                  ),
+                  _WindowDot(
+                    color: skin.heading,
+                    glowColor: skin.heading,
+                    lit: false,
+                    onTap: () => _openFull(context),
+                  ),
+                ],
               ],
             ),
           ),
@@ -86,32 +150,8 @@ class _WindowCardState extends State<WindowCard> {
   }
 }
 
-class _WindowButtons extends StatelessWidget {
-  const _WindowButtons({required this.folded, required this.onTap});
-
-  final bool folded;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final skin = context.skin;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // The pale dot needs a tinted halo of its own, or its glow vanishes.
-        for (final (fill, glow) in [
-          (skin.card, skin.button),
-          (skin.accent, skin.accent),
-          (skin.heading, skin.heading),
-        ])
-          _WindowDot(color: fill, glowColor: glow, lit: folded, onTap: onTap),
-      ],
-    );
-  }
-}
-
 /// One of the three buttons on a title bar. Lights up while held, and stays
-/// lit while the panel is folded away.
+/// lit while whatever it controls is switched on.
 class _WindowDot extends StatefulWidget {
   const _WindowDot({
     required this.color,
@@ -146,9 +186,10 @@ class _WindowDotState extends State<_WindowDot> {
       onTapUp: (_) => _set(false),
       onTapCancel: () => _set(false),
       onTap: widget.onTap,
+      // The dot is small by design; the area that answers a finger is not.
       child: SizedBox(
-        width: 24,
-        height: 26,
+        width: 30,
+        height: 30,
         child: Center(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 140),

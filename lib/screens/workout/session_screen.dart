@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/database.dart';
+import '../../data/exercise_moves.dart';
 import '../../data/seed/exercises_seed.dart';
 import '../../l10n/strings.dart';
 import '../../models/enums.dart';
@@ -13,6 +14,7 @@ import '../../theme/app_theme.dart';
 import '../../state/workout_state.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/cover.dart';
+import '../../widgets/exercise_figure.dart';
 import '../../widgets/cardio_sheet.dart';
 import '../../widgets/group_badge.dart';
 import '../../widgets/icon_tile.dart';
@@ -128,7 +130,15 @@ class _SessionScreenState extends State<SessionScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 child: Row(
                   children: [
-                    const AppIcon(Ic.cardio, size: 26),
+                    if (cardioMoves[CardioType.parse(c.kind)] case final move?)
+                      ExerciseFigure(
+                        move: move,
+                        size: 64,
+                        animate: true,
+                        gearColor: skin.button,
+                      )
+                    else
+                      const AppIcon(Ic.cardio, size: 26),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -289,6 +299,17 @@ class _ExerciseBlock extends StatelessWidget {
                     style: TextStyle(color: skin.heading, fontWeight: FontWeight.w800, fontSize: 13)),
               ),
               const Spacer(),
+              if (moveFor(ex.name) case final move?)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ExerciseFigure(
+                    move: move,
+                    size: 72,
+                    animate: true,
+                    gearColor: skin.button,
+                    phase: (ex.id % 7) / 7,
+                  ),
+                ),
               if (editable)
                 CircleButton(
                   icon: Icons.close_rounded,
