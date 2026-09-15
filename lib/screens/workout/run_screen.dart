@@ -511,6 +511,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         speed: speed,
                                         height: spriteH,
                                         hat: _girlHat,
+                                        hopping: _hop.isAnimating,
                                       )
                                     : ExerciseFigure(
                                         move: move,

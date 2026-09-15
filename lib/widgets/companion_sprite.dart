@@ -21,7 +21,11 @@ class CompanionSprite extends StatelessWidget {
     required this.speed,
     required this.height,
     this.hat = 'none',
+    this.hopping = false,
   });
+
+  /// Mid-jump (a kilometre mark or a landmark): the knee-up drawing.
+  final bool hopping;
 
   final SceneView view;
   final bool resting;
@@ -45,17 +49,19 @@ class CompanionSprite extends StatelessWidget {
     'face_normal', 'face_smile', 'face_wink', 'face_surprised', 'face_angry', 'face_sad', 'face_shy', 'face_tired',
   ];
 
-  /// Four frames to a stride from the side: airborne, front foot down, the
-  /// same two with the other leg leading (the lower body mirrored). Two from
-  /// behind, where the legs already alternate.
+  /// The stride from the side is the matched pair of drawings (push-off with
+  /// the heel up, then the planted step) swapped every half cycle; mixing in
+  /// the other pair, drawn with different arms and hair, made the run jerk.
+  /// The knee-up drawing is kept for jumps. From behind the two drawings
+  /// already alternate legs.
   String get _frame {
     if (view == SceneView.ahead) {
       if (resting) return 'stand_back';
       return (phase * 2).floor().isOdd ? 'run_back_b' : 'run_back_a';
     }
     if (resting) return 'sit_side';
-    const stride = ['run_side_a', 'run_side_b', 'run_side_c', 'run_side_d'];
-    return stride[(phase * 4).floor() % 4];
+    if (hopping) return 'run_side_a';
+    return (phase * 2).floor().isOdd ? 'run_side_d' : 'run_side_c';
   }
 
   @override
