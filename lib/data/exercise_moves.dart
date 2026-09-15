@@ -373,7 +373,9 @@ Pose _walk(double p) {
 Pose _cycle(double p) {
   const hip = Offset(40, 50);
   const crank = Offset(46, 76);
-  Offset foot(double q) => crank + Offset(8 * _sin(q), 8 * _cos(q));
+  // Clockwise on screen: the pedal moves forward over the top of the crank,
+  // the way a bike is ridden with its front wheel to the right.
+  Offset foot(double q) => crank + Offset(-8 * _sin(q), 8 * _cos(q));
   return Pose(
     hip: hip,
     torso: 35,
@@ -435,7 +437,18 @@ Limb _ring(List<Limb> keys, double q) {
   if (f < 0) f += 1;
   final x = f * n;
   final i = x.floor() % n;
-  return Limb.lerp(keys[i], keys[(i + 1) % n], x - i);
+  final a = keys[i];
+  final b = keys[(i + 1) % n];
+  final t = x - i;
+  // Angles turn the short way round, so a key at -150 followed by one at 170
+  // swings 40 degrees over the top instead of 320 through the body.
+  double turn(double from, double to) {
+    var d = (to - from) % 360;
+    if (d > 180) d -= 360;
+    return from + d * t;
+  }
+
+  return Limb(turn(a.upper, b.upper), turn(a.lower, b.lower));
 }
 
 /// Freestyle, side on. The arm passes through entry, a high-elbow catch,
@@ -446,8 +459,8 @@ Pose _swim(double p) {
     Limb(90, 80), // entry, arm long at the surface
     Limb(40, -20), // catch: elbow high, forearm down under the chest
     Limb(-70, -60), // push through past the hip
-    Limb(-150, -30), // recovery: elbow up behind, hand relaxed at the water
-    Limb(170, 120), // reach over the water
+    Limb(-140, -20), // recovery: elbow up behind, hand hanging at the water
+    Limb(175, 60), // elbow over the shoulder, hand swinging low and forward
   ];
   Limb leg(double q) {
     final thigh = -92 + 6 * _sin(3 * q);
@@ -455,7 +468,7 @@ Pose _swim(double p) {
   }
 
   return Pose(
-    hip: const Offset(34, 58),
+    hip: Offset(34, 58 + 1.2 * _sin(2 * p)),
     torso: 90,
     arm: _ring(stroke, p),
     arm2: _ring(stroke, p + math.pi),
