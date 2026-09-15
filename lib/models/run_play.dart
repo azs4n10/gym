@@ -78,11 +78,21 @@ class RunProgress {
     Set<String>? reached,
     this.stamps = 0,
     this.finishedRoutes = 0,
+    this.hat = 'none',
+    this.shirt = 0,
+    this.view = 'side',
+    this.sound = false,
   })  : km = km ?? {},
         reached = reached ?? {};
 
   String routeId;
   final Map<String, double> km;
+
+  /// What the companion wears and how the scene is shown.
+  String hat;
+  int shirt;
+  String view;
+  bool sound;
 
   /// Keys shaped `route/landmark`.
   final Set<String> reached;
@@ -116,6 +126,10 @@ class RunProgress {
         'reached': reached.toList(),
         'stamps': stamps,
         'finishedRoutes': finishedRoutes,
+        'hat': hat,
+        'shirt': shirt,
+        'view': view,
+        'sound': sound,
       };
 
   static RunProgress fromJson(Map<String, dynamic> j) => RunProgress(
@@ -127,6 +141,10 @@ class RunProgress {
         reached: {...(j['reached'] as List? ?? []).cast<String>()},
         stamps: j['stamps'] as int? ?? 0,
         finishedRoutes: j['finishedRoutes'] as int? ?? 0,
+        hat: j['hat'] as String? ?? 'none',
+        shirt: j['shirt'] as int? ?? 0,
+        view: j['view'] as String? ?? 'side',
+        sound: j['sound'] as bool? ?? false,
       );
 
   static const _key = 'runProgress';
@@ -147,6 +165,20 @@ class RunProgress {
     await p.setString(_key, jsonEncode(toJson()));
   }
 }
+
+/// Hats in the order they unlock, with the stamps each one needs. The
+/// index 0 entry is "none".
+const hatUnlocks = <(String, int)>[
+  ('none', 0),
+  ('cap', 3),
+  ('flower', 8),
+  ('beanie', 15),
+  ('crown', 30),
+];
+
+/// Shirt colours by index: 0 none, then the theme's button, accent and
+/// heading tones; each after the first needs a few more stamps.
+const shirtUnlocks = [0, 1, 5, 12];
 
 /// What the wheel can land on. Each call lasts [seconds].
 enum RouletteCall {

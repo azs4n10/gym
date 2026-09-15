@@ -9,20 +9,25 @@ import '../../data/exercise_moves.dart';
 import '../../models/enums.dart';
 import '../../models/run_play.dart';
 import '../../services/run_location.dart';
+import '../../services/run_sound.dart';
+import '../../services/weather.dart';
 import '../../state/app_state.dart';
 import '../../state/body_state.dart';
 import '../../state/workout_state.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/skin.dart';
 import '../../widgets/exercise_figure.dart';
 import '../../widgets/run_glyphs.dart';
+import '../../widgets/run_scene.dart';
 import '../../widgets/sticker.dart';
 import '../../widgets/window_card.dart';
 
 /// Something to look at while on the treadmill or the road: a companion who
-/// runs at your pace, a road that gets longer every session, a wheel that
-/// decides the next minute, and three small goals per outing. Distance comes
-/// from the speed you set to match the machine, or from the phone's location
-/// outdoors.
+/// runs at your pace through a world that slides past, a road that gets
+/// longer every session, a wheel that decides the next minute, and three
+/// small goals per outing. Distance comes from the speed you set to match the
+/// machine, or from the phone's location outdoors; activities without a
+/// distance run on the clock.
 class RunScreen extends StatefulWidget {
   const RunScreen({super.key, this.kind = CardioType.running});
   final CardioType kind;
@@ -45,6 +50,8 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   StreamSubscription<GeoFix>? _gpsSub;
   GeoFix? _lastFix;
   bool _gpsHasFix = false;
+  bool _weatherAsked = false;
+  SceneWeather _weather = SceneWeather.clear;
 
   double _elapsedS = 0;
   double _distanceKm = 0;
@@ -54,6 +61,9 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   double _journeyKm = 0;
   double _kcal = 0;
   double _phase = 0;
+  double _sceneT = 0;
+  double _beat = 0;
+  double _incline = 0;
   double _maxSpeed = 0;
   double _fastKm = 0;
 
@@ -94,6 +104,9 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   bool get _distanceKind => hasDistance(_kind);
   bool get _outdoorKind =>
       _kind == CardioType.running || _kind == CardioType.walking || _kind == CardioType.cycling;
+  bool get _resting => _distanceKind && _currentSpeed <= 0.3;
+  SceneView get _view => _progress?.view == 'ahead' ? SceneView.ahead : SceneView.side;
+  bool get _sound => (_progress?.sound ?? false) && RunSound.available;
 
   @override
   void initState() {
@@ -117,7 +130,15 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   void _tick(Duration elapsed) {
     final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
     _lastTick = elapsed;
-    if (!_running || dt <= 0 || dt > 1) return;
+    if (dt <= 0 || dt > 1) return;
+    _sceneT += dt;
+    final wantIncline = _call == RouletteCall.incline ? 1.0 : 0.0;
+    _incline += (wantIncline - _incline) * math.min(1, dt * 2);
+    if (!_running) {
+      // Rain, stars and clouds keep moving while paused.
+      if (_weather != SceneWeather.clear || _hour < 5.5 || _hour >= 19.5) setState(() {});
+      return;
+    }
     final speed = _currentSpeed;
     final l = context.read<AppState>().l;
     final weight = context.read<BodyState>().latestWeight ?? 60;
@@ -130,9 +151,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
       _journeyKm += dt / 600;
     }
     _kcal += estimateKcal(_kind, speed, dt / 3600, weight).toDouble();
-    _phase += dt * _cyclesPerSecond(speed);
+    final cycles = _cyclesPerSecond(speed);
+    _phase += dt * cycles;
     if (speed > _maxSpeed) _maxSpeed = speed;
     if (speed >= Quest.fastTarget(_kind)) _fastKm += speed * dt / 3600;
+
+    // A click on every footfall, two to a stride.
+    if (_sound && !_resting) {
+      final before = _beat.floor();
+      _beat += dt * cycles * 2;
+      if (_beat.floor() != before) RunSound.tick();
+    }
 
     if (_call != null) {
       _callLeft -= dt;
@@ -150,6 +179,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     if (_distanceKind && _distanceKm >= _nextKmMark) {
       _say(l.kmMark(_nextKmMark));
       _hop.forward(from: 0);
+      if (_sound) RunSound.cheer();
       _nextKmMark++;
     }
 
@@ -164,6 +194,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
           _award(1);
           _say(l.landmarkReached(lm.label(l.isJa)));
           _hop.forward(from: 0);
+          if (_sound) RunSound.chime();
         }
         if (progress.routeKm >= progress.route.lengthKm && !_routeDoneSaid) {
           _routeDoneSaid = true;
@@ -204,9 +235,15 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
         q.done = true;
         _award(1);
         _say(l.isJa ? cheersJa[_rnd.nextInt(cheersJa.length)] : cheersEn[_rnd.nextInt(cheersEn.length)]);
+        if (_sound) RunSound.cheer();
       }
     }
     setState(() {});
+  }
+
+  double get _hour {
+    final now = DateTime.now();
+    return now.hour + now.minute / 60;
   }
 
   double _cyclesPerSecond(double speed) {
@@ -245,6 +282,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     _angleFrom = _angle;
     _angleTo = _angleFrom + 2 * math.pi * (3 + _rnd.nextDouble() * 2);
     _spin.forward(from: 0);
+    if (_sound) RunSound.spin();
   }
 
   void _spinDone(AnimationStatus s) {
@@ -258,6 +296,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   }
 
   void _toggleRun() {
+    if (!_running && _sound) RunSound.unlock();
     setState(() => _running = !_running);
     if (!_running) _progress?.save();
   }
@@ -274,6 +313,12 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     if (!on) return;
     _gpsSub = RunLocation.watch().listen((fix) {
       if (fix.accuracyM > 40) return;
+      if (!_weatherAsked) {
+        _weatherAsked = true;
+        Weather.at(fix.lat, fix.lon).then((w) {
+          if (w != null && mounted) setState(() => _weather = w);
+        });
+      }
       final last = _lastFix;
       _lastFix = fix;
       _gpsHasFix = true;
@@ -329,15 +374,53 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
   }
 
+  FigureFace get _face {
+    if (_resting) return FigureFace.rest;
+    if (_call == RouletteCall.sprint || (_distanceKind && _currentSpeed >= Quest.fastTarget(_kind))) {
+      return FigureFace.push;
+    }
+    if (_steadyS > 20 || !_distanceKind) return FigureFace.smile;
+    return FigureFace.focus;
+  }
+
+  FigureHat get _hat => FigureHat.values.firstWhere((h) => h.name == _progress?.hat, orElse: () => FigureHat.none);
+
+  Color? _shirtColor(Skin skin) => switch (_progress?.shirt ?? 0) {
+        1 => skin.button,
+        2 => skin.accent,
+        3 => skin.heading,
+        _ => null,
+      };
+
+  /// The move for the scene: the activity's cycle, or sitting down when the
+  /// speed is zero; from behind in the ahead view; no floor of its own.
+  Move _sceneMove() {
+    final base = cardioMoves[_kind] ?? cardioMoves[CardioType.running]!;
+    if (_resting) return _view == SceneView.ahead ? standBackMove : sitMove;
+    final gear = [for (final g in base.gear) if (g != Gear.floor) g];
+    if (_view == SceneView.ahead) {
+      if (base.loops) return Move.cycle(base.cycle!, view: Facing.front);
+      if (base.frames.isNotEmpty) return Move.frames(base.frames, view: Facing.front);
+      return Move(start: base.start!, end: base.end!, view: Facing.front);
+    }
+    if (base.loops) return Move.cycle(base.cycle!, gear: gear);
+    if (base.frames.isNotEmpty) return Move.frames(base.frames, gear: gear);
+    return Move(start: base.start!, end: base.end!, gear: gear);
+  }
+
   @override
   Widget build(BuildContext context) {
     final skin = context.skin;
     final l = context.l;
     final t = Theme.of(context).textTheme;
     final speed = _currentSpeed;
-    final move = cardioMoves[_kind] ?? cardioMoves[CardioType.running]!;
-    // A lift-style move (start and end pose) is played back and forth.
-    final figureT = move.loops ? _phase : Curves.easeInOut.transform(1 - (2 * (_phase % 1) - 1).abs());
+    final move = _sceneMove();
+    // A lift-style move (start and end pose) is played back and forth; the
+    // sitting figure breathes slowly.
+    final figureT = move.loops
+        ? _phase
+        : Curves.easeInOut.transform(1 - (2 * ((_resting ? _sceneT * 0.25 : _phase) % 1) - 1).abs());
+    final progress = _progress;
 
     return Scaffold(
       appBar: AppBar(title: Text(l.runTool)),
@@ -367,105 +450,187 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 12),
           StickerBox(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 190,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        AnimatedBuilder(
-                          animation: _hop,
-                          builder: (_, child) => Transform.translate(
-                            offset: Offset(0, -22 * math.sin(math.pi * _hop.value)),
-                            child: child,
-                          ),
-                          child: ExerciseFigure(move: move, size: 170, t: figureT, gearColor: skin.button),
-                        ),
-                        if (_bubble != null)
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: StickerBox(
-                              color: skin.accentSoft,
-                              radius: 14,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                child: Text(_bubble!,
-                                    style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(kCardRadius - 2)),
+                  child: SizedBox(
+                    height: 240,
+                    child: LayoutBuilder(
+                      builder: (_, c) {
+                        const size = 150.0;
+                        final ahead = _view == SceneView.ahead;
+                        final left = ahead ? (c.maxWidth - size) / 2 : c.maxWidth * RunScene.runnerX - size / 2;
+                        final top = ahead ? c.maxHeight - size * 0.94 - 6 : c.maxHeight * RunScene.groundY - size * 0.94;
+                        return Stack(
+                          children: [
+                            if (progress != null)
+                              Positioned.fill(
+                                child: RunScene(
+                                  route: progress.route,
+                                  km: progress.routeKm,
+                                  seconds: _sceneT,
+                                  view: _view,
+                                  weather: _weather,
+                                  incline: _incline,
+                                  now: DateTime.now(),
+                                  skin: skin,
+                                  ja: l.isJa,
+                                  labelStyle: (t.labelSmall ?? const TextStyle(fontSize: 11))
+                                      .copyWith(color: skin.text, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            Positioned(
+                              left: left,
+                              top: top,
+                              child: AnimatedBuilder(
+                                animation: _hop,
+                                builder: (_, child) => Transform.translate(
+                                  offset: Offset(0, -22 * math.sin(math.pi * _hop.value)),
+                                  child: child,
+                                ),
+                                child: ExerciseFigure(
+                                  move: move,
+                                  size: size,
+                                  t: figureT,
+                                  gearColor: skin.button,
+                                  face: _face,
+                                  hat: _hat,
+                                  shirt: _shirtColor(skin),
+                                ),
                               ),
                             ),
-                          ),
-                        if (speed <= 0.3 && _bubble == null)
-                          Positioned(
-                            top: 4,
-                            right: 0,
-                            child: Text(l.resting, style: t.labelMedium?.copyWith(color: skin.subText)),
-                          ),
-                      ],
+                            Positioned(
+                              left: 10,
+                              top: 10,
+                              child: Row(
+                                children: [
+                                  for (final (v, label) in [(SceneView.side, l.viewSide), (SceneView.ahead, l.viewAhead)])
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: ChoiceChip(
+                                        label: Text(label),
+                                        selected: _view == v,
+                                        visualDensity: VisualDensity.compact,
+                                        onSelected: progress == null
+                                            ? null
+                                            : (_) => setState(() {
+                                                  progress.view = v.name;
+                                                  progress.save();
+                                                }),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (_bubble != null)
+                              Positioned(
+                                top: 10,
+                                right: 10,
+                                child: StickerBox(
+                                  color: skin.accentSoft,
+                                  radius: 14,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    child: Text(_bubble!,
+                                        style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                                  ),
+                                ),
+                              )
+                            else if (_resting)
+                              Positioned(
+                                top: 16,
+                                right: 12,
+                                child: Text(l.resting, style: t.labelMedium?.copyWith(color: skin.text)),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ),
-                  Row(
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Column(
                     children: [
-                      Expanded(child: _Stat(label: l.duration, value: _clock(_elapsedS))),
-                      if (_distanceKind) ...[
-                        Expanded(child: _Stat(label: l.distance, value: '${_distanceKm.toStringAsFixed(2)} km')),
-                        Expanded(child: _Stat(label: l.pace, value: _pace(speed))),
-                      ],
-                      Expanded(child: _Stat(label: 'kcal', value: '${_kcal.round()}')),
+                      Row(
+                        children: [
+                          Expanded(child: _Stat(label: l.duration, value: _clock(_elapsedS))),
+                          if (_distanceKind) ...[
+                            Expanded(child: _Stat(label: l.distance, value: '${_distanceKm.toStringAsFixed(2)} km')),
+                            Expanded(child: _Stat(label: l.pace, value: _pace(speed))),
+                          ],
+                          Expanded(child: _Stat(label: 'kcal', value: '${_kcal.round()}')),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (!_distanceKind)
+                        const SizedBox(height: 4)
+                      else if (_gps)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Text(
+                            _gpsHasFix ? '${speed.toStringAsFixed(1)} km/h' : l.gpsWaiting,
+                            style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800),
+                          ),
+                        )
+                      else
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 84,
+                              child: Text('${_speed.toStringAsFixed(1)} km/h',
+                                  style: t.titleSmall?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
+                            ),
+                            Expanded(
+                              child: Slider(
+                                value: _speed,
+                                min: 0,
+                                max: _maxSlider,
+                                divisions: (_maxSlider * 2).round(),
+                                onChanged: (v) => setState(() => _speed = v),
+                              ),
+                            ),
+                          ],
+                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (RunSound.available) ...[
+                            Text(l.sound, style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                            Switch(
+                              value: progress?.sound ?? false,
+                              onChanged: progress == null
+                                  ? null
+                                  : (v) => setState(() {
+                                        progress.sound = v;
+                                        progress.save();
+                                        if (v) RunSound.unlock();
+                                      }),
+                            ),
+                            const SizedBox(width: 10),
+                          ],
+                          if (RunLocation.available && _outdoorKind) ...[
+                            Text(l.outdoors, style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                            Switch(value: _gps, onChanged: _setGps),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  if (!_distanceKind)
-                    const SizedBox(height: 4)
-                  else if (_gps)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Text(
-                        _gpsHasFix ? '${speed.toStringAsFixed(1)} km/h' : l.gpsWaiting,
-                        style: t.titleMedium?.copyWith(color: skin.heading, fontWeight: FontWeight.w800),
-                      ),
-                    )
-                  else
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 84,
-                          child: Text('${_speed.toStringAsFixed(1)} km/h',
-                              style: t.titleSmall?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
-                        ),
-                        Expanded(
-                          child: Slider(
-                            value: _speed,
-                            min: 0,
-                            max: _maxSlider,
-                            divisions: (_maxSlider * 2).round(),
-                            onChanged: (v) => setState(() => _speed = v),
-                          ),
-                        ),
-                      ],
-                    ),
-                  if (RunLocation.available && _outdoorKind)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(l.outdoors, style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
-                        Switch(value: _gps, onChanged: _setGps),
-                      ],
-                    ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 14),
-          if (_progress case final p?) _JourneyCard(progress: p, onRoute: (id) => setState(() {
-                p.routeId = id;
-                _routeDoneSaid = p.routeKm >= p.route.lengthKm;
-                p.save();
-              })),
-          const SizedBox(height: 14),
+          if (progress != null) ...[
+            _JourneyCard(progress: progress, onRoute: (id) => setState(() {
+                  progress.routeId = id;
+                  _routeDoneSaid = progress.routeKm >= progress.route.lengthKm;
+                  progress.save();
+                })),
+            const SizedBox(height: 14),
+          ],
           WindowCard(
             title: l.roulette,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -553,13 +718,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(l.stamps(_progress?.stamps ?? 0),
+                    Text(l.stamps(progress?.stamps ?? 0),
                         style: t.labelLarge?.copyWith(color: skin.heading, fontWeight: FontWeight.w800)),
                   ],
                 ),
               ],
             ),
           ),
+          if (progress != null) ...[
+            const SizedBox(height: 14),
+            _WardrobeCard(progress: progress, onChanged: () => setState(() => progress.save())),
+          ],
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -670,7 +839,7 @@ class _JourneyCard extends StatelessWidget {
                   ),
                   for (final lm in route.landmarks)
                     Positioned(
-                      left: (c.maxWidth - 28) * (lm.km / route.lengthKm) + 14 - 14,
+                      left: (c.maxWidth - 28) * (lm.km / route.lengthKm),
                       top: 14,
                       child: GlyphIcon(
                         lm.glyph,
@@ -754,6 +923,92 @@ class _QuestRow extends StatelessWidget {
                 ? Icon(Icons.check_circle_rounded, color: skin.accent, size: 26)
                 : Text('${(quest.ratio * 100).round()}%',
                     textAlign: TextAlign.end, style: t.labelSmall?.copyWith(color: skin.subText)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Hats and shirt colours, unlocked with stamps.
+class _WardrobeCard extends StatelessWidget {
+  const _WardrobeCard({required this.progress, required this.onChanged});
+  final RunProgress progress;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final l = context.l;
+    final t = Theme.of(context).textTheme;
+    final stamps = progress.stamps;
+    String hatName(String id) => switch (id) {
+          'cap' => l.hatCap,
+          'flower' => l.hatFlower,
+          'beanie' => l.hatBeanie,
+          'crown' => l.hatCrown,
+          _ => l.hatNone,
+        };
+    final shirtColors = [null, skin.button, skin.accent, skin.heading];
+    return WindowCard(
+      title: l.wardrobe,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final (id, need) in hatUnlocks)
+                ChoiceChip(
+                  avatar: need > stamps ? Icon(Icons.lock_rounded, size: 14, color: skin.subText) : null,
+                  label: Text(need > stamps ? '${hatName(id)} · ${l.needStamps(need)}' : hatName(id)),
+                  selected: progress.hat == id,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: need > stamps
+                      ? null
+                      : (_) {
+                          progress.hat = id;
+                          onChanged();
+                        },
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (var i = 0; i < shirtColors.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: GestureDetector(
+                    onTap: shirtUnlocks[i] > stamps
+                        ? null
+                        : () {
+                            progress.shirt = i;
+                            onChanged();
+                          },
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: shirtColors[i] ?? skin.card,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: skin.ink, width: progress.shirt == i ? 3 : kThinBorder),
+                          ),
+                          child: shirtUnlocks[i] > stamps
+                              ? Icon(Icons.lock_rounded, size: 14, color: skin.subText)
+                              : (i == 0 ? Icon(Icons.close_rounded, size: 14, color: skin.subText) : null),
+                        ),
+                        if (shirtUnlocks[i] > stamps)
+                          Text(l.needStamps(shirtUnlocks[i]), style: t.labelSmall?.copyWith(color: skin.subText)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

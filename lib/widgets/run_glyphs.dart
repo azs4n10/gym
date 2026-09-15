@@ -31,7 +31,18 @@ class _GlyphPainter extends CustomPainter {
   final Color? tint;
 
   @override
-  void paint(Canvas canvas, Size size) {
+  void paint(Canvas canvas, Size size) => drawGlyph(canvas, glyph, Offset.zero & size, ink, tint);
+
+  @override
+  bool shouldRepaint(_GlyphPainter old) => old.glyph != glyph || old.ink != ink || old.tint != tint;
+}
+
+/// Draws [glyph] into [rect] on any canvas.
+void drawGlyph(Canvas canvas, Glyph glyph, Rect rect, Color ink, Color? tint) {
+  canvas.save();
+  canvas.translate(rect.left, rect.top);
+  final size = rect.size;
+  {
     final u = size.width / 24;
     final stroke = Paint()
       ..color = ink
@@ -139,9 +150,7 @@ class _GlyphPainter extends CustomPainter {
         canvas.drawLine(p(12, 6), p(12, 10), stroke);
     }
   }
-
-  @override
-  bool shouldRepaint(_GlyphPainter old) => old.glyph != glyph || old.ink != ink || old.tint != tint;
+  canvas.restore();
 }
 
 /// The wheel: sectors in the theme colours with the call names around the

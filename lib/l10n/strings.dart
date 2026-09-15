@@ -217,6 +217,17 @@ abstract class L {
   String get gpsWaiting;
   String get outdoors;
   String callLeft(int s);
+  String get wardrobe;
+  String get hatNone;
+  String get hatCap;
+  String get hatFlower;
+  String get hatBeanie;
+  String get hatCrown;
+  String get shirtNone;
+  String needStamps(int n);
+  String get viewSide;
+  String get viewAhead;
+  String get sound;
 }
 
 class LEn extends L {
@@ -634,6 +645,28 @@ class LEn extends L {
   String get outdoors => 'Outdoors (location)';
   @override
   String callLeft(int s) => '${s}s left';
+  @override
+  String get wardrobe => 'Wardrobe';
+  @override
+  String get hatNone => 'No hat';
+  @override
+  String get hatCap => 'Cap';
+  @override
+  String get hatFlower => 'Flower';
+  @override
+  String get hatBeanie => 'Beanie';
+  @override
+  String get hatCrown => 'Crown';
+  @override
+  String get shirtNone => 'Plain';
+  @override
+  String needStamps(int n) => '$n stamps';
+  @override
+  String get viewSide => 'Side';
+  @override
+  String get viewAhead => 'Ahead';
+  @override
+  String get sound => 'Sound';
 }
 
 class LJa extends L {
@@ -1051,6 +1084,28 @@ class LJa extends L {
   String get outdoors => '屋外（位置情報）';
   @override
   String callLeft(int s) => 'あと $s 秒';
+  @override
+  String get wardrobe => '着せ替え';
+  @override
+  String get hatNone => '帽子なし';
+  @override
+  String get hatCap => 'キャップ';
+  @override
+  String get hatFlower => 'お花';
+  @override
+  String get hatBeanie => 'ニット帽';
+  @override
+  String get hatCrown => '王冠';
+  @override
+  String get shirtNone => '無地';
+  @override
+  String needStamps(int n) => 'スタンプ $n 個で';
+  @override
+  String get viewSide => '横から';
+  @override
+  String get viewAhead => '前方';
+  @override
+  String get sound => '音';
 }
 
 L stringsFor(String code) => code == 'ja' ? const LJa() : const LEn();

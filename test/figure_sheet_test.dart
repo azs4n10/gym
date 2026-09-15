@@ -20,16 +20,20 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final app = await AppState.create();
     final only = Platform.environment['PREVIEW_ONLY'];
-    final kinds = [
-      for (final k in CardioType.values)
-        if (cardioMoves[k]?.loops ?? false)
-          if (only == null || only.isEmpty || only.split(',').contains(k.name)) k,
+    final rest = only == 'rest';
+    final moves = <(String, Move)>[
+      if (rest) ('sit', sitMove),
+      if (rest) ('standBack', standBackMove),
+      if (!rest)
+        for (final k in CardioType.values)
+          if (cardioMoves[k]?.loops ?? false)
+            if (only == null || only.isEmpty || only.split(',').contains(k.name)) (k.name, cardioMoves[k]!),
     ];
     const frames = 8;
     const size = 96.0;
     final key = GlobalKey();
 
-    await tester.binding.setSurfaceSize(Size(frames * size + 16, kinds.length * (size + 20) + 16));
+    await tester.binding.setSurfaceSize(Size(frames * size + 16, moves.length * (size + 20) + 16));
     await tester.pumpWidget(
       MultiProvider(
         providers: [ChangeNotifierProvider<AppState>.value(value: app)],
@@ -45,12 +49,18 @@ void main() {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final k in kinds) ...[
-                      Text(k.name, style: const TextStyle(fontSize: 11)),
+                    for (final (name, move) in moves) ...[
+                      Text(name, style: const TextStyle(fontSize: 11)),
                       Row(
                         children: [
                           for (var i = 0; i < frames; i++)
-                            ExerciseFigure(move: cardioMoves[k]!, size: size, t: i / frames),
+                            ExerciseFigure(
+                              move: move,
+                              size: size,
+                              t: move.loops ? i / frames : 1 - (2 * (i / frames) - 1).abs(),
+                              face: rest ? FigureFace.rest : FigureFace.none,
+                              hat: rest ? FigureHat.values[i % FigureHat.values.length] : FigureHat.none,
+                            ),
                         ],
                       ),
                     ],
@@ -63,7 +73,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.byType(ExerciseFigure), findsNWidgets(kinds.length * frames));
+    expect(find.byType(ExerciseFigure), findsNWidgets(moves.length * frames));
 
     final out = Platform.environment['PREVIEW_OUT'];
     if (out == null || out.isEmpty) return;

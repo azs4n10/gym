@@ -132,6 +132,16 @@ speed you set to match the machine, or from the phone's location when GPS is
 switched on (web only). Finish writes a cardio entry into today's session.
 Progress and stamps live in local preferences (`lib/models/run_play.dart`).
 
+The figure runs through a drawn world (`lib/widgets/run_scene.dart`): from
+the side, hills, trees and flowers slide past at different speeds and the
+next landmark shows up small in the distance and grows; from behind, a road
+runs to the horizon with the roadside coming toward you. The sky follows the
+clock (stars and a moon at night) and, outdoors, the weather from Open-Meteo
+for the phone's position. The companion has a face (it smiles at a steady
+pace, puffs on a sprint, sits down when the speed is zero) and a wardrobe:
+hats and shirt colours that unlock with stamps. Sound is optional and made
+by the browser itself (footfall clicks, a chime at a landmark, the wheel).
+
 A finished session's menu offers "Add to Google Calendar" (a prefilled event
 link) and, on the web, a calendar file (.ics) that any calendar app imports.
 Nothing is sent anywhere; the data stays in the link or the file.

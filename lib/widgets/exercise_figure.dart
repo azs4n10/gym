@@ -214,6 +214,12 @@ class Skeleton {
   Offset? elbow2, hand2, knee2, ankle2, toe;
 }
 
+/// What the face shows; none keeps the plain head the exercise list uses.
+enum FigureFace { none, smile, focus, push, rest }
+
+/// Something worn on the head; unlocked with stamps in the run companion.
+enum FigureHat { none, cap, beanie, crown, flower }
+
 /// Draws a movement. Static by default; [animate] plays it.
 class ExerciseFigure extends StatefulWidget {
   const ExerciseFigure({
@@ -226,9 +232,22 @@ class ExerciseFigure extends StatefulWidget {
     this.phase = 0,
     this.bold = false,
     this.t,
+    this.face = FigureFace.none,
+    this.hat = FigureHat.none,
+    this.shirt,
+    this.faceColor,
+    this.hatColor,
   });
 
   final Move move;
+
+  /// Expression, hat and shirt colour for the companion; the exercise list
+  /// leaves them off.
+  final FigureFace face;
+  final FigureHat hat;
+  final Color? shirt;
+  final Color? faceColor;
+  final Color? hatColor;
   final double size;
   final bool animate;
   final Color? color;
@@ -285,6 +304,11 @@ class _ExerciseFigureState extends State<ExerciseFigure>
           ink: widget.color ?? skin.ink,
           kit: widget.gearColor ?? skin.button,
           bold: widget.bold,
+          face: widget.face,
+          hat: widget.hat,
+          shirt: widget.shirt,
+          faceColor: widget.faceColor ?? skin.card,
+          hatColor: widget.hatColor ?? skin.accent,
         );
     final c = _c;
     final fixed = widget.t;
@@ -313,6 +337,11 @@ class _FigurePainter extends CustomPainter {
     required this.ink,
     required this.kit,
     this.bold = false,
+    this.face = FigureFace.none,
+    this.hat = FigureHat.none,
+    this.shirt,
+    this.faceColor = const Color(0xFFFFFFFF),
+    this.hatColor = const Color(0xFFFBBBD3),
   });
 
   final Pose pose;
@@ -321,6 +350,11 @@ class _FigurePainter extends CustomPainter {
   final Color ink;
   final Color kit;
   final bool bold;
+  final FigureFace face;
+  final FigureHat hat;
+  final Color? shirt;
+  final Color faceColor;
+  final Color hatColor;
 
   bool has(Gear g) => gear.contains(g);
 
@@ -337,11 +371,129 @@ class _FigurePainter extends CustomPainter {
     if (s.elbow2 != null) _stroke(canvas, [s.neck, s.elbow2!, s.hand2!], farLimb);
     if (s.knee2 != null) _stroke(canvas, [s.hip, s.knee2!, s.ankle2!], farLimb);
     canvas.drawLine(s.neck, s.hip, limb);
+    if (shirt case final c?) {
+      // A coloured band over the torso, inside the ink outline.
+      canvas.drawLine(s.neck, s.hip, _line(c, w - 2.4));
+    }
     _stroke(canvas, [s.neck, s.elbow, s.hand], limb);
     _stroke(canvas, [s.hip, s.knee, s.ankle, if (s.toe != null) s.toe!], limb);
 
     _held(canvas, s);
     canvas.drawCircle(s.head, bold ? 10.5 : _headR, Paint()..color = ink);
+    _face(canvas, s);
+    _hat(canvas, s);
+  }
+
+  /// Eyes and mouth on the head, toward the front (+x from the side, both
+  /// sides from the front).
+  void _face(Canvas canvas, Skeleton s) {
+    if (face == FigureFace.none) return;
+    final front = view == Facing.front;
+    final eye = Paint()..color = faceColor;
+    final lineP = _line(faceColor, 1.4);
+    final eyes = front ? [s.head + const Offset(-2.6, -1.2), s.head + const Offset(2.6, -1.2)] : [s.head + const Offset(3.2, -1.4)];
+    for (final e in eyes) {
+      if (face == FigureFace.rest) {
+        // Closed: a short curved line.
+        final p = Path()..moveTo(e.dx - 1.6, e.dy);
+        p.quadraticBezierTo(e.dx, e.dy + 1.6, e.dx + 1.6, e.dy);
+        canvas.drawPath(p, lineP);
+      } else {
+        canvas.drawCircle(e, face == FigureFace.push ? 1.5 : 1.2, eye);
+      }
+    }
+    final m = front ? s.head + const Offset(0, 3.2) : s.head + const Offset(3.6, 3.0);
+    switch (face) {
+      case FigureFace.smile:
+        final p = Path()..moveTo(m.dx - 2.2, m.dy - 0.6);
+        p.quadraticBezierTo(m.dx, m.dy + 1.8, m.dx + 2.2, m.dy - 0.6);
+        canvas.drawPath(p, lineP);
+      case FigureFace.focus:
+        canvas.drawLine(m + const Offset(-1.8, 0), m + const Offset(1.8, 0), lineP);
+      case FigureFace.push:
+        canvas.drawCircle(m, 1.7, eye);
+        // A drop of sweat off the back of the head.
+        final d = s.head + (front ? const Offset(-8.5, -3) : const Offset(-7.5, -3));
+        canvas.drawCircle(d, 1.4, Paint()..color = kit);
+      case FigureFace.rest:
+        final p = Path()..moveTo(m.dx - 1.6, m.dy);
+        p.quadraticBezierTo(m.dx, m.dy + 1.2, m.dx + 1.6, m.dy);
+        canvas.drawPath(p, lineP);
+      case FigureFace.none:
+        break;
+    }
+  }
+
+  /// The half of the plane on the head's "up" side of [base], so a hat is cut
+  /// along the tilt of the head rather than the screen.
+  Path _above(Offset base, Offset up, Offset side) => Path()
+    ..addPolygon([
+      base + side * 40,
+      base - side * 40,
+      base - side * 40 + up * 40,
+      base + side * 40 + up * 40,
+    ], true);
+
+  void _hat(Canvas canvas, Skeleton s) {
+    if (hat == FigureHat.none) return;
+    final r = bold ? 10.5 : _headR;
+    final up = (s.head - s.neck) / (s.head - s.neck).distance;
+    final side = Offset(-up.dy, up.dx) * (view == Facing.front ? 1 : 1);
+    final top = s.head + up * r;
+    final fill = Paint()..color = hatColor;
+    final edge = _line(ink, 1.6);
+    switch (hat) {
+      case FigureHat.cap:
+        final dome = Path()..addArc(Rect.fromCircle(center: s.head + up * 1.5, radius: r + 1.2), 0, 2 * math.pi);
+        canvas.save();
+        canvas.clipPath(_above(s.head - up * 0.5, up, side));
+        canvas.drawPath(dome, fill);
+        canvas.drawPath(dome, edge);
+        canvas.restore();
+        // Brim toward the front.
+        final brimFrom = s.head + side * (r - 1) - up * 0.5;
+        canvas.drawLine(brimFrom, brimFrom + side * 7 + up * 1.2, _line(ink, 2.6));
+        canvas.drawLine(brimFrom, brimFrom + side * 7 + up * 1.2, _line(hatColor, 1.2));
+      case FigureHat.beanie:
+        final dome = Path()..addArc(Rect.fromCircle(center: s.head + up * 2.5, radius: r + 1.6), 0, 2 * math.pi);
+        canvas.save();
+        canvas.clipPath(_above(s.head + up * 1.0, up, side));
+        canvas.drawPath(dome, fill);
+        canvas.drawPath(dome, edge);
+        canvas.restore();
+        canvas.drawLine(s.head + up * 1.6 - side * (r + 1.2), s.head + up * 1.6 + side * (r + 1.2), _line(ink, 2.4));
+        canvas.drawCircle(top + up * 3.2, 2.2, fill);
+        canvas.drawCircle(top + up * 3.2, 2.2, edge);
+      case FigureHat.crown:
+        final base = s.head + up * (r - 1.5);
+        final pts = <Offset>[];
+        const n = 4;
+        for (var i = 0; i <= n; i++) {
+          final x = -6.0 + 12.0 * i / n;
+          pts.add(base + side * x + up * (i.isEven ? 5.5 : 1.5));
+        }
+        final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+        for (final o in pts.skip(1)) {
+          path.lineTo(o.dx, o.dy);
+        }
+        final lo = base + side * 6;
+        final lo2 = base - side * 6;
+        path.lineTo(lo.dx, lo.dy);
+        path.lineTo(lo2.dx, lo2.dy);
+        path.close();
+        canvas.drawPath(path, fill);
+        canvas.drawPath(path, edge);
+      case FigureHat.flower:
+        final c = s.head + up * (r - 1) + side * 3.5;
+        for (var i = 0; i < 5; i++) {
+          final a = i * 2 * math.pi / 5;
+          canvas.drawCircle(c + Offset(math.cos(a), math.sin(a)) * 2.6, 1.7, fill);
+          canvas.drawCircle(c + Offset(math.cos(a), math.sin(a)) * 2.6, 1.7, _line(ink, 0.9));
+        }
+        canvas.drawCircle(c, 1.5, Paint()..color = kit);
+      case FigureHat.none:
+        break;
+    }
   }
 
   Paint _line(Color c, double w) => Paint()

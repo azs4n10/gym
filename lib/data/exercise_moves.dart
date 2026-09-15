@@ -478,6 +478,21 @@ Pose _swim(double p) {
 }
 
 /// Movements for the cardio types.
+/// Sitting on the ground, legs out along it and hands behind for support,
+/// seen from the side; the two poses are a breath in and out. Used by the run
+/// companion when the speed is zero.
+const sitMove = Move(
+  start: Pose(hip: Offset(46, 91), torso: -8, arm: Limb(-15, -15), leg: Limb(90, 100), arm2: Limb(-15, -15), leg2: Limb(88, 102)),
+  end: Pose(hip: Offset(46, 91), torso: -5, arm: Limb(-13, -14), leg: Limb(90, 100), arm2: Limb(-13, -14), leg2: Limb(88, 102)),
+);
+
+/// Standing still, seen from behind, breathing.
+const standBackMove = Move(
+  start: Pose(hip: Offset(50, 59), torso: 0, arm: Limb(14, 10), leg: Limb(4, 0)),
+  end: Pose(hip: Offset(50, 58.5), torso: 2, arm: Limb(16, 12), leg: Limb(4, 0)),
+  view: Facing.front,
+);
+
 final Map<CardioType, Move> cardioMoves = {
   CardioType.running: const Move.cycle(_run, gear: [Gear.floor]),
   CardioType.walking: const Move.cycle(_walk, gear: [Gear.floor]),
