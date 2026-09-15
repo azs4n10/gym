@@ -155,6 +155,12 @@ class RunProgress {
 
   static const _key = 'runProgress';
 
+  static Future<RunProgress>? _shared;
+
+  /// One instance for the whole app, so a change in the run screen shows on
+  /// the home screen too.
+  static Future<RunProgress> loadShared() => _shared ??= load();
+
   static Future<RunProgress> load() async {
     final p = await SharedPreferences.getInstance();
     final raw = p.getString(_key);
@@ -185,6 +191,47 @@ const hatUnlocks = <(String, int)>[
 /// Shirt colours by index: 0 none, then the theme's button, accent and
 /// heading tones; each after the first needs a few more stamps.
 const shirtUnlocks = [0, 1, 5, 12];
+
+/// Accessories for the illustrated companion, cut from her design sheet.
+const girlHatUnlocks = <(String, int)>[
+  ('none', 0),
+  ('cap', 3),
+  ('flower', 8),
+  ('beanie', 15),
+  ('ribbon', 20),
+  ('headphones', 30),
+];
+
+/// Width over height of each pose drawing.
+const poseAspect = <String, double>{
+  'run_side_a': 440 / 492,
+  'run_side_b': 440 / 492,
+  'sit_side': 440 / 492,
+  'run_side_tired': 440 / 492,
+  'run_side_closed': 440 / 492,
+  'run_side_c': 440 / 492,
+  'run_side_d': 440 / 492,
+  'run_back_a': 218 / 477,
+  'run_back_b': 218 / 477,
+  'stand_back': 218 / 477,
+  'stand_front': 131 / 411,
+};
+
+/// Where a hat sits on each pose: the top of the hair, centred, as fractions
+/// of the drawing's width and height (measured from the images).
+const hatAnchors = <String, (double, double)>{
+  'run_side_a': (0.634, 0.03),
+  'run_side_b': (0.627, 0.057),
+  'sit_side': (0.459, 0.124),
+  'run_side_tired': (0.63, 0.104),
+  'run_side_closed': (0.58, 0.073),
+  'run_side_c': (0.634, 0.03),
+  'run_side_d': (0.628, 0.057),
+  'run_back_a': (0.401, 0.029),
+  'run_back_b': (0.578, 0.046),
+  'stand_back': (0.454, 0.124),
+  'stand_front': (0.462, 0.0),
+};
 
 /// What the wheel can land on. Each call lasts [seconds].
 enum RouletteCall {

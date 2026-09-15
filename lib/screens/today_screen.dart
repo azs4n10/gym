@@ -5,6 +5,7 @@ import '../data/seed/exercises_seed.dart';
 import '../data/seed/foods_seed.dart';
 import '../l10n/strings.dart';
 import '../models/enums.dart';
+import '../models/run_play.dart';
 import '../services/nutrition.dart';
 import '../services/streaks.dart';
 import '../services/suggestions.dart';
@@ -15,6 +16,7 @@ import '../state/meal_state.dart';
 import '../state/workout_state.dart';
 import '../widgets/sticker.dart';
 import '../widgets/app_icon.dart';
+import '../widgets/companion_sprite.dart';
 import '../widgets/cover.dart';
 import '../widgets/count_up.dart';
 import '../widgets/icon_tile.dart';
@@ -91,6 +93,15 @@ class TodayScreen extends StatelessWidget {
                       Text(l.dateLong(now), style: t.bodySmall?.copyWith(color: skin.subText)),
                     ],
                   ),
+                ),
+                FutureBuilder<RunProgress>(
+                  future: RunProgress.loadShared(),
+                  builder: (_, snap) => snap.data?.look == 'girl'
+                      ? Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: CompanionFace(expression: 'smile', size: 42, border: skin.ink, background: skin.card),
+                        )
+                      : const SizedBox.shrink(),
                 ),
                 CircleButton(
                   icon: Icons.settings_outlined,

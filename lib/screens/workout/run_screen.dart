@@ -95,6 +95,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   bool _routeDoneSaid = false;
 
   String? _bubble;
+  String _bubbleFace = 'smile';
   Timer? _bubbleTimer;
   late final AnimationController _hop = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
   final _rnd = math.Random();
@@ -110,11 +111,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   bool get _sound => (_progress?.sound ?? false) && RunSound.available;
   bool get _girl => (_progress?.look ?? 'girl') == 'girl';
 
+  /// The stored hat, if it is one the illustration has.
+  String get _girlHat {
+    final id = _progress?.hat ?? 'none';
+    return girlHatUnlocks.any((h) => h.$1 == id) ? id : 'none';
+  }
+
   @override
   void initState() {
     super.initState();
     _ticker.start();
-    RunProgress.load().then((p) {
+    RunProgress.loadShared().then((p) {
       if (mounted) setState(() => _progress = p);
     });
   }
@@ -194,7 +201,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
         for (final lm in passed) {
           _landmarksNow++;
           _award(1);
-          _say(l.landmarkReached(lm.label(l.isJa)));
+          _say(l.landmarkReached(lm.label(l.isJa)), face: 'surprised');
           _hop.forward(from: 0);
           if (_sound) RunSound.chime();
         }
@@ -236,7 +243,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
       if (q.progress >= q.target) {
         q.done = true;
         _award(1);
-        _say(l.isJa ? cheersJa[_rnd.nextInt(cheersJa.length)] : cheersEn[_rnd.nextInt(cheersEn.length)]);
+        _say(l.isJa ? cheersJa[_rnd.nextInt(cheersJa.length)] : cheersEn[_rnd.nextInt(cheersEn.length)], face: 'wink');
         if (_sound) RunSound.cheer();
       }
     }
@@ -272,8 +279,9 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     _progress?.stamps += n;
   }
 
-  void _say(String text) {
+  void _say(String text, {String face = 'smile'}) {
     _bubble = text;
+    _bubbleFace = face;
     _bubbleTimer?.cancel();
     _bubbleTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _bubble = null);
@@ -462,7 +470,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         final top = ahead ? c.maxHeight - size * 0.94 - 6 : c.maxHeight * RunScene.groundY - size * 0.94;
                         // The drawings keep their feet 3% above the canvas bottom.
                         final spriteH = ahead ? 150.0 : 176.0;
-                        final spriteW = spriteH * (ahead ? 218 / 477 : 370 / 492);
+                        final spriteW = spriteH * (ahead ? 218 / 477 : 440 / 492);
                         final girlLeft = ahead ? (c.maxWidth - spriteW) / 2 : c.maxWidth * RunScene.runnerX - spriteW / 2;
                         final girlTop = ahead
                             ? c.maxHeight - spriteH * 0.97 - 4
@@ -502,6 +510,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         phase: _phase,
                                         speed: speed,
                                         height: spriteH,
+                                        hat: _girlHat,
                                       )
                                     : ExerciseFigure(
                                         move: move,
@@ -546,9 +555,18 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                   color: skin.accentSoft,
                                   radius: 14,
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    child: Text(_bubble!,
-                                        style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                                    padding: const EdgeInsets.fromLTRB(8, 5, 12, 5),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (_girl) ...[
+                                          CompanionFace(expression: _bubbleFace, size: 30, border: skin.ink, background: skin.card),
+                                          const SizedBox(width: 8),
+                                        ],
+                                        Text(_bubble!,
+                                            style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               )
@@ -962,10 +980,15 @@ class _WardrobeCard extends StatelessWidget {
           'flower' => l.hatFlower,
           'beanie' => l.hatBeanie,
           'crown' => l.hatCrown,
+          'ribbon' => l.hatRibbon,
+          'headphones' => l.hatHeadphones,
+          'glasses' => l.hatGlasses,
           _ => l.hatNone,
         };
     final shirtColors = [null, skin.button, skin.accent, skin.heading];
     final stick = progress.look != 'girl';
+    final hats = stick ? hatUnlocks : girlHatUnlocks;
+    final girlHat = girlHatUnlocks.any((h) => h.$1 == progress.hat) ? progress.hat : 'none';
     return WindowCard(
       title: l.wardrobe,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -991,13 +1014,17 @@ class _WardrobeCard extends StatelessWidget {
                 ),
             ],
           ),
-          // Hats and shirts are drawn onto the stick figure only.
-          if (stick) const SizedBox(height: 10),
-          if (stick) Wrap(
+          const SizedBox(height: 10),
+          if (!stick)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Center(child: DressedPose(frame: 'stand_front', height: 150, hat: girlHat)),
+            ),
+          Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final (id, need) in hatUnlocks)
+              for (final (id, need) in hats)
                 ChoiceChip(
                   avatar: need > stamps ? Icon(Icons.lock_rounded, size: 14, color: skin.subText) : null,
                   label: Text(need > stamps ? '${hatName(id)} · ${l.needStamps(need)}' : hatName(id)),
@@ -1012,6 +1039,7 @@ class _WardrobeCard extends StatelessWidget {
                 ),
             ],
           ),
+          // Shirt colours are painted onto the stick figure only.
           if (stick) const SizedBox(height: 10),
           if (stick) Row(
             children: [

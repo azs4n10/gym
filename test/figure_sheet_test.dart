@@ -8,6 +8,7 @@ import 'package:gym/data/exercise_moves.dart';
 import 'package:gym/models/enums.dart';
 import 'package:gym/state/app_state.dart';
 import 'package:gym/theme/app_theme.dart';
+import 'package:gym/widgets/companion_sprite.dart';
 import 'package:gym/widgets/exercise_figure.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,9 @@ void main() {
     final only = Platform.environment['PREVIEW_ONLY'];
     final rest = only == 'rest';
     final back = only == 'back';
+    final girl = only == 'girl';
+    const girlFrames = ['run_side_a', 'run_side_b', 'run_side_c', 'run_side_d', 'sit_side', 'run_back_a', 'stand_back', 'stand_front'];
+    const girlHats = ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon'];
     final moves = <(String, Move)>[
       if (rest) ('sit', sitMove),
       if (rest) ('standBack', standBackMove),
@@ -37,6 +41,44 @@ void main() {
     const size = 96.0;
     final key = GlobalKey();
 
+    if (girl) {
+      await tester.binding.setSurfaceSize(Size(girlHats.length * 130.0 + 16, girlFrames.length * 190.0 + 16));
+      final gkey = GlobalKey();
+      await tester.pumpWidget(MaterialApp(
+        home: RepaintBoundary(
+          key: gkey,
+          child: ColoredBox(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final f in girlFrames)
+                    Row(
+                      children: [
+                        for (final h in girlHats)
+                          SizedBox(width: 130, height: 190, child: Center(child: DressedPose(frame: f, height: 176, hat: h, back: f.contains('back')))),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
+      await tester.pump();
+      final out = Platform.environment['PREVIEW_OUT'];
+      if (out != null && out.isNotEmpty) {
+        final boundary = gkey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final image = await boundary.toImage(pixelRatio: 2);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        File(out).writeAsBytesSync(bytes!.buffer.asUint8List());
+      }
+      return;
+    }
     await tester.binding.setSurfaceSize(Size(frames * size + 16, moves.length * (size + 20) + 16));
     await tester.pumpWidget(
       MultiProvider(

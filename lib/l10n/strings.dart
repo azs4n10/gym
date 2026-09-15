@@ -242,6 +242,9 @@ abstract class L {
   String get allDay;
   String get gcalFailed;
   String get gcalWritten;
+  String get hatRibbon;
+  String get hatHeadphones;
+  String get hatGlasses;
 }
 
 class LEn extends L {
@@ -709,6 +712,12 @@ class LEn extends L {
   String get gcalFailed => 'Could not connect to Google Calendar';
   @override
   String get gcalWritten => 'Added to Google Calendar';
+  @override
+  String get hatRibbon => 'Ribbon';
+  @override
+  String get hatHeadphones => 'Headphones';
+  @override
+  String get hatGlasses => 'Glasses';
 }
 
 class LJa extends L {
@@ -1176,6 +1185,12 @@ class LJa extends L {
   String get gcalFailed => 'Google カレンダーに接続できませんでした';
   @override
   String get gcalWritten => 'Google カレンダーに追加しました';
+  @override
+  String get hatRibbon => 'リボン';
+  @override
+  String get hatHeadphones => 'ヘッドホン';
+  @override
+  String get hatGlasses => '眼鏡';
 }
 
 L stringsFor(String code) => code == 'ja' ? const LJa() : const LEn();
