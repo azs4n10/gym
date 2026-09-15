@@ -92,7 +92,10 @@ self.addEventListener('fetch', (event) => {
     const cache = await caches.open(CACHE);
     if (entry) {
       try {
-        const res = await fetch(req);
+        // Revalidated with the server on every launch, so a new deploy is
+        // noticed as soon as the server has it rather than when the HTTP
+        // cache expires.
+        const res = await fetch(key, { cache: 'no-cache' });
         if (res.ok) await cache.put(key, res.clone());
         return res;
       } catch (_) {
