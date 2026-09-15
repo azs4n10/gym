@@ -119,3 +119,14 @@ registered with `flutter config --android-sdk ... --jdk-dir ...`. With that,
 `flutter build apk --release` writes `build/app/outputs/flutter-apk/app-release.apk`,
 signed with the debug key, which installs by sideloading. The Gradle plugin is
 AGP 9 with `android.newDsl=false`, as the Flutter template sets.
+
+## Load time
+
+A cold start downloads the engine (CanvasKit, about 2.9 MB gzipped), the app
+code (about 1.1 MB gzipped), sqlite (0.35 MB) and the two bundled weights of
+M PLUS Rounded 1c (about 0.5 MB each; subset to the glyphs the app shows,
+with the system font as fallback for anything else). The rounded font is no
+longer fetched from Google Fonts, which used to pull four full 3.4 MB files
+before the first frame. The build uses `--pwa-strategy=offline-first`, so a
+service worker caches all of it: later launches read from the device, and a
+new deploy is picked up on the launch after the one that downloads it.

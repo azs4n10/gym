@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'skin.dart';
 
@@ -16,14 +15,16 @@ ThemeData buildTheme(Skin skin, {String font = 'rounded'}) {
     useMaterial3: true,
     brightness: skin.isDark ? Brightness.dark : Brightness.light,
   );
+  // The rounded face ships with the app, cut down to the glyphs it shows;
+  // anything outside that set falls back to the system font. "Standard" is
+  // the system font outright, which needs no download at all.
   final rounded = font != 'standard';
-  final textTheme = (rounded
-          ? GoogleFonts.mPlusRounded1cTextTheme(base.textTheme)
-          : GoogleFonts.notoSansJpTextTheme(base.textTheme))
-      .apply(bodyColor: skin.text, displayColor: skin.text);
-  final family = rounded
-      ? GoogleFonts.mPlusRounded1c().fontFamily
-      : GoogleFonts.notoSansJp().fontFamily;
+  final family = rounded ? 'MPLUSRounded1c' : null;
+  final textTheme = base.textTheme.apply(
+    fontFamily: family,
+    bodyColor: skin.text,
+    displayColor: skin.text,
+  );
   final outline = BorderSide(color: skin.ink, width: kBorderWidth);
 
   return base.copyWith(

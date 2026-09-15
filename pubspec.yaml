@@ -40,7 +40,6 @@ dependencies:
   path_provider: ^2.1.6
   path: ^1.9.1
   intl: 0.20.2
-  google_fonts: ^8.2.1
   fl_chart: ^1.2.0
   uuid: ^4.6.0
   shared_preferences: ^2.5.5
@@ -76,6 +75,12 @@ flutter:
     - family: PhosphorDuotone
       fonts:
         - asset: assets/fonts/Phosphor-Duotone.ttf
+    - family: MPLUSRounded1c
+      fonts:
+        - asset: assets/fonts/MPLUSRounded1c-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/MPLUSRounded1c-Bold.ttf
+          weight: 700
 
 
   # To add assets to your application, add an assets section, like this:
