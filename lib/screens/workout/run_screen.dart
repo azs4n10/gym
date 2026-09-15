@@ -16,6 +16,7 @@ import '../../state/body_state.dart';
 import '../../state/workout_state.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/skin.dart';
+import '../../widgets/companion_sprite.dart';
 import '../../widgets/exercise_figure.dart';
 import '../../widgets/run_glyphs.dart';
 import '../../widgets/run_scene.dart';
@@ -107,6 +108,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   bool get _resting => _distanceKind && _currentSpeed <= 0.3;
   SceneView get _view => _progress?.view == 'ahead' ? SceneView.ahead : SceneView.side;
   bool get _sound => (_progress?.sound ?? false) && RunSound.available;
+  bool get _girl => (_progress?.look ?? 'girl') == 'girl';
 
   @override
   void initState() {
@@ -458,6 +460,13 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         final ahead = _view == SceneView.ahead;
                         final left = ahead ? (c.maxWidth - size) / 2 : c.maxWidth * RunScene.runnerX - size / 2;
                         final top = ahead ? c.maxHeight - size * 0.94 - 6 : c.maxHeight * RunScene.groundY - size * 0.94;
+                        // The drawings keep their feet 3% above the canvas bottom.
+                        final spriteH = ahead ? 150.0 : 176.0;
+                        final spriteW = spriteH * (ahead ? 218 / 477 : 370 / 492);
+                        final girlLeft = ahead ? (c.maxWidth - spriteW) / 2 : c.maxWidth * RunScene.runnerX - spriteW / 2;
+                        final girlTop = ahead
+                            ? c.maxHeight - spriteH * 0.97 - 4
+                            : c.maxHeight * RunScene.groundY - spriteH * 0.97;
                         return Stack(
                           children: [
                             if (progress != null)
@@ -477,24 +486,33 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                 ),
                               ),
                             Positioned(
-                              left: left,
-                              top: top,
+                              left: _girl ? girlLeft : left,
+                              top: _girl ? girlTop : top,
                               child: AnimatedBuilder(
                                 animation: _hop,
                                 builder: (_, child) => Transform.translate(
                                   offset: Offset(0, -22 * math.sin(math.pi * _hop.value)),
                                   child: child,
                                 ),
-                                child: ExerciseFigure(
-                                  move: move,
-                                  size: size,
-                                  t: figureT,
-                                  gearColor: skin.button,
-                                  face: _face,
-                                  hat: _hat,
-                                  shirt: _shirtColor(skin),
-                                  outline: skin.card,
-                                ),
+                                child: _girl
+                                    ? CompanionSprite(
+                                        view: _view,
+                                        resting: _resting,
+                                        face: _face,
+                                        phase: _phase,
+                                        speed: speed,
+                                        height: spriteH,
+                                      )
+                                    : ExerciseFigure(
+                                        move: move,
+                                        size: size,
+                                        t: figureT,
+                                        gearColor: skin.button,
+                                        face: _face,
+                                        hat: _hat,
+                                        shirt: _shirtColor(skin),
+                                        outline: skin.card,
+                                      ),
                               ),
                             ),
                             Positioned(
@@ -947,13 +965,35 @@ class _WardrobeCard extends StatelessWidget {
           _ => l.hatNone,
         };
     final shirtColors = [null, skin.button, skin.accent, skin.heading];
+    final stick = progress.look != 'girl';
     return WindowCard(
       title: l.wardrobe,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
+          Row(
+            children: [
+              Text(l.look, style: t.labelLarge?.copyWith(color: skin.subText)),
+              const SizedBox(width: 8),
+              for (final (id, label) in [('girl', l.lookGirl), ('stick', l.lookStick)])
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text(label),
+                    selected: progress.look == id,
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (_) {
+                      progress.look = id;
+                      onChanged();
+                    },
+                  ),
+                ),
+            ],
+          ),
+          // Hats and shirts are drawn onto the stick figure only.
+          if (stick) const SizedBox(height: 10),
+          if (stick) Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
@@ -972,8 +1012,8 @@ class _WardrobeCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
+          if (stick) const SizedBox(height: 10),
+          if (stick) Row(
             children: [
               for (var i = 0; i < shirtColors.length; i++)
                 Padding(

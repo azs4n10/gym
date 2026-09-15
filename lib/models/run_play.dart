@@ -82,6 +82,7 @@ class RunProgress {
     this.shirt = 0,
     this.view = 'side',
     this.sound = false,
+    this.look = 'girl',
   })  : km = km ?? {},
         reached = reached ?? {};
 
@@ -93,6 +94,9 @@ class RunProgress {
   int shirt;
   String view;
   bool sound;
+
+  /// 'girl' for the illustrated companion, 'stick' for the drawn figure.
+  String look;
 
   /// Keys shaped `route/landmark`.
   final Set<String> reached;
@@ -130,6 +134,7 @@ class RunProgress {
         'shirt': shirt,
         'view': view,
         'sound': sound,
+        'look': look,
       };
 
   static RunProgress fromJson(Map<String, dynamic> j) => RunProgress(
@@ -145,6 +150,7 @@ class RunProgress {
         shirt: j['shirt'] as int? ?? 0,
         view: j['view'] as String? ?? 'side',
         sound: j['sound'] as bool? ?? false,
+        look: j['look'] as String? ?? 'girl',
       );
 
   static const _key = 'runProgress';

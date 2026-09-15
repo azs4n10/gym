@@ -32,6 +32,14 @@ const SHELL = [
   'assets/assets/fonts/MPLUSRounded1c-Regular.ttf',
   'assets/assets/fonts/MPLUSRounded1c-Bold.ttf',
   'assets/assets/data/mext_foods.json',
+  'assets/assets/companion/run_side_a.png',
+  'assets/assets/companion/run_side_b.png',
+  'assets/assets/companion/sit_side.png',
+  'assets/assets/companion/run_side_tired.png',
+  'assets/assets/companion/run_side_closed.png',
+  'assets/assets/companion/run_back_a.png',
+  'assets/assets/companion/run_back_b.png',
+  'assets/assets/companion/stand_back.png',
 ];
 
 // Same choice flutter.js makes between the two CanvasKit builds.

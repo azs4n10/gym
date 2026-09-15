@@ -228,6 +228,9 @@ abstract class L {
   String get viewSide;
   String get viewAhead;
   String get sound;
+  String get look;
+  String get lookGirl;
+  String get lookStick;
 }
 
 class LEn extends L {
@@ -667,6 +670,12 @@ class LEn extends L {
   String get viewAhead => 'Ahead';
   @override
   String get sound => 'Sound';
+  @override
+  String get look => 'Companion';
+  @override
+  String get lookGirl => 'Illustration';
+  @override
+  String get lookStick => 'Stick figure';
 }
 
 class LJa extends L {
@@ -1106,6 +1115,12 @@ class LJa extends L {
   String get viewAhead => '前方';
   @override
   String get sound => '音';
+  @override
+  String get look => '相棒';
+  @override
+  String get lookGirl => 'イラスト';
+  @override
+  String get lookStick => '棒人間';
 }
 
 L stringsFor(String code) => code == 'ja' ? const LJa() : const LEn();
