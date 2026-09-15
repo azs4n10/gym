@@ -254,10 +254,17 @@ class _SessionScreenState extends State<SessionScreen> {
   Future<void> _addCardio(BuildContext context, int sessionId) async {
     final w = context.read<WorkoutState>();
     final result = await showCardioSheet(context);
-    if (result != null) {
-      await w.addCardio(sessionId, result.kind, result.minutes,
-          distanceKm: result.distanceKm, kcal: result.kcal);
+    if (result == null) return;
+    if (result.companion) {
+      if (context.mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => RunScreen(kind: result.kind)),
+        );
+      }
+      return;
     }
+    await w.addCardio(sessionId, result.kind, result.minutes,
+        distanceKm: result.distanceKm, kcal: result.kcal);
   }
 }
 

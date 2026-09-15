@@ -215,6 +215,7 @@ abstract class L {
   String kmMark(int n);
   String landmarkReached(String name);
   String get gpsWaiting;
+  String get outdoors;
   String callLeft(int s);
 }
 
@@ -630,6 +631,8 @@ class LEn extends L {
   @override
   String get gpsWaiting => 'Waiting for GPS';
   @override
+  String get outdoors => 'Outdoors (location)';
+  @override
   String callLeft(int s) => '${s}s left';
 }
 
@@ -1044,6 +1047,8 @@ class LJa extends L {
   String landmarkReached(String name) => '$name に着いた';
   @override
   String get gpsWaiting => 'GPS を待っています';
+  @override
+  String get outdoors => '屋外（位置情報）';
   @override
   String callLeft(int s) => 'あと $s 秒';
 }

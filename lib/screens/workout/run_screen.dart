@@ -32,16 +32,15 @@ class RunScreen extends StatefulWidget {
 }
 
 class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
-  static const _kinds = [CardioType.running, CardioType.walking, CardioType.cycling];
   static const _calls = RouletteCall.values;
 
-  late CardioType _kind = _kinds.contains(widget.kind) ? widget.kind : CardioType.running;
+  late CardioType _kind = widget.kind;
   late final Ticker _ticker = createTicker(_tick);
   Duration _lastTick = Duration.zero;
 
   bool _running = false;
   bool _gps = false;
-  double _speed = 6;
+  late double _speed = startSpeed(_kind);
   double _gpsSpeed = 0;
   StreamSubscription<GeoFix>? _gpsSub;
   GeoFix? _lastFix;
@@ -49,6 +48,10 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
 
   double _elapsedS = 0;
   double _distanceKm = 0;
+
+  /// What the road and the laps run on: the distance for activities that have
+  /// one, otherwise the clock at ten minutes to the kilometre.
+  double _journeyKm = 0;
   double _kcal = 0;
   double _phase = 0;
   double _maxSpeed = 0;
@@ -87,7 +90,10 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
 
   double get _angle => _angleFrom + (_angleTo - _angleFrom) * Curves.easeOutCubic.transform(_spin.value);
   double get _currentSpeed => _gps ? _gpsSpeed : _speed;
-  double get _maxSlider => _kind == CardioType.cycling ? 40 : 16;
+  double get _maxSlider => topSpeed(_kind);
+  bool get _distanceKind => hasDistance(_kind);
+  bool get _outdoorKind =>
+      _kind == CardioType.running || _kind == CardioType.walking || _kind == CardioType.cycling;
 
   @override
   void initState() {
@@ -117,7 +123,12 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     final weight = context.read<BodyState>().latestWeight ?? 60;
 
     _elapsedS += dt;
-    if (!_gps) _distanceKm += speed * dt / 3600;
+    if (_distanceKind) {
+      if (!_gps) _distanceKm += speed * dt / 3600;
+      _journeyKm = _distanceKm;
+    } else {
+      _journeyKm += dt / 600;
+    }
     _kcal += estimateKcal(_kind, speed, dt / 3600, weight).toDouble();
     _phase += dt * _cyclesPerSecond(speed);
     if (speed > _maxSpeed) _maxSpeed = speed;
@@ -131,12 +142,12 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
       }
     }
 
-    while (_distanceKm >= _nextLapKm) {
+    while (_journeyKm >= _nextLapKm) {
       _laps++;
       _nextLapKm += _lapM / 1000;
       if (!_spin.isAnimating) _spinWheel();
     }
-    if (_distanceKm >= _nextKmMark) {
+    if (_distanceKind && _distanceKm >= _nextKmMark) {
       _say(l.kmMark(_nextKmMark));
       _hop.forward(from: 0);
       _nextKmMark++;
@@ -144,9 +155,9 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
 
     final progress = _progress;
     if (progress != null) {
-      final delta = _distanceKm - _journeyAppliedKm;
+      final delta = _journeyKm - _journeyAppliedKm;
       if (delta > 0) {
-        _journeyAppliedKm = _distanceKm;
+        _journeyAppliedKm = _journeyKm;
         final passed = progress.advance(delta);
         for (final lm in passed) {
           _landmarksNow++;
@@ -199,9 +210,20 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   }
 
   double _cyclesPerSecond(double speed) {
+    if (!_distanceKind) {
+      return switch (_kind) {
+        CardioType.hiit => 0.7,
+        CardioType.yoga => 0.12,
+        _ => 0.8,
+      };
+    }
     if (speed <= 0.3) return 0.12;
     return switch (_kind) {
       CardioType.cycling => 0.5 + speed * 0.06,
+      CardioType.elliptical => 0.4 + speed * 0.08,
+      CardioType.stairs => 0.5 + speed * 0.1,
+      CardioType.rowing => 0.3 + speed * 0.03,
+      CardioType.swimming => 0.3 + speed * 0.2,
       _ => 0.35 + speed * 0.1,
     };
   }
@@ -279,7 +301,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
       id,
       _kind,
       double.parse(minutes.toStringAsFixed(1)),
-      distanceKm: _distanceKm >= 0.05 ? double.parse(_distanceKm.toStringAsFixed(2)) : null,
+      distanceKm: _distanceKind && _distanceKm >= 0.05 ? double.parse(_distanceKm.toStringAsFixed(2)) : null,
       kcal: _kcal.round() > 0 ? _kcal.round() : null,
     );
     if (!mounted) return;
@@ -314,6 +336,8 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     final t = Theme.of(context).textTheme;
     final speed = _currentSpeed;
     final move = cardioMoves[_kind] ?? cardioMoves[CardioType.running]!;
+    // A lift-style move (start and end pose) is played back and forth.
+    final figureT = move.loops ? _phase : Curves.easeInOut.transform(1 - (2 * (_phase % 1) - 1).abs());
 
     return Scaffold(
       appBar: AppBar(title: Text(l.runTool)),
@@ -323,16 +347,20 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
           Wrap(
             spacing: 6,
             children: [
-              for (final k in _kinds)
+              for (final k in CardioType.values)
                 ChoiceChip(
                   label: Text(k.label(l)),
                   selected: _kind == k,
+                  visualDensity: VisualDensity.compact,
                   onSelected: _elapsedS > 0
                       ? null
                       : (_) => setState(() {
                             _kind = k;
+                            _speed = startSpeed(k);
                             _quests = Quest.draw(k, seed: DateTime.now().millisecondsSinceEpoch);
-                            if (_speed > _maxSlider) _speed = _maxSlider;
+                            if (!hasDistance(k)) _lapM = 300;
+                            _nextLapKm = _journeyKm + _lapM / 1000;
+                            if (_gps && !_outdoorKind) _setGps(false);
                           }),
                 ),
             ],
@@ -354,7 +382,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                             offset: Offset(0, -22 * math.sin(math.pi * _hop.value)),
                             child: child,
                           ),
-                          child: ExerciseFigure(move: move, size: 170, t: _phase, gearColor: skin.button),
+                          child: ExerciseFigure(move: move, size: 170, t: figureT, gearColor: skin.button),
                         ),
                         if (_bubble != null)
                           Positioned(
@@ -382,13 +410,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                   Row(
                     children: [
                       Expanded(child: _Stat(label: l.duration, value: _clock(_elapsedS))),
-                      Expanded(child: _Stat(label: l.distance, value: '${_distanceKm.toStringAsFixed(2)} km')),
-                      Expanded(child: _Stat(label: l.pace, value: _pace(speed))),
+                      if (_distanceKind) ...[
+                        Expanded(child: _Stat(label: l.distance, value: '${_distanceKm.toStringAsFixed(2)} km')),
+                        Expanded(child: _Stat(label: l.pace, value: _pace(speed))),
+                      ],
                       Expanded(child: _Stat(label: 'kcal', value: '${_kcal.round()}')),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  if (_gps)
+                  if (!_distanceKind)
+                    const SizedBox(height: 4)
+                  else if (_gps)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Text(
@@ -415,11 +447,11 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
-                  if (RunLocation.available)
+                  if (RunLocation.available && _outdoorKind)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text('GPS', style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
+                        Text(l.outdoors, style: t.labelLarge?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
                         Switch(value: _gps, onChanged: _setGps),
                       ],
                     ),
@@ -458,14 +490,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                           Wrap(
                             spacing: 4,
                             children: [
-                              for (final m in [200.0, 400.0, 1000.0])
+                              for (final m in _distanceKind ? [200.0, 400.0, 1000.0] : [200.0, 300.0, 500.0])
                                 ChoiceChip(
-                                  label: Text(m >= 1000 ? '1 km' : '${m.toInt()} m'),
+                                  // Without a distance, a lap is minutes on the clock.
+                                  label: Text(_distanceKind
+                                      ? (m >= 1000 ? '1 km' : '${m.toInt()} m')
+                                      : '${(m / 100).round()} min'),
                                   selected: _lapM == m,
                                   visualDensity: VisualDensity.compact,
                                   onSelected: (_) => setState(() {
                                     _lapM = m;
-                                    _nextLapKm = _distanceKm + m / 1000;
+                                    _nextLapKm = _journeyKm + m / 1000;
                                   }),
                                 ),
                             ],

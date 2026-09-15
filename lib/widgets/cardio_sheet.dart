@@ -5,11 +5,14 @@ import '../state/app_state.dart';
 import 'stepper_field.dart';
 
 class CardioInput {
-  const CardioInput(this.kind, this.minutes, this.distanceKm, this.kcal);
+  const CardioInput(this.kind, this.minutes, this.distanceKm, this.kcal, {this.companion = false});
   final CardioType kind;
   final double minutes;
   final double? distanceKm;
   final int? kcal;
+
+  /// Chosen "run with a companion" instead of typing the numbers in.
+  final bool companion;
 }
 
 Future<CardioInput?> showCardioSheet(BuildContext context, {CardioType? initial}) =>
@@ -73,6 +76,15 @@ class _CardioSheetState extends State<_CardioSheet> {
             onChanged: (v) => setState(() => _kcal = v),
           )),
           const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context, CardioInput(_kind, 0, null, null, companion: true)),
+              icon: const Icon(Icons.sports_score_rounded),
+              label: Text(l.runCompanion),
+            ),
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: FilledButton(

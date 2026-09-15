@@ -203,7 +203,11 @@ class Quest {
 
   static List<Quest> draw(CardioType kind, {int? seed}) {
     final rnd = math.Random(seed);
-    final kinds = [...QuestKind.values]..shuffle(rnd);
+    const needsDistance = {QuestKind.nonstop1k, QuestKind.steady2m, QuestKind.km2, QuestKind.fast};
+    final kinds = [
+      for (final k in QuestKind.values)
+        if (hasDistance(kind) || !needsDistance.contains(k)) k,
+    ]..shuffle(rnd);
     return [
       for (final k in kinds.take(3))
         Quest(
@@ -227,12 +231,43 @@ class Quest {
 const cheersEn = ['Nice!', 'Keep going', 'Looking good', 'One more', 'You got this', 'Steady'];
 const cheersJa = ['いいね', 'その調子', 'きれいなフォーム', 'もう少し', 'いける', '安定してる'];
 
+/// Activities measured in distance; the rest run on the clock alone, and the
+/// road advances at ten minutes to the kilometre.
+bool hasDistance(CardioType kind) =>
+    kind != CardioType.hiit && kind != CardioType.yoga && kind != CardioType.other;
+
+/// Fastest setting of the speed slider, in km/h, and where it starts.
+double topSpeed(CardioType kind) => switch (kind) {
+      CardioType.cycling => 40,
+      CardioType.rowing => 20,
+      CardioType.running || CardioType.elliptical => 16,
+      CardioType.walking || CardioType.stairs => 10,
+      CardioType.swimming => 6,
+      _ => 0,
+    };
+
+double startSpeed(CardioType kind) => switch (kind) {
+      CardioType.cycling => 15,
+      CardioType.rowing => 10,
+      CardioType.running || CardioType.elliptical => 6,
+      CardioType.walking || CardioType.stairs => 4,
+      CardioType.swimming => 2,
+      _ => 0,
+    };
+
 /// Rough energy for a stretch of movement: MET by activity and speed, times
 /// body weight, times hours. A guide, not a measurement.
 int estimateKcal(CardioType kind, double speedKmh, double hours, double weightKg) {
   final met = switch (kind) {
     CardioType.walking => (2.0 + speedKmh * 0.3).clamp(2.0, 5.0),
     CardioType.cycling => (speedKmh * 0.4).clamp(4.0, 12.0),
+    CardioType.elliptical => (3.0 + speedKmh * 0.4).clamp(4.0, 10.0),
+    CardioType.stairs => (5.0 + speedKmh * 0.6).clamp(6.0, 11.0),
+    CardioType.rowing => (3.0 + speedKmh * 0.5).clamp(4.0, 12.0),
+    CardioType.swimming => (4.0 + speedKmh * 2).clamp(6.0, 11.0),
+    CardioType.hiit => 10.0,
+    CardioType.yoga => 3.0,
+    CardioType.other => 5.0,
     _ => speedKmh.clamp(6.0, 14.0),
   };
   return (met * weightKg * hours).round();
