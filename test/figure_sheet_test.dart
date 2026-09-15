@@ -8,6 +8,7 @@ import 'package:gym/data/exercise_moves.dart';
 import 'package:gym/models/enums.dart';
 import 'package:gym/state/app_state.dart';
 import 'package:gym/theme/app_theme.dart';
+import 'package:gym/widgets/companion_rig.dart';
 import 'package:gym/widgets/companion_sprite.dart';
 import 'package:gym/widgets/exercise_figure.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +25,44 @@ void main() {
     final rest = only == 'rest';
     final back = only == 'back';
     final girl = only == 'girl';
+    if (only == 'rig') {
+      final rig = await tester.runAsync(() => CompanionRig.side());
+      final move = cardioMoves[CardioType.running]!;
+      const n = 8;
+      const h = 300.0;
+      final rkey = GlobalKey();
+      await tester.binding.setSurfaceSize(Size(n * 150.0 + 16, h + 36));
+      await tester.pumpWidget(MaterialApp(
+        home: RepaintBoundary(
+          key: rkey,
+          child: ColoredBox(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  for (var i = 0; i < n; i++)
+                    SizedBox(
+                      width: 150,
+                      height: h + 20,
+                      child: Center(child: CompanionRigView(rig: rig!, pose: move.at(i / n), height: h, farTint: const Color(0x30000000))),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      final out = Platform.environment['PREVIEW_OUT'];
+      if (out != null && out.isNotEmpty) {
+        final boundary = rkey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final image = await boundary.toImage(pixelRatio: 2);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        File(out).writeAsBytesSync(bytes!.buffer.asUint8List());
+      }
+      return;
+    }
     const girlFrames = ['run_side_a', 'run_side_b', 'run_side_c', 'run_side_d', 'sit_side', 'run_back_a', 'stand_back', 'stand_front'];
     const girlHats = ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon'];
     final moves = <(String, Move)>[

@@ -142,6 +142,16 @@ pace, puffs on a sprint, sits down when the speed is zero) and a wardrobe:
 hats and shirt colours that unlock with stamps. Sound is optional and made
 by the browser itself (footfall clicks, a chime at a landmark, the wheel).
 
+The illustrated companion is a cut-out rig rather than a set of frames: the
+side-view drawing is split into five layers (far arm, far leg, near leg,
+body, near arm), each covered by a small triangle mesh whose vertices follow
+the bones with blended weights, and the bones take their angles from the same
+Pose cycles the stick figure uses. The layers, meshes and weights are built
+by a script from `assets/companion/rig/stand_side_rig.png` into
+`assets/companion/rig/side.json` and drawn with `Canvas.drawVertices`
+(`lib/widgets/companion_rig.dart`). Sitting and the view from behind still
+use single drawings.
+
 A finished session's menu offers "Add to Google Calendar" (a prefilled event
 link) and, on the web, a calendar file (.ics) that any calendar app imports.
 Nothing is sent anywhere; the data stays in the link or the file.

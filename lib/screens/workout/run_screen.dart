@@ -16,6 +16,7 @@ import '../../state/body_state.dart';
 import '../../state/workout_state.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/skin.dart';
+import '../../widgets/companion_rig.dart';
 import '../../widgets/companion_sprite.dart';
 import '../../widgets/exercise_figure.dart';
 import '../../widgets/run_glyphs.dart';
@@ -91,6 +92,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   int _stampsNow = 0;
 
   RunProgress? _progress;
+  CompanionRig? _rig;
   double _journeyAppliedKm = 0;
   bool _routeDoneSaid = false;
 
@@ -124,6 +126,9 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     RunProgress.loadShared().then((p) {
       if (mounted) setState(() => _progress = p);
     });
+    CompanionRig.side().then((r) {
+      if (mounted) setState(() => _rig = r);
+    }).catchError((Object _) {});
   }
 
   @override
@@ -475,6 +480,13 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         final girlTop = ahead
                             ? c.maxHeight - spriteH * 0.97 - 4
                             : c.maxHeight * RunScene.groundY - spriteH * 0.97;
+                        // The rigged drawing: the side view while moving.
+                        final rig = _rig;
+                        final rigged = _girl && !ahead && !_resting && rig != null;
+                        final rigH = spriteH * 1.02;
+                        final rigW = rig == null ? 0.0 : rigH * rig.width / rig.height;
+                        final rigLeft = c.maxWidth * RunScene.runnerX - rigW / 2;
+                        final rigTop = c.maxHeight * RunScene.groundY - rigH * 0.99;
                         return Stack(
                           children: [
                             if (progress != null)
@@ -494,15 +506,22 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                 ),
                               ),
                             Positioned(
-                              left: _girl ? girlLeft : left,
-                              top: _girl ? girlTop : top,
+                              left: rigged ? rigLeft : _girl ? girlLeft : left,
+                              top: rigged ? rigTop : _girl ? girlTop : top,
                               child: AnimatedBuilder(
                                 animation: _hop,
                                 builder: (_, child) => Transform.translate(
                                   offset: Offset(0, -22 * math.sin(math.pi * _hop.value)),
                                   child: child,
                                 ),
-                                child: _girl
+                                child: rigged
+                                    ? CompanionRigView(
+                                        rig: rig,
+                                        pose: move.at(figureT),
+                                        height: rigH,
+                                        farTint: skin.ink.withValues(alpha: 0.18),
+                                      )
+                                    : _girl
                                     ? CompanionSprite(
                                         view: _view,
                                         resting: _resting,
