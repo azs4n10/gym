@@ -398,11 +398,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     final base = cardioMoves[_kind] ?? cardioMoves[CardioType.running]!;
     if (_resting) return _view == SceneView.ahead ? standBackMove : sitMove;
     final gear = [for (final g in base.gear) if (g != Gear.floor) g];
-    if (_view == SceneView.ahead) {
-      if (base.loops) return Move.cycle(base.cycle!, view: Facing.front);
-      if (base.frames.isNotEmpty) return Move.frames(base.frames, view: Facing.front);
-      return Move(start: base.start!, end: base.end!, view: Facing.front);
-    }
+    if (_view == SceneView.ahead) return backMoveFor(_kind);
     if (base.loops) return Move.cycle(base.cycle!, gear: gear);
     if (base.frames.isNotEmpty) return Move.frames(base.frames, gear: gear);
     return Move(start: base.start!, end: base.end!, gear: gear);
@@ -497,6 +493,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                   face: _face,
                                   hat: _hat,
                                   shirt: _shirtColor(skin),
+                                  outline: skin.card,
                                 ),
                               ),
                             ),

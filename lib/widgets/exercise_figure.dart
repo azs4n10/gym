@@ -237,9 +237,14 @@ class ExerciseFigure extends StatefulWidget {
     this.shirt,
     this.faceColor,
     this.hatColor,
+    this.outline,
   });
 
   final Move move;
+
+  /// A light rim drawn behind the body, so the figure stays readable over a
+  /// busy or dark backdrop, the way a sticker is cut with a white edge.
+  final Color? outline;
 
   /// Expression, hat and shirt colour for the companion; the exercise list
   /// leaves them off.
@@ -309,6 +314,7 @@ class _ExerciseFigureState extends State<ExerciseFigure>
           shirt: widget.shirt,
           faceColor: widget.faceColor ?? skin.card,
           hatColor: widget.hatColor ?? skin.accent,
+          outline: widget.outline,
         );
     final c = _c;
     final fixed = widget.t;
@@ -342,6 +348,7 @@ class _FigurePainter extends CustomPainter {
     this.shirt,
     this.faceColor = const Color(0xFFFFFFFF),
     this.hatColor = const Color(0xFFFBBBD3),
+    this.outline,
   });
 
   final Pose pose;
@@ -355,6 +362,7 @@ class _FigurePainter extends CustomPainter {
   final Color? shirt;
   final Color faceColor;
   final Color hatColor;
+  final Color? outline;
 
   bool has(Gear g) => gear.contains(g);
 
@@ -367,6 +375,16 @@ class _FigurePainter extends CustomPainter {
     final farLimb = _line(ink.withValues(alpha: view == Facing.front ? 1 : 0.5), w);
 
     _behind(canvas, s);
+
+    if (outline case final oc?) {
+      final halo = _line(oc, w + 5);
+      if (s.elbow2 != null) _stroke(canvas, [s.neck, s.elbow2!, s.hand2!], halo);
+      if (s.knee2 != null) _stroke(canvas, [s.hip, s.knee2!, s.ankle2!], halo);
+      canvas.drawLine(s.neck, s.hip, halo);
+      _stroke(canvas, [s.neck, s.elbow, s.hand], halo);
+      _stroke(canvas, [s.hip, s.knee, s.ankle, if (s.toe != null) s.toe!], halo);
+      canvas.drawCircle(s.head, (bold ? 10.5 : _headR) + 2.5, Paint()..color = oc);
+    }
 
     if (s.elbow2 != null) _stroke(canvas, [s.neck, s.elbow2!, s.hand2!], farLimb);
     if (s.knee2 != null) _stroke(canvas, [s.hip, s.knee2!, s.ankle2!], farLimb);

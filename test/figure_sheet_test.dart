@@ -21,10 +21,14 @@ void main() {
     final app = await AppState.create();
     final only = Platform.environment['PREVIEW_ONLY'];
     final rest = only == 'rest';
+    final back = only == 'back';
     final moves = <(String, Move)>[
       if (rest) ('sit', sitMove),
       if (rest) ('standBack', standBackMove),
-      if (!rest)
+      if (back)
+        for (final k in [CardioType.running, CardioType.walking, CardioType.cycling, CardioType.hiit])
+          ('${k.name}Back', backMoveFor(k)),
+      if (!rest && !back)
         for (final k in CardioType.values)
           if (cardioMoves[k]?.loops ?? false)
             if (only == null || only.isEmpty || only.split(',').contains(k.name)) (k.name, cardioMoves[k]!),

@@ -203,7 +203,9 @@ class _ScenePainter extends CustomPainter {
     final runnerX = w * RunScene.runnerX;
 
     // Far hills, barely moving.
-    final hillColor = Color.lerp(_skyColor(), skin.ink, 0.14)!;
+    // Hills a shade off the sky: darker by day, lighter at night, so they
+    // never match the ink of the figure.
+    final hillColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
     final hills = Path()..moveTo(0, h);
     final off = metres * _ppm * 0.12;
     for (var x = 0.0; x <= w; x += 6) {
@@ -303,7 +305,7 @@ class _ScenePainter extends CustomPainter {
     final metres = s.km * 1000;
 
     // Hills on the horizon.
-    final hillColor = Color.lerp(_skyColor(), skin.ink, 0.14)!;
+    final hillColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
     final hills = Path()..moveTo(0, horizon + 2);
     for (var x = 0.0; x <= w; x += 6) {
       final wx = x + metres * 0.05;

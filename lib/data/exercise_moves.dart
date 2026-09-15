@@ -493,6 +493,87 @@ const standBackMove = Move(
   view: Facing.front,
 );
 
+/// Seen from behind, a leg swinging forward can only be shown by folding the
+/// knee so the foot rises beside the thigh. The fold happens over a short
+/// part of the cycle, since a half-folded shin reads as a kick to the side;
+/// arms stay bent and pump a little. These cycles keep the form when the
+/// scene looks down the road.
+double _foldOf(double q) {
+  // Straight while the leg is in support (sin below 0.15), folded for the
+  // swing; the two legs are half a cycle apart, so one is always straight.
+  final f = ((_sin(q) - 0.15) / 0.5).clamp(0.0, 1.0);
+  return f * f * (3 - 2 * f);
+}
+
+Pose _runBack(double p) {
+  Limb leg(double q) {
+    final thigh = 5 + 3 * _sin(q);
+    return Limb(thigh, thigh + 172 * _foldOf(q));
+  }
+
+  Limb arm(double q) {
+    final upper = -6 + 4 * _sin(q);
+    return Limb(upper, upper + 150 + 12 * _sin(q));
+  }
+
+  return Pose(
+    hip: Offset(50, 56 + 1.5 * _cos(2 * p)),
+    torso: 0,
+    arm: arm(p + math.pi),
+    arm2: arm(p),
+    leg: leg(p),
+    leg2: leg(p + math.pi),
+  );
+}
+
+Pose _walkBack(double p) {
+  Limb leg(double q) {
+    final thigh = 4 + 2 * _sin(q);
+    return Limb(thigh, thigh + 45 * _foldOf(q));
+  }
+
+  Limb arm(double q) {
+    final upper = -3 + 5 * _sin(q);
+    return Limb(upper, upper + 25 + 15 * _sin(q));
+  }
+
+  return Pose(
+    hip: Offset(50 + 1.2 * _sin(p), 57 + 0.8 * _cos(2 * p)),
+    torso: 0,
+    arm: arm(p + math.pi),
+    arm2: arm(p),
+    leg: leg(p),
+    leg2: leg(p + math.pi),
+  );
+}
+
+Pose _cycleBack(double p) {
+  Limb leg(double q) => Limb(9, 9 + 168 * _foldOf(q));
+
+  return Pose(
+    hip: const Offset(50, 60),
+    torso: 0,
+    arm: const Limb(24, 18),
+    leg: leg(p),
+    leg2: leg(p + math.pi),
+  );
+}
+
+/// A squat from behind: the hips drop, the knees turn out a little.
+const _squatBack = Move(
+  start: Pose(hip: Offset(50, 59), torso: 0, arm: Limb(14, 10), leg: Limb(4, 0)),
+  end: Pose(hip: Offset(50, 69), torso: 0, arm: Limb(34, 40), leg: Limb(45, -45)),
+  view: Facing.front,
+);
+
+/// The cycle to draw when the scene looks down the road, by activity.
+Move backMoveFor(CardioType kind) => switch (kind) {
+      CardioType.cycling => const Move.cycle(_cycleBack, view: Facing.front),
+      CardioType.walking || CardioType.yoga => const Move.cycle(_walkBack, view: Facing.front),
+      CardioType.hiit || CardioType.other => _squatBack,
+      _ => const Move.cycle(_runBack, view: Facing.front),
+    };
+
 final Map<CardioType, Move> cardioMoves = {
   CardioType.running: const Move.cycle(_run, gear: [Gear.floor]),
   CardioType.walking: const Move.cycle(_walk, gear: [Gear.floor]),
