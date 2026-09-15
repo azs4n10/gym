@@ -25,6 +25,7 @@ import 'body_screen.dart';
 import 'home_shell.dart';
 import 'meals/food_picker_screen.dart';
 import 'settings_screen.dart';
+import 'workout/run_screen.dart';
 import 'workout/session_screen.dart';
 
 class TodayScreen extends StatelessWidget {
@@ -232,6 +233,15 @@ class TodayScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 10),
+            _QuickAction(
+              ic: Ic.cardio,
+              label: l.runCompanion,
+              color: skin.accent,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const RunScreen()),
+              ),
             ),
             if (open != null || todaySessions.isNotEmpty) ...[
               const SizedBox(height: 16),

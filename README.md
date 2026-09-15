@@ -120,6 +120,22 @@ registered with `flutter config --android-sdk ... --jdk-dir ...`. With that,
 signed with the debug key, which installs by sideloading. The Gradle plugin is
 AGP 9 with `android.newDsl=false`, as the Flutter template sets.
 
+## Run companion and calendar export
+
+The Run screen (Today, the Workout tab, or an open session) is something to
+look at on the treadmill or the road. A figure runs at your pace, hops at
+every kilometre, and calls out landmarks; a road (three fictional routes of
+42.2, 100 and 300 km) is covered across sessions and each landmark reached
+leaves a stamp; a wheel spins every lap (200 m, 400 m or 1 km) and calls the
+next minute; three small quests are drawn per outing. Distance comes from the
+speed you set to match the machine, or from the phone's location when GPS is
+switched on (web only). Finish writes a cardio entry into today's session.
+Progress and stamps live in local preferences (`lib/models/run_play.dart`).
+
+A finished session's menu offers "Add to Google Calendar" (a prefilled event
+link) and, on the web, a calendar file (.ics) that any calendar app imports.
+Nothing is sent anywhere; the data stays in the link or the file.
+
 ## Load time
 
 A cold start downloads the engine (CanvasKit, about 2.9 MB gzipped), the app

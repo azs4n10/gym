@@ -225,6 +225,7 @@ class ExerciseFigure extends StatefulWidget {
     this.gearColor,
     this.phase = 0,
     this.bold = false,
+    this.t,
   });
 
   final Move move;
@@ -241,6 +242,10 @@ class ExerciseFigure extends StatefulWidget {
   /// 0-1 offset into the loop, so neighbouring rows do not move as one.
   final double phase;
 
+  /// When given, the figure is drawn at exactly this point of its motion and
+  /// does not run its own clock; the caller advances it.
+  final double? t;
+
   @override
   State<ExerciseFigure> createState() => _ExerciseFigureState();
 }
@@ -252,7 +257,7 @@ class _ExerciseFigureState extends State<ExerciseFigure>
   @override
   void initState() {
     super.initState();
-    if (widget.animate) {
+    if (widget.animate && widget.t == null) {
       final loops = widget.move.loops;
       _c = AnimationController(
         vsync: this,
@@ -282,10 +287,13 @@ class _ExerciseFigureState extends State<ExerciseFigure>
           bold: widget.bold,
         );
     final c = _c;
+    final fixed = widget.t;
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: c == null
+      child: fixed != null
+          ? CustomPaint(painter: painter(fixed % 1.0))
+          : c == null
           ? CustomPaint(painter: painter(0), isComplex: true, willChange: false)
           : RepaintBoundary(
               child: AnimatedBuilder(

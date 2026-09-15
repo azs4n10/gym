@@ -18,6 +18,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/pastel_card.dart';
 import 'exercise_picker_screen.dart';
 import 'history_screen.dart';
+import 'run_screen.dart';
 import 'session_screen.dart';
 
 class WorkoutListScreen extends StatefulWidget {
@@ -72,6 +73,14 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
         child: Column(
           children: [
             PageHeader(l.workouts, actions: [
+              CircleButton(
+                icon: Icons.directions_run_rounded,
+                size: 36,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RunScreen()),
+                ),
+              ),
+              const SizedBox(width: 8),
               CircleButton(
                 icon: Icons.history_rounded,
                 size: 36,

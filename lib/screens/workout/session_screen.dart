@@ -8,6 +8,7 @@ import '../../data/exercise_moves.dart';
 import '../../data/seed/exercises_seed.dart';
 import '../../l10n/strings.dart';
 import '../../models/enums.dart';
+import '../../services/calendar_export.dart';
 import '../../services/health_sync.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
@@ -23,6 +24,7 @@ import '../../widgets/ring_progress.dart';
 import '../../widgets/stepper_field.dart';
 import '../../widgets/window_card.dart';
 import 'exercise_picker_screen.dart';
+import 'run_screen.dart';
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key, required this.sessionId});
@@ -73,15 +75,26 @@ class _SessionScreenState extends State<SessionScreen> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (v) async {
+              final export = CalendarExport(d, l, (id) {
+                final e = w.exerciseById(id);
+                return e == null ? '' : exerciseName(e, l);
+              });
               if (v == 'delete') {
                 final ok = await _confirm(context, l);
                 if (ok && context.mounted) {
                   await w.deleteSession(d.session.id);
                   if (context.mounted) Navigator.of(context).pop();
                 }
+              } else if (v == 'google') {
+                await export.openGoogle();
+              } else if (v == 'ics') {
+                await export.saveFile();
               }
             },
             itemBuilder: (_) => [
+              if (!isOpen) PopupMenuItem(value: 'google', child: Text(l.calendarGoogle)),
+              if (!isOpen && CalendarExport.canSaveFile)
+                PopupMenuItem(value: 'ics', child: Text(l.calendarFile)),
               PopupMenuItem(value: 'delete', child: Text(l.delete)),
             ],
           ),
@@ -193,6 +206,14 @@ class _SessionScreenState extends State<SessionScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const RunScreen()),
+              ),
+              icon: const Icon(Icons.sports_score_rounded),
+              label: Text(l.runCompanion),
             ),
             const SizedBox(height: 18),
           ],

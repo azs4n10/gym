@@ -189,6 +189,33 @@ abstract class L {
   String get workoutLabel;
   String get strength;
   String get today;
+  String get runTool;
+  String get runCompanion;
+  String get speed;
+  String get pace;
+  String get journey;
+  String get roulette;
+  String get quests;
+  String stamps(int n);
+  String get lapLength;
+  String laps(int n);
+  String get spin;
+  String nextLandmark(String name, String km);
+  String routeTotal(String km);
+  String get routeDone;
+  String get pause;
+  String get resume;
+  String get finishRun;
+  String get runSaved;
+  String newStamps(int n);
+  String get questDone;
+  String get calendarGoogle;
+  String get calendarFile;
+  String get resting;
+  String kmMark(int n);
+  String landmarkReached(String name);
+  String get gpsWaiting;
+  String callLeft(int s);
 }
 
 class LEn extends L {
@@ -550,6 +577,60 @@ class LEn extends L {
   String get strength => 'Strength';
   @override
   String get today => 'Today';
+  @override
+  String get runTool => 'Run';
+  @override
+  String get runCompanion => 'Run with a companion';
+  @override
+  String get speed => 'Speed';
+  @override
+  String get pace => 'Pace';
+  @override
+  String get journey => 'Journey';
+  @override
+  String get roulette => 'Lap roulette';
+  @override
+  String get quests => 'Quests';
+  @override
+  String stamps(int n) => n == 1 ? '1 stamp' : '$n stamps';
+  @override
+  String get lapLength => 'Lap';
+  @override
+  String laps(int n) => '$n laps';
+  @override
+  String get spin => 'Spin';
+  @override
+  String nextLandmark(String name, String km) => '$name in $km km';
+  @override
+  String routeTotal(String km) => '$km km on this road';
+  @override
+  String get routeDone => 'Route complete';
+  @override
+  String get pause => 'Pause';
+  @override
+  String get resume => 'Resume';
+  @override
+  String get finishRun => 'Finish';
+  @override
+  String get runSaved => "Saved to today's workout";
+  @override
+  String newStamps(int n) => n == 1 ? '+1 stamp' : '+$n stamps';
+  @override
+  String get questDone => 'Done';
+  @override
+  String get calendarGoogle => 'Add to Google Calendar';
+  @override
+  String get calendarFile => 'Save calendar file (.ics)';
+  @override
+  String get resting => 'Resting';
+  @override
+  String kmMark(int n) => '$n km!';
+  @override
+  String landmarkReached(String name) => 'Reached $name';
+  @override
+  String get gpsWaiting => 'Waiting for GPS';
+  @override
+  String callLeft(int s) => '${s}s left';
 }
 
 class LJa extends L {
@@ -911,6 +992,60 @@ class LJa extends L {
   String get strength => '筋トレ';
   @override
   String get today => '今日';
+  @override
+  String get runTool => 'ラン';
+  @override
+  String get runCompanion => '伴走モードで走る';
+  @override
+  String get speed => '速度';
+  @override
+  String get pace => 'ペース';
+  @override
+  String get journey => '旅';
+  @override
+  String get roulette => 'ラップルーレット';
+  @override
+  String get quests => 'お題';
+  @override
+  String stamps(int n) => 'スタンプ $n 個';
+  @override
+  String get lapLength => '1周';
+  @override
+  String laps(int n) => '$n 周';
+  @override
+  String get spin => '回す';
+  @override
+  String nextLandmark(String name, String km) => '$name まで $km km';
+  @override
+  String routeTotal(String km) => 'この道で $km km';
+  @override
+  String get routeDone => '完走';
+  @override
+  String get pause => '一時停止';
+  @override
+  String get resume => '再開';
+  @override
+  String get finishRun => '終了';
+  @override
+  String get runSaved => '今日のトレーニングに保存しました';
+  @override
+  String newStamps(int n) => 'スタンプ +$n';
+  @override
+  String get questDone => '達成';
+  @override
+  String get calendarGoogle => 'Google カレンダーに追加';
+  @override
+  String get calendarFile => 'カレンダーファイル (.ics) を保存';
+  @override
+  String get resting => '休憩中';
+  @override
+  String kmMark(int n) => '$n km!';
+  @override
+  String landmarkReached(String name) => '$name に着いた';
+  @override
+  String get gpsWaiting => 'GPS を待っています';
+  @override
+  String callLeft(int s) => 'あと $s 秒';
 }
 
 L stringsFor(String code) => code == 'ja' ? const LJa() : const LEn();
