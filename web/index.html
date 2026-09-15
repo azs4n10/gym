@@ -51,10 +51,88 @@
       bottom: env(safe-area-inset-bottom, 0px);
       left: env(safe-area-inset-left, 0px);
     }
+
+    /* Shown while the engine loads, in the app's own sticker style; taken
+       down on Flutter's first frame. */
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      background-color: #FDF0F5;
+      background-image:
+        linear-gradient(rgba(74, 53, 80, 0.11) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 53, 80, 0.11) 1px, transparent 1px);
+      background-size: 26px 26px;
+      transition: opacity 0.35s ease;
+    }
+    #boot.gone { opacity: 0; pointer-events: none; }
+    #boot .card {
+      width: min(72vw, 300px);
+      background: #fff;
+      border: 2px solid #4A3550;
+      border-radius: 22px;
+      box-shadow: 3px 4px 0 rgba(74, 53, 80, 0.22);
+      overflow: hidden;
+      font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Yu Gothic UI", system-ui, sans-serif;
+      color: #4A3550;
+    }
+    #boot .bar {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 7px 8px 7px 14px;
+      background: #FBBBD3;
+      border-bottom: 2px solid #4A3550;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    #boot .bar::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 38% 0;
+      background: linear-gradient(rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
+      pointer-events: none;
+    }
+    #boot .bar span { flex: 1; }
+    #boot .dot {
+      width: 11px;
+      height: 11px;
+      margin-left: 5px;
+      border: 1.6px solid #4A3550;
+      border-radius: 50%;
+      box-sizing: border-box;
+      animation: boot-blink 1.5s infinite;
+    }
+    #boot .dot:nth-child(2) { background: #fff; animation-delay: 0s; }
+    #boot .dot:nth-child(3) { background: #C7B2EF; animation-delay: 0.25s; }
+    #boot .dot:nth-child(4) { background: #C2547E; animation-delay: 0.5s; }
+    @keyframes boot-blink {
+      0%, 60%, 100% { transform: scale(1); box-shadow: none; }
+      20% { transform: scale(1.25); box-shadow: 0 0 8px 2px rgba(251, 187, 211, 0.9); }
+    }
+    #boot .body { padding: 28px 24px 30px; display: grid; place-items: center; }
+    #boot svg { width: 56%; height: auto; }
   </style>
 </head>
 <body>
   <div id="gym-app"></div>
+  <div id="boot" aria-hidden="true">
+    <div class="card">
+      <div class="bar"><span>Gym</span><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+      <div class="body">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <rect x="124" y="244" width="264" height="24" rx="12" fill="#4A3550"/>
+          <rect x="129" y="176" width="62" height="160" rx="18" fill="#C7B2EF" stroke="#4A3550" stroke-width="12"/>
+          <rect x="321" y="176" width="62" height="160" rx="18" fill="#C7B2EF" stroke="#4A3550" stroke-width="12"/>
+          <rect x="91" y="206" width="34" height="100" rx="12" fill="#FBBBD3" stroke="#4A3550" stroke-width="11"/>
+          <rect x="387" y="206" width="34" height="100" rx="12" fill="#FBBBD3" stroke="#4A3550" stroke-width="11"/>
+        </svg>
+      </div>
+    </div>
+  </div>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
@@ -64,5 +142,19 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    (function () {
+      var boot = document.getElementById('boot');
+      var done = false;
+      function hide() {
+        if (done || !boot) return;
+        done = true;
+        boot.classList.add('gone');
+        setTimeout(function () { boot.remove(); }, 400);
+      }
+      window.addEventListener('flutter-first-frame', hide);
+      setTimeout(hide, 20000);
+    })();
+  </script>
 </body>
 </html>
