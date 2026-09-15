@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ void main() {
                     SizedBox(
                       width: 150,
                       height: h + 20,
-                      child: Center(child: CompanionRigView(rig: rig!, pose: move.at(i / n), height: h, farTint: const Color(0x30000000))),
+                      child: Center(child: CompanionRigView(rig: rig!, pose: move.at(i / n), height: h, farTint: const Color(0x20000000), hairSway: 0.09 * math.sin(4 * math.pi * i / n - 1.4))),
                     ),
                 ],
               ),

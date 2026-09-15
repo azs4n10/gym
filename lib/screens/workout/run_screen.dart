@@ -519,7 +519,9 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         rig: rig,
                                         pose: move.at(figureT),
                                         height: rigH,
-                                        farTint: skin.ink.withValues(alpha: 0.18),
+                                        farTint: skin.ink.withValues(alpha: 0.12),
+                                        // Trails the bob of the stride by a quarter turn.
+                                        hairSway: 0.09 * math.sin(4 * math.pi * _phase - 1.4),
                                       )
                                     : _girl
                                     ? CompanionSprite(

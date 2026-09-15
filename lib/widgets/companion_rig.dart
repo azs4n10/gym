@@ -76,7 +76,7 @@ class CompanionRig {
   }
 
   /// Where each bone's head ends up and how much it turned, for a pose.
-  List<BoneXf> solve(Pose pose, {double unit = 17}) {
+  List<BoneXf> solve(Pose pose, {double unit = 17, double hairSway = 0}) {
     final out = List<BoneXf>.filled(bones.length, const BoneXf(Offset.zero, 0));
     final root = Offset(0, (pose.hip.dy - 55) * unit);
     for (var i = 0; i < bones.length; i++) {
@@ -107,6 +107,9 @@ class CompanionRig {
         // The far arm is drawn behind the body, so a full swing would only
         // show as stray pieces poking out; it swings gently instead.
         turn = b.name.startsWith('far_') && b.name.contains('upper') || b.name == 'far_lower' ? t * 0.35 : t;
+      } else if (b.name == 'hair') {
+        // Hair trails the head and sways with the stride.
+        turn = out[b.parent].turn + hairSway;
       } else {
         // Head, hands and feet keep their parent's turn.
         turn = b.parent >= 0 ? out[b.parent].turn : 0;
@@ -159,11 +162,14 @@ class BoneXf {
 
 /// Draws the rig in a pose at a given height, feet on the widget's bottom.
 class CompanionRigView extends StatelessWidget {
-  const CompanionRigView({super.key, required this.rig, required this.pose, required this.height, this.farTint});
+  const CompanionRigView({super.key, required this.rig, required this.pose, required this.height, this.farTint, this.hairSway = 0});
 
   final CompanionRig rig;
   final Pose pose;
   final double height;
+
+  /// Extra turn of the hair bone, radians.
+  final double hairSway;
 
   /// Colour laid over the far arm and leg so they sit behind.
   final Color? farTint;
@@ -174,21 +180,22 @@ class CompanionRigView extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: CustomPaint(painter: _RigPainter(rig, pose, farTint), willChange: true),
+      child: CustomPaint(painter: _RigPainter(rig, pose, farTint, hairSway), willChange: true),
     );
   }
 }
 
 class _RigPainter extends CustomPainter {
-  _RigPainter(this.rig, this.pose, this.farTint);
+  _RigPainter(this.rig, this.pose, this.farTint, this.hairSway);
   final CompanionRig rig;
   final Pose pose;
   final Color? farTint;
+  final double hairSway;
 
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.height / rig.height;
-    final xf = rig.solve(pose);
+    final xf = rig.solve(pose, hairSway: hairSway);
     canvas.save();
     canvas.scale(scale);
     for (final layer in rig.layers) {
@@ -219,5 +226,5 @@ class _RigPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RigPainter old) => old.pose != pose || old.rig != rig;
+  bool shouldRepaint(_RigPainter old) => old.pose != pose || old.rig != rig || old.hairSway != hairSway;
 }
