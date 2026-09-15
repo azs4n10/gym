@@ -60,7 +60,7 @@ class StartupError extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Close the app fully and open it again. If this keeps happening, send the text below.',
+                'Close every tab or window of the app, then open it again. If this keeps happening, send the text below.',
                 style: TextStyle(color: Color(0xFF4A3550)),
               ),
               const SizedBox(height: 16),

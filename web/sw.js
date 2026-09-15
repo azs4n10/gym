@@ -78,6 +78,11 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.endsWith('/sw.js')) return;
 
+  // The app is a single page at the scope root; any other navigation in
+  // scope is left to the network.
+  const root = url.origin + url.pathname === self.registration.scope ||
+    url.origin + url.pathname === shellUrl('index.html');
+  if (req.mode === 'navigate' && !root) return;
   const key = req.mode === 'navigate' ? shellUrl('index.html') : url.href;
   const entry = ENTRY.some((path) => key === shellUrl(path));
 
