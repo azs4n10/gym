@@ -3,20 +3,22 @@
 // device instead of the network.
 //
 // The cache is named after the version in this script's URL, which the deploy
-// script stamps per build. A new deploy therefore installs as a new worker
-// with its own cache; it takes over once every page of the old one is closed,
-// and the launch after that runs entirely on the new files. Nothing is served
-// from a mix of two versions.
+// script stamps per build. The two entry files (index.html and the bootstrap
+// that carries the version) are always fetched from the network first, so a
+// new deploy is noticed on the next launch: its worker installs with its own
+// cache, takes over once every page of the old one is closed, and the launch
+// after that runs entirely on the new files. Nothing is served from a mix of
+// two versions.
 'use strict';
 
 const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev';
 const CACHE = 'gym-' + VERSION;
 
+const ENTRY = ['index.html', 'flutter_bootstrap.js'];
+
 // Fetched at install time so the second launch is already served from the
 // device. Files the page asks for beyond these are cached as they go by.
 const SHELL = [
-  'index.html',
-  'flutter_bootstrap.js',
   'main.dart.js',
   'sqlite3.wasm',
   'drift_worker.js',
@@ -50,7 +52,7 @@ self.addEventListener('install', (event) => {
     // "no-cache" revalidates with the server, so a file the page has just
     // downloaded is not fetched twice, while a file changed by a new deploy
     // is not taken from a stale HTTP cache.
-    await Promise.all(SHELL.concat(ENGINE).map(async (path) => {
+    await Promise.all(ENTRY.concat(SHELL, ENGINE).map(async (path) => {
       try {
         const res = await fetch(shellUrl(path), { cache: 'no-cache' });
         if (res.ok) await cache.put(shellUrl(path), res);
@@ -77,8 +79,21 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.endsWith('/sw.js')) return;
 
   const key = req.mode === 'navigate' ? shellUrl('index.html') : url.href;
+  const entry = ENTRY.some((path) => key === shellUrl(path));
+
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
+    if (entry) {
+      try {
+        const res = await fetch(req);
+        if (res.ok) await cache.put(key, res.clone());
+        return res;
+      } catch (_) {
+        const hit = await cache.match(key);
+        if (hit) return hit;
+        throw _;
+      }
+    }
     const hit = await cache.match(key);
     if (hit) return hit;
     const res = await fetch(req);

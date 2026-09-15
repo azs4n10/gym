@@ -16,6 +16,16 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    runApp(await _start().timeout(const Duration(seconds: 40)));
+  } catch (e, s) {
+    // A failure before the first frame would otherwise leave the boot screen
+    // and then a blank page; show what went wrong instead.
+    runApp(StartupError(error: e, stack: s));
+  }
+}
+
+Future<Widget> _start() async {
   await Future.wait([initializeDateFormatting('en'), initializeDateFormatting('ja')]);
 
   final db = AppDatabase(openConnection());
@@ -25,7 +35,45 @@ Future<void> main() async {
   final meal = MealState(db);
   await Future.wait([workout.load(), body.load(), meal.load()]);
 
-  runApp(GymApp(app: app, workout: workout, body: body, meal: meal));
+  return GymApp(app: app, workout: workout, body: body, meal: meal);
+}
+
+class StartupError extends StatelessWidget {
+  const StartupError({super.key, required this.error, required this.stack});
+
+  final Object error;
+  final StackTrace stack;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFFFDF0F5),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text(
+                'The app could not start',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF4A3550)),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Close the app fully and open it again. If this keeps happening, send the text below.',
+                style: TextStyle(color: Color(0xFF4A3550)),
+              ),
+              const SizedBox(height: 16),
+              SelectableText(
+                '$error\n\n$stack',
+                style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: Color(0xFF4A3550)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class GymApp extends StatelessWidget {

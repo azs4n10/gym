@@ -134,7 +134,9 @@ Flutter 3.44 no longer generates a caching service worker (its
 so the app ships its own in `web/sw.js`. It caches everything the page loads
 from its own origin under a cache named after a version that
 `tool/deploy_pages.sh` stamps into `flutter_bootstrap.js`; later launches read
-from the device. A new deploy installs as a new worker with its own cache,
-takes over once the app has been closed, and the next launch runs on the new
-files. Plain `flutter run` leaves the version placeholder in place, so no
-worker is registered during development.
+from the device. Only `index.html` and `flutter_bootstrap.js` are fetched from
+the network first (falling back to the cache when offline), which is how a new
+deploy gets noticed: it installs as a new worker with its own cache, takes over
+once the app has been closed, and the next launch runs on the new files. Plain
+`flutter run` leaves the version placeholder in place, so no worker is
+registered during development.
