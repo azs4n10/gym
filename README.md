@@ -109,3 +109,13 @@ and Technology under the Government of Japan Standard Terms of Use (compatible
 with CC BY 4.0). Attribution, as required: 日本食品標準成分表（八訂）増補2023年
 から引用. The conversion reads the main table (第2章) Excel file and keeps only
 those four values; `tool/` does not include the converter, as it is a one-off.
+
+## Building the Android APK locally
+
+The Android toolchain on the development PC lives outside the project:
+JDK 17 (Temurin) at `C:\dev\jdk17` and the Android SDK at
+`C:\dev\android-sdk` (platform 36, build-tools 36.0.0, platform-tools),
+registered with `flutter config --android-sdk ... --jdk-dir ...`. With that,
+`flutter build apk --release` writes `build/app/outputs/flutter-apk/app-release.apk`,
+signed with the debug key, which installs by sideloading. The Gradle plugin is
+AGP 9 with `android.newDsl=false`, as the Flutter template sets.
