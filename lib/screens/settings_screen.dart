@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../build_info.dart';
 import '../models/enums.dart';
+import '../services/google_calendar.dart';
 import '../services/health_sync.dart';
 import '../services/nutrition.dart';
 import '../state/app_state.dart';
@@ -50,6 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final manual = p.kcalOverride != null;
     final targets = computeTargets(p, body.latestWeight);
     final health = HealthSync.instance;
+    final cal = context.watch<CalendarState>();
 
     return Scaffold(
       appBar: AppBar(title: Text(l.settings)),
@@ -219,6 +221,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   selected: {p.font},
                   onSelectionChanged: (s) => app.setFont(s.first),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          WindowCard(
+            title: l.gcal,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!cal.available)
+                  Text(l.gcalWebOnly, style: TextStyle(color: skin.subText))
+                else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(cal.connected ? l.gcalConnected : l.gcalNotConnected,
+                            style: TextStyle(color: skin.text, fontWeight: FontWeight.w700)),
+                      ),
+                      if (cal.connected)
+                        OutlinedButton(onPressed: cal.disconnect, child: Text(l.gcalDisconnect))
+                      else
+                        FilledButton(
+                          onPressed: cal.busy
+                              ? null
+                              : () async {
+                                  final ok = await cal.connect();
+                                  if (!ok && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.gcalFailed)));
+                                  }
+                                },
+                          child: Text(l.gcalConnect),
+                        ),
+                    ],
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l.gcalAutoWrite),
+                    value: cal.autoWrite,
+                    onChanged: cal.connected ? cal.setAutoWrite : null,
+                  ),
+                ],
               ],
             ),
           ),

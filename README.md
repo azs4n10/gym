@@ -146,6 +146,15 @@ A finished session's menu offers "Add to Google Calendar" (a prefilled event
 link) and, on the web, a calendar file (.ics) that any calendar app imports.
 Nothing is sent anywhere; the data stays in the link or the file.
 
+Settings can also connect the user's Google Calendar directly (web only,
+through Google Identity Services with the OAuth client id in
+lib/services/google_calendar.dart, which is public by design). Once
+connected, the Calendar tab marks days that have events and lists them under
+the selected day, and finished workouts can be written to the calendar
+automatically. The token Google hands the page is kept in local preferences
+and refreshed silently; the app talks to Google from the device only. The
+OAuth consent screen stays in testing mode with the owner as a test user.
+
 ## Load time
 
 A cold start downloads the engine (CanvasKit, about 2.9 MB gzipped), the app

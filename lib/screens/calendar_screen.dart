@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../data/database.dart';
 import '../l10n/strings.dart';
 import '../models/enums.dart';
+import '../services/google_calendar.dart';
 import '../services/streaks.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
@@ -38,11 +39,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final w = context.watch<WorkoutState>();
     final body = context.watch<BodyState>();
     final meal = context.watch<MealState>();
+    final cal = context.watch<CalendarState>();
     final t = Theme.of(context).textTheme;
+    // Fetched once per month looked at; a no-op when cached or not connected.
+    WidgetsBinding.instance.addPostFrameCallback((_) => cal.loadMonth(_month));
 
     final gymDays = w.gymDays.toSet();
     final mealDays = meal.loggedDays;
     final bodyDays = body.logs.map((x) => dayOf(x.date)).toSet();
+    final eventDays = cal.eventDays;
     final streak = summarizeStreaks(gymDays, app.profile.weeklyGoalDays);
     final today = dayOf(DateTime.now());
 
@@ -60,6 +65,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final selectedSessions = w.sessionsOn(_selected).where((s) => !s.isEmpty).toList();
     final selectedBody = body.logOn(_selected);
     final selectedMeals = meal.totalsOn(_selected);
+    final selectedEvents = cal.on(_selected);
 
     return Scaffold(
       body: SafeArea(
@@ -123,6 +129,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             gym: gymDays.contains(cells[row * 7 + col]),
                             meal: mealDays.contains(cells[row * 7 + col]),
                             body: bodyDays.contains(cells[row * 7 + col]),
+                            event: eventDays.contains(cells[row * 7 + col]),
                             onTap: () => setState(() => _selected = cells[row * 7 + col]!),
                           ),
                         ),
@@ -133,6 +140,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _Legend(color: skin.button, label: l.gym),
+                    if (cal.connected) _Legend(color: skin.ink.withValues(alpha: 0.45), label: l.gcalEvents),
                     const SizedBox(width: 12),
                     _Legend(color: skin.accent, label: l.meals),
                     const SizedBox(width: 12),
@@ -150,7 +158,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (selectedSessions.isEmpty && selectedBody == null && selectedMeals.kcal == 0)
+                if (selectedSessions.isEmpty && selectedBody == null && selectedMeals.kcal == 0 && selectedEvents.isEmpty)
                   EmptyHint(ic: Ic.empty, text: l.noRecords),
                 for (final s in selectedSessions)
                   Padding(
@@ -215,6 +223,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ],
                     ),
                   ),
+                for (final e in selectedEvents)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: PastelCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          const AppIcon(Ic.month, size: 24),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(e.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: t.bodyMedium?.copyWith(color: skin.text, fontWeight: FontWeight.w700)),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(e.allDay ? l.allDay : _hm(e.start), style: t.bodySmall?.copyWith(color: skin.subText)),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -223,6 +252,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
   }
+
+  String _hm(DateTime t) => '${t.hour}:${t.minute.toString().padLeft(2, '0')}';
 
   String _sessionLine(SessionDetail s, WorkoutState w, L l) {
     final groups = <String>{};
@@ -243,6 +274,7 @@ class _DayCell extends StatelessWidget {
     required this.gym,
     required this.meal,
     required this.body,
+    required this.event,
     required this.onTap,
   });
 
@@ -252,6 +284,7 @@ class _DayCell extends StatelessWidget {
   final bool gym;
   final bool meal;
   final bool body;
+  final bool event;
   final VoidCallback onTap;
 
   @override
@@ -297,6 +330,7 @@ class _DayCell extends StatelessWidget {
               children: [
                 _Dot(visible: meal, color: skin.accent),
                 _Dot(visible: body, color: skin.heading),
+                _Dot(visible: event, color: skin.ink.withValues(alpha: 0.45)),
               ],
             ),
           ],

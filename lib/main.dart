@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'data/connection.dart';
 import 'data/database.dart';
 import 'screens/home_shell.dart';
+import 'services/google_calendar.dart';
 import 'widgets/grid_background.dart';
 import 'state/app_state.dart';
 import 'state/body_state.dart';
@@ -33,9 +34,10 @@ Future<Widget> _start() async {
   final workout = WorkoutState(db);
   final body = BodyState(db);
   final meal = MealState(db);
-  await Future.wait([workout.load(), body.load(), meal.load()]);
+  final cal = CalendarState();
+  await Future.wait([workout.load(), body.load(), meal.load(), cal.init()]);
 
-  return GymApp(app: app, workout: workout, body: body, meal: meal);
+  return GymApp(app: app, workout: workout, body: body, meal: meal, cal: cal);
 }
 
 class StartupError extends StatelessWidget {
@@ -83,12 +85,14 @@ class GymApp extends StatelessWidget {
     required this.workout,
     required this.body,
     required this.meal,
+    required this.cal,
   });
 
   final AppState app;
   final WorkoutState workout;
   final BodyState body;
   final MealState meal;
+  final CalendarState cal;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +102,7 @@ class GymApp extends StatelessWidget {
         ChangeNotifierProvider<WorkoutState>.value(value: workout),
         ChangeNotifierProvider<BodyState>.value(value: body),
         ChangeNotifierProvider<MealState>.value(value: meal),
+        ChangeNotifierProvider<CalendarState>.value(value: cal),
       ],
       child: Consumer<AppState>(
         builder: (context, state, _) => MaterialApp(

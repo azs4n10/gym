@@ -95,7 +95,7 @@ class GoogleCalendar {
       if (res.statusCode != 200) return null;
       final json = jsonDecode(res.body) as Map<String, dynamic>;
       final items = (json['items'] as List? ?? []).cast<Map<String, dynamic>>();
-      return [for (final i in items) if (_parse(i) case final e?) e];
+      return [for (final i in items) ?_parse(i)];
     } catch (_) {
       return null;
     }

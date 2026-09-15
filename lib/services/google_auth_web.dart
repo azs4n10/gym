@@ -65,7 +65,9 @@ Future<(String, int)?> requestToken(String clientId, String scope, {bool silent 
         finish((token, res.expiresIn?.toDartInt ?? 3600));
       }
     }.toJS,
-    'error_callback': (JSObject _) => finish(null).toJS,
+    'error_callback': ((JSObject _) {
+      finish(null);
+    }).toJS,
   }.jsify()! as JSObject;
   final client = _initTokenClient(config);
   client.requestAccessToken({'prompt': silent ? '' : 'consent'}.jsify()! as JSObject);

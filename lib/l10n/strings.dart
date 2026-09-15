@@ -231,6 +231,17 @@ abstract class L {
   String get look;
   String get lookGirl;
   String get lookStick;
+  String get gcal;
+  String get gcalConnect;
+  String get gcalDisconnect;
+  String get gcalConnected;
+  String get gcalNotConnected;
+  String get gcalAutoWrite;
+  String get gcalWebOnly;
+  String get gcalEvents;
+  String get allDay;
+  String get gcalFailed;
+  String get gcalWritten;
 }
 
 class LEn extends L {
@@ -676,6 +687,28 @@ class LEn extends L {
   String get lookGirl => 'Illustration';
   @override
   String get lookStick => 'Stick figure';
+  @override
+  String get gcal => 'Google Calendar';
+  @override
+  String get gcalConnect => 'Connect';
+  @override
+  String get gcalDisconnect => 'Disconnect';
+  @override
+  String get gcalConnected => 'Connected';
+  @override
+  String get gcalNotConnected => 'Not connected';
+  @override
+  String get gcalAutoWrite => 'Write finished workouts to the calendar';
+  @override
+  String get gcalWebOnly => 'Available in the web app';
+  @override
+  String get gcalEvents => 'Calendar';
+  @override
+  String get allDay => 'All day';
+  @override
+  String get gcalFailed => 'Could not connect to Google Calendar';
+  @override
+  String get gcalWritten => 'Added to Google Calendar';
 }
 
 class LJa extends L {
@@ -1121,6 +1154,28 @@ class LJa extends L {
   String get lookGirl => 'イラスト';
   @override
   String get lookStick => '棒人間';
+  @override
+  String get gcal => 'Google カレンダー';
+  @override
+  String get gcalConnect => '接続する';
+  @override
+  String get gcalDisconnect => '接続を解除';
+  @override
+  String get gcalConnected => '接続済み';
+  @override
+  String get gcalNotConnected => '未接続';
+  @override
+  String get gcalAutoWrite => '終えたトレーニングを予定として書き込む';
+  @override
+  String get gcalWebOnly => 'Web 版で使えます';
+  @override
+  String get gcalEvents => '予定';
+  @override
+  String get allDay => '終日';
+  @override
+  String get gcalFailed => 'Google カレンダーに接続できませんでした';
+  @override
+  String get gcalWritten => 'Google カレンダーに追加しました';
 }
 
 L stringsFor(String code) => code == 'ja' ? const LJa() : const LEn();

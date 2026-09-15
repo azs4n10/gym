@@ -9,6 +9,7 @@ import '../../data/seed/exercises_seed.dart';
 import '../../l10n/strings.dart';
 import '../../models/enums.dart';
 import '../../services/calendar_export.dart';
+import '../../services/google_calendar.dart';
 import '../../services/health_sync.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
@@ -239,15 +240,32 @@ class _SessionScreenState extends State<SessionScreen> {
     final app = context.read<AppState>();
     final l = app.l;
     final w = context.read<WorkoutState>();
+    final cal = context.read<CalendarState>();
     final sync = app.profile.healthSync && HealthSync.instance.isSupported;
     final synced = await w.finishSession(id, syncHealth: sync);
+    var written = false;
+    if (cal.connected && cal.autoWrite) {
+      final d = w.sessionById(id);
+      if (d != null) {
+        final export = CalendarExport(d, l, (eid) {
+          final e = w.exerciseById(eid);
+          return e == null ? '' : exerciseName(e, l);
+        });
+        written = await cal.writeSession(
+          title: export.title,
+          description: export.description,
+          start: d.session.startedAt,
+          end: d.session.endedAt ?? DateTime.now(),
+        );
+      }
+    }
     if (!context.mounted) return;
     final msg = switch (synced) {
       true => l.savedSynced,
       false => l.savedSyncFailed,
       null => l.saved,
     };
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text([msg, if (written) l.gcalWritten].join(' · '))));
     Navigator.of(context).pop();
   }
 
