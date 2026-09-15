@@ -105,7 +105,11 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
-          if (from < 2) await m.addColumn(foods, foods.barcode);
+          // Every step looks before it changes the schema. In the browser the
+          // database lives in IndexedDB and is flushed lazily, so a page closed
+          // right after an upgrade can keep the new column and lose the version
+          // bump that follows it; the step then runs again on the next launch.
+          if (from < 2) await _addColumnIfMissing(m, foods, foods.barcode);
         },
         onCreate: (m) async {
           await m.createAll();
@@ -119,6 +123,13 @@ class AppDatabase extends _$AppDatabase {
           await _repairSeeds();
         },
       );
+
+  Future<void> _addColumnIfMissing(Migrator m, TableInfo table, GeneratedColumn column) async {
+    final names = await customSelect('PRAGMA table_info(${table.actualTableName})')
+        .map((r) => r.read<String>('name'))
+        .get();
+    if (!names.contains(column.name)) await m.addColumn(table, column);
+  }
 
   // Two page loads racing on a brand-new database can both run onCreate, so
   // drop duplicated built-in rows (keeping the oldest) and fill in missing seeds.

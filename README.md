@@ -127,6 +127,14 @@ code (about 1.1 MB gzipped), sqlite (0.35 MB) and the two bundled weights of
 M PLUS Rounded 1c (about 0.5 MB each; subset to the glyphs the app shows,
 with the system font as fallback for anything else). The rounded font is no
 longer fetched from Google Fonts, which used to pull four full 3.4 MB files
-before the first frame. The build uses `--pwa-strategy=offline-first`, so a
-service worker caches all of it: later launches read from the device, and a
-new deploy is picked up on the launch after the one that downloads it.
+before the first frame.
+
+Flutter 3.44 no longer generates a caching service worker (its
+`--pwa-strategy=offline-first` only emits a worker that unregisters itself),
+so the app ships its own in `web/sw.js`. It caches everything the page loads
+from its own origin under a cache named after a version that
+`tool/deploy_pages.sh` stamps into `flutter_bootstrap.js`; later launches read
+from the device. A new deploy installs as a new worker with its own cache,
+takes over once the app has been closed, and the next launch runs on the new
+files. Plain `flutter run` leaves the version placeholder in place, so no
+worker is registered during development.
