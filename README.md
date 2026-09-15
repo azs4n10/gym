@@ -56,7 +56,7 @@ The app ships as a web app rather than a native build, and is meant to be added 
 
 If GitHub Actions is unavailable, set Pages → Source to "Deploy from a branch → gh-pages" and run `tool/deploy_pages.sh` locally. It builds, pushes to the `gh-pages` branch and requests a Pages build. Git Bash on Windows rewrites `--base-href /gym/` into a drive path, so the script sets `MSYS_NO_PATHCONV=1`.
 
-Builds use `--pwa-strategy=none`, and `web/flutter_service_worker.js` is a kill switch that unregisters the service worker installed by earlier builds, so an updated deploy reaches devices on the next load.
+Builds use `--pwa-strategy=none`; the app's own service worker (`web/sw.js`, see Load time below) caches it on the device and picks up a new deploy on the launch after the app is closed.
 
 Records live in the browser's IndexedDB on the device. Clearing Safari's site data clears them too.
 
