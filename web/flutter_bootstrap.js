@@ -7,6 +7,14 @@
 (function () {
   var version = '__SW_VERSION__';
   if (version.indexOf('__') === 0 || !('serviceWorker' in navigator)) return;
+  var hadController = !!navigator.serviceWorker.controller;
+  var painted = false;
+  window.addEventListener('flutter-first-frame', function () { painted = true; });
+  // A newer worker took over while the boot screen was still up: start again
+  // on its files rather than finishing the launch on the old ones.
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (hadController && !painted) location.reload();
+  });
   navigator.serviceWorker
     .register('sw.js?v=' + version, { updateViaCache: 'none' })
     .catch(function (e) { console.warn('Service worker not registered:', e); });

@@ -8,11 +8,11 @@ REMOTE="$(git remote get-url origin)"
 
 # Git Bash rewrites "/gym/" into a Windows path unless this is set.
 export MSYS_NO_PATHCONV=1
-flutter build web --release --pwa-strategy=none --base-href "/$REPO/"
-grep -q "<base href=\"/$REPO/\">" build/web/index.html
-
-# Stamp the service worker version so each deploy gets its own cache.
+# One version per deploy: it names the service worker cache and is shown in
+# Settings, so a device can tell which build it runs.
 SW_VERSION="$(git rev-parse --short HEAD)-$(date -u +%Y%m%d%H%M)"
+flutter build web --release --pwa-strategy=none --base-href "/$REPO/" --dart-define=BUILD_ID="$SW_VERSION"
+grep -q "<base href=\"/$REPO/\">" build/web/index.html
 sed -i "s/__SW_VERSION__/$SW_VERSION/" build/web/flutter_bootstrap.js
 grep -q "sw.js?v=' + version" build/web/flutter_bootstrap.js
 grep -q "var version = '$SW_VERSION'" build/web/flutter_bootstrap.js

@@ -56,7 +56,7 @@ The app ships as a web app rather than a native build, and is meant to be added 
 
 If GitHub Actions is unavailable, set Pages → Source to "Deploy from a branch → gh-pages" and run `tool/deploy_pages.sh` locally. It builds, pushes to the `gh-pages` branch and requests a Pages build. Git Bash on Windows rewrites `--base-href /gym/` into a drive path, so the script sets `MSYS_NO_PATHCONV=1`.
 
-Builds use `--pwa-strategy=none`; the app's own service worker (`web/sw.js`, see Load time below) caches it on the device and picks up a new deploy on the launch after the app is closed.
+Builds use `--pwa-strategy=none`; the app's own service worker (`web/sw.js`, see Load time below) caches it on the device and picks up a new deploy as soon as it is downloaded, reloading once if that happens during the boot screen.
 
 Records live in the browser's IndexedDB on the device. Clearing Safari's site data clears them too.
 
@@ -152,7 +152,9 @@ from its own origin under a cache named after a version that
 `tool/deploy_pages.sh` stamps into `flutter_bootstrap.js`; later launches read
 from the device. Only `index.html` and `flutter_bootstrap.js` are fetched from
 the network first (falling back to the cache when offline), which is how a new
-deploy gets noticed: it installs as a new worker with its own cache, takes over
-once the app has been closed, and the next launch runs on the new files. Plain
-`flutter run` leaves the version placeholder in place, so no worker is
-registered during development.
+deploy gets noticed: it installs as a new worker with its own cache and takes
+over as soon as it is ready. If that happens while the boot screen is still up
+the page reloads once and the launch continues on the new files; otherwise the
+next launch uses them. The version a device runs is shown at the bottom of
+Settings. Plain `flutter run` leaves the version placeholder in place, so no
+worker is registered during development.

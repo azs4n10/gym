@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../build_info.dart';
 import '../models/enums.dart';
 import '../services/health_sync.dart';
 import '../services/nutrition.dart';
@@ -249,6 +250,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(l.foodDisclaimer, style: t.bodySmall?.copyWith(color: skin.subText)),
           const SizedBox(height: 6),
           Text(l.foodTableCredit, style: t.bodySmall?.copyWith(color: skin.subText)),
+          const SizedBox(height: 18),
+          Center(
+            child: Text(
+              'Build $buildId',
+              style: TextStyle(color: skin.subText, fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+          ),
         ]),
         ),
     );

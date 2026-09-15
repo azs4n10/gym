@@ -6,9 +6,9 @@
 // script stamps per build. The two entry files (index.html and the bootstrap
 // that carries the version) are always fetched from the network first, so a
 // new deploy is noticed on the next launch: its worker installs with its own
-// cache, takes over once every page of the old one is closed, and the launch
-// after that runs entirely on the new files. Nothing is served from a mix of
-// two versions.
+// cache and takes over as soon as it is ready. The bootstrap reloads the page
+// when that happens before the first frame, so the launch continues on the
+// new files; later than that, the next launch uses them.
 'use strict';
 
 const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev';
@@ -60,6 +60,7 @@ self.addEventListener('install', (event) => {
         // Left for the runtime path below.
       }
     }));
+    await self.skipWaiting();
   })());
 });
 
@@ -68,6 +69,7 @@ self.addEventListener('activate', (event) => {
     for (const key of await caches.keys()) {
       if (key.startsWith('gym-') && key !== CACHE) await caches.delete(key);
     }
+    await self.clients.claim();
   })());
 });
 
