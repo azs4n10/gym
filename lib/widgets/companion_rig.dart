@@ -95,10 +95,10 @@ class CompanionRig {
     }
     // Back to front: the long hair behind everything, both legs behind the
     // skirt, the head behind the collar, the near arm in front.
-    // Each leg is one image bent at the knee, with a rigid shoe over the
-    // shin's end.
+    // Each leg is one image bent at the knee, a patch over the knee that
+    // fills the crease of a deep bend, and a rigid shoe over the shin's end.
     const order = [
-      'hair_back', 'far_arm', 'far_leg', 'far_shoe', 'near_leg', 'near_shoe', //
+      'hair_back', 'far_arm', 'far_leg', 'far_knee', 'far_shoe', 'near_leg', 'near_knee', 'near_shoe', //
       'skirt', 'head', 'head_front', 'body', 'near_arm',
     ];
     layers.sort((a, b) => order.indexOf(a.name).compareTo(order.indexOf(b.name)));

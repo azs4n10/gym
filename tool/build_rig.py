@@ -87,8 +87,10 @@ LAYERS = [
     # The thigh and shin are flattened into one leg image and bent at the
     # knee by the mesh; the shoe is a rigid piece over the shin's end.
     ("far_leg", "leg", ["far_thigh", "far_shin"], FAR_SHIFT["thigh"]),
+    ("far_knee", "knee", ["far_thigh", "far_shin"], FAR_SHIFT["thigh"]),
     ("far_shoe", "shoe", ["far_foot"], FAR_SHIFT["shoe"]),
     ("near_leg", "leg", ["near_thigh", "near_shin"], None),
+    ("near_knee", "knee", ["near_thigh", "near_shin"], None),
     ("near_shoe", "shoe", ["near_foot"], None),
     ("skirt", "skirt", None, None),
     ("head", "head", None, None),
@@ -96,7 +98,7 @@ LAYERS = [
     ("body", "torso", None, None),
     ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
 ]
-FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
+FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png", "knee": "side_knee.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
         "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
 # Blend width (canvas px) around the inner joints of a limb chain.
 BLEND = {"arm": (60, 40), "leg": (70,)}
@@ -114,6 +116,27 @@ def compose_leg():
     for im, (ox, oy) in parts:
         canvas.alpha_composite(im, (int(round(ox)) - x0, int(round(oy)) - y0))
     return canvas, (x0, y0)
+
+
+# The knee patch: a disc of the leg image around the knee joint, drawn over
+# the leg and turned by the average of the thigh and the shin, so it fills
+# the crease that opens on the inside of a deep bend.
+KNEE_R = 46
+KNEE_FEATHER = 6
+
+
+def compose_knee(leg):
+    img, (ox, oy) = leg
+    kx, ky = BONE_AT["near_thigh"][1]
+    a = np.array(img).astype(np.float32)
+    yy, xx = np.mgrid[0:a.shape[0], 0:a.shape[1]]
+    d = np.sqrt((xx + ox - kx) ** 2 + (yy + oy - ky) ** 2)
+    disc = np.clip((KNEE_R - d) / KNEE_FEATHER, 0, 1)
+    a[:, :, 3] *= disc
+    m = a[:, :, 3] > 4
+    ys, xs = np.where(m)
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    return Image.fromarray(a[y0:y1, x0:x1].astype(np.uint8), "RGBA"), (ox + x0, oy + y0)
 
 
 def load_kit_piece(name):
@@ -230,6 +253,8 @@ def chain_weights(p, bones, blends):
 
 def weights_for(layer, part, bones, x, y):
     w = {}
+    if part == "knee":
+        return {NAME[bones[0]]: 0.5, NAME[bones[1]]: 0.5}
     if bones is not None and len(bones) == 1:
         # A rigid piece on one bone.
         return {NAME[bones[0]]: 1.0}
@@ -273,7 +298,12 @@ images = {}
 composite = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 for order, (layer, part, bones, shift) in enumerate(LAYERS):
     if part not in images:
-        images[part] = compose_leg() if part == "leg" else load_part(part)
+        if part == "leg":
+            images[part] = compose_leg()
+        elif part == "knee":
+            images[part] = compose_knee(images["leg"] if "leg" in images else compose_leg())
+        else:
+            images[part] = load_part(part)
         images[part][0].save(f"{OUT}/{FILE[part]}", optimize=True)
     img, (ox, oy) = images[part]
     if shift:
