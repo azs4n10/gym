@@ -148,15 +148,16 @@ def weights_for(layer, part, bones, x, y):
     elif layer == "head":
         w[NAME["head"]] = 1.0
     elif layer == "skirt":
-        # The skirt swings with the thighs, more toward the hem. Its front
-        # half rides up on the forward thigh; its back half is only pushed a
-        # little by the other, so the back hem does not fan up. (The app
-        # hands the front to whichever thigh is forward at the time.)
-        t = min(1.0, max(0.0, (y - 560) / 300)) ** 1.2
+        # The waistband stays on the belt; below it the skirt hangs from the
+        # waist and is carried by the thighs, its front half by the near one
+        # and its back half by the far one. (The app swaps the two so the
+        # front always goes with whichever thigh is forward, and swings the
+        # panels from the waist rather than turning them about the hip.)
+        t = min(1.0, max(0.0, (y - 556) / 110))
         side = min(1.0, max(0.0, (x - 240) / 100))
-        w[NAME["near_thigh"]] = 0.85 * t * side
-        w[NAME["far_thigh"]] = 0.5 * t * (1 - side)
-        w[NAME["spine"]] = 1 - w[NAME["near_thigh"]] - w[NAME["far_thigh"]]
+        w[NAME["near_thigh"]] = t * side
+        w[NAME["far_thigh"]] = t * (1 - side)
+        w[NAME["spine"]] = 1 - t
     elif layer == "hair_back":
         # The crown sits on the head; the length hangs from two bones so
         # the ends trail a little behind the sway.

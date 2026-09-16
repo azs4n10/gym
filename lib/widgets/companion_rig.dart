@@ -333,7 +333,10 @@ class _RigPainter extends CustomPainter {
               ? nearThigh
               : bone;
           final thigh = b == nearThigh || b == farThigh;
-          final q = thigh && layer.name == 'skirt' ? _skirtSwing(xf[b], rig.bones[b], p) : xf[b].apply(p, rig.bones[b]);
+          final forward = swapThighs ? b == farThigh : b == nearThigh;
+          final q = thigh && layer.name == 'skirt'
+              ? _skirtSwing(xf[b], rig.bones[b], p, forward ? 0.5 : 0.25)
+              : xf[b].apply(p, rig.bones[b]);
           x += q.dx * w;
           y += q.dy * w;
         }
@@ -353,13 +356,11 @@ class _RigPainter extends CustomPainter {
     canvas.restore();
   }
 
-  /// How a thigh carries the skirt: not turning about the hip, which would
-  /// fan the hem up into a straight slant, but about a point well above it
-  /// and by a fraction of the angle, so the hem is pushed along in front of
-  /// the leg and only tilts a little.
-  Offset _skirtSwing(BoneXf x, RigBone bone, Offset p) {
-    final lift = rig.height * 0.41;
-    const share = 0.35;
+  /// How a thigh carries the skirt: the panel in front of it swings from the
+  /// waist like a pendulum, by half the thigh's angle, so the hem rides up
+  /// over a raised knee; the panel behind the other leg trails by a quarter.
+  Offset _skirtSwing(BoneXf x, RigBone bone, Offset p, double share) {
+    final lift = rig.height * 0.068;
     final pivotRest = bone.head - Offset(0, lift);
     final pivotPosed = x.head - Offset(0, lift);
     final d = p - pivotRest;

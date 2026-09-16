@@ -118,10 +118,10 @@ void main() {
       final rig = await tester.runAsync(() => CompanionRig.side());
       final kind = CardioType.values.byName(Platform.environment['PREVIEW_KIND'] ?? 'running');
       final move = cardioMoves[kind]!;
-      const n = 8;
-      const h = 300.0;
+      final n = int.tryParse(Platform.environment['PREVIEW_N'] ?? '') ?? 8;
+      final h = double.tryParse(Platform.environment['PREVIEW_H'] ?? '') ?? 300.0;
       final rkey = GlobalKey();
-      await tester.binding.setSurfaceSize(Size(n * 150.0 + 16, h + 36));
+      await tester.binding.setSurfaceSize(Size(n * (h / 2) + 16, h + 36));
       await tester.pumpWidget(MaterialApp(
         home: RepaintBoundary(
           key: rkey,
@@ -133,7 +133,7 @@ void main() {
                 children: [
                   for (var i = 0; i < n; i++)
                     SizedBox(
-                      width: 150,
+                      width: h / 2,
                       height: h + 20,
                       child: Center(
                         child: CompanionRigView(
@@ -142,7 +142,7 @@ void main() {
                           height: h,
                           farTint: const Color(0x20000000),
                           hairSway: 0.09 * math.sin(4 * math.pi * i / n - 1.4),
-                          hat: const ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon', 'glasses', 'none'][i],
+                          hat: const ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon', 'glasses', 'none'][i % 8],
                           ground: kind != CardioType.cycling && kind != CardioType.swimming,
                           bike: kind == CardioType.cycling,
                         ),
