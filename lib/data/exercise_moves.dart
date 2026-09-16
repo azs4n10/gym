@@ -323,12 +323,9 @@ Limb _legTo(Offset hip, Offset foot, {bool kneeUp = false}) {
 double _sin(double x) => math.sin(x);
 double _cos(double x) => math.cos(x);
 
-/// A raised-cosine bump of half-width [w] around zero, for shaping a cycle.
-double _bump(double x, double w) {
-  if (x <= -w || x >= w) return 0;
-  final c = _cos(math.pi * x / (2 * w));
-  return c * c;
-}
+/// A smooth periodic bump of unit height at [x] = 0, narrower for a larger
+/// [k]; it has no corners anywhere, so a cycle built from it never jerks.
+double _bump(double x, double k) => math.exp(k * (_cos(x) - 1));
 
 /// Running: the thigh swings, the knee bends most just after the foot leaves
 /// the ground (the heel kicks up behind), stays a little bent as the knee
@@ -337,8 +334,7 @@ double _bump(double x, double w) {
 Pose _run(double p) {
   Limb leg(double q) {
     final thigh = 10 + 36 * _sin(q);
-    final x = q % (2 * math.pi);
-    final flex = 12 + 100 * _bump(x - 5.7, 1.5) + 100 * _bump(x + 2 * math.pi - 5.7, 1.5) + 28 * _bump(x - 2.9, 1.3) + 25 * _bump(x - 1.4, 0.8);
+    final flex = 12 + 100 * _bump(q - 5.7, 3.0) + 28 * _bump(q - 2.9, 4.0) + 22 * _bump(q - 1.4, 6.0);
     return Limb(thigh, thigh - flex);
   }
 
@@ -398,28 +394,40 @@ Pose _cycle(double p) {
 
 /// Where a foot is on an endless staircase, in the box, for a phase [t] in
 /// cycles: it rides a tread back and down for six tenths of the cycle, then
-/// swings up and forward over the next one. The other foot is half a cycle
+/// swings up and forward over the next one, leaving and landing at the
+/// treads' own speed so nothing jolts. The other foot is half a cycle
 /// behind. Treads pass at two a cycle, [climbRun] across and [climbRise] up.
 const climbRun = 10.0;
 const climbRise = 7.5;
+const climbStance = 0.6;
 Offset climbFoot(double t) {
-  const stance = 0.6;
   const land = Offset(58, 74);
+  const perCycle = Offset(-2 * climbRun, 2 * climbRise);
   final u = t % 1;
-  if (u < stance) {
-    final d = 2 * u;
-    return Offset(land.dx - climbRun * d, land.dy + climbRise * d);
-  }
-  final lift = Offset(land.dx - climbRun * 2 * stance, land.dy + climbRise * 2 * stance);
-  final s = (u - stance) / (1 - stance);
-  final e = Curves.easeInOut.transform(s);
-  final along = Offset.lerp(lift, land, e)!;
-  return along - Offset(0, 9 * _sin(math.pi * s));
+  if (u < climbStance) return land + perCycle * u;
+  final lift = land + perCycle * climbStance;
+  final s = (u - climbStance) / (1 - climbStance);
+  // Cubic Hermite from the lift-off to the landing with the tread's
+  // velocity at both ends, plus a lift that starts and ends flat.
+  final s2 = s * s;
+  final s3 = s2 * s;
+  final h00 = 2 * s3 - 3 * s2 + 1;
+  final h10 = s3 - 2 * s2 + s;
+  final h01 = -2 * s3 + 3 * s2;
+  final h11 = s3 - s2;
+  final m = perCycle * (1 - climbStance);
+  final along = lift * h00 + m * h10 + land * h01 + m * h11;
+  final l = _sin(math.pi * s);
+  return along - Offset(0, 10 * l * l);
 }
 
 /// Climbing stairs: the hips stay level over the treads while the feet step
 /// up; the arms swing a little.
-const climbHip = Offset(50, 56);
+const climbHip = Offset(50, 44);
+
+/// The stick figure's legs are shorter than the illustration's, so it
+/// reaches for the same steps scaled toward the hip.
+const _climbReach = 0.88;
 
 Pose _climb(double p) {
   const hip = climbHip;
@@ -434,8 +442,8 @@ Pose _climb(double p) {
     torso: 10,
     arm: arm(p),
     arm2: arm(p + math.pi),
-    leg: _legTo(hip, climbFoot(t), kneeUp: true),
-    leg2: _legTo(hip, climbFoot(t + 0.5), kneeUp: true),
+    leg: _legTo(hip, hip + (climbFoot(t) - hip) * _climbReach, kneeUp: true),
+    leg2: _legTo(hip, hip + (climbFoot(t + 0.5) - hip) * _climbReach, kneeUp: true),
   );
 }
 
@@ -508,14 +516,26 @@ Pose _swim(double p) {
     return Limb(thigh, thigh + 8 * _sin(3 * q + 1));
   }
 
+  // The body rolls up a little for a breath.
+  final breath = swimBreathAmount(p / (2 * math.pi));
   return Pose(
-    hip: Offset(34, 58 + 1.2 * _sin(2 * p)),
+    hip: Offset(34, 58 + 1.2 * _sin(2 * p) - 3 * breath),
     torso: 90,
     arm: _ring(stroke, p),
     arm2: _ring(stroke, p + math.pi),
     leg: leg(p),
     leg2: leg(p + math.pi),
   );
+}
+
+/// How far into a breath the swimmer is at [strokes] into the swim, 0 to 1:
+/// every other stroke, while the near arm recovers, the face turns to the
+/// side and comes up. Smooth at both ends.
+double swimBreathAmount(double strokes) {
+  final u = (strokes % 2 - 1.5) / 0.55;
+  if (u <= 0 || u >= 1) return 0;
+  final s = _sin(math.pi * u);
+  return s * s;
 }
 
 /// Movements for the cardio types.

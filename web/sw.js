@@ -63,6 +63,7 @@ const SHELL = [
   'assets/assets/companion/rig/side_leg.png',
   'assets/assets/companion/rig/side_skirt.png',
   'assets/assets/companion/rig/side_head.png',
+  'assets/assets/companion/rig/side_head_front.png',
   'assets/assets/companion/rig/side_body.png',
 ];
 

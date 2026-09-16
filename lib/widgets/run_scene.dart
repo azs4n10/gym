@@ -30,7 +30,13 @@ class RunScene extends StatelessWidget {
     required this.ja,
     required this.labelStyle,
     this.mode = SceneMode.road,
+    this.scroll = 0,
   });
+
+  /// How far the ground has gone by, in px at the road, driven by the
+  /// figure's stride so the feet never slide. The distance in [km] only
+  /// places the landmarks.
+  final double scroll;
 
   /// What the world is: a road, open water, a hillside of steps, or a room.
   final SceneMode mode;
@@ -42,6 +48,13 @@ class RunScene extends StatelessWidget {
 
   /// The colour of the water in a skin: its accent pulled toward a sea blue.
   static Color waterColor(Skin skin) => Color.lerp(skin.accent, const Color(0xFF6FA8C9), 0.55)!;
+
+  /// Where the studio's wall meets its floor, as a fraction of the height.
+  static const studioFloorY = 0.56;
+
+  /// The glass of the studio's mirror, for a given card size.
+  static Rect mirrorRect(Size size) =>
+      Rect.fromLTRB(size.width * 0.08, size.height * 0.08, size.width * 0.92, size.height * studioFloorY - 2);
 
   final RunRoute route;
 
@@ -82,8 +95,13 @@ class _ScenePainter extends CustomPainter {
 
   Skin get skin => s.skin;
 
-  // Pixels per metre on the road layer of the side view.
+  // Pixels per metre on the road layer of the side view, for placing the
+  // landmarks by distance.
   static const _ppm = 4.0;
+
+  /// Road pixels per metre as the scroll has actually gone, so a passed
+  /// landmark drifts back at the road's own speed.
+  double get _ppmVisual => math.max(_ppm, s.scroll / math.max(1, s.km * 1000));
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -226,7 +244,6 @@ class _ScenePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final ground = h * RunScene.groundY;
-    final metres = s.km * 1000;
     final runnerX = w * RunScene.runnerX;
 
     // Far hills, barely moving.
@@ -234,7 +251,7 @@ class _ScenePainter extends CustomPainter {
     // never match the ink of the figure.
     final hillColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
     final hills = Path()..moveTo(0, h);
-    final off = metres * _ppm * 0.12;
+    final off = s.scroll * 0.12;
     for (var x = 0.0; x <= w; x += 6) {
       final wx = x + off;
       final y = ground - 34 - 18 * math.sin(wx / 90) - 9 * math.sin(wx / 37 + 1.3);
@@ -257,14 +274,14 @@ class _ScenePainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTRB(-w, ground, w * 2, h + w), Paint()..color = skin.buttonSoft);
     final road = Rect.fromLTRB(-w, ground, w * 2, ground + roadH);
     canvas.drawRect(road, Paint()..color = Color.lerp(skin.background, skin.ink, 0.22)!);
-    final dashOff = (metres * _ppm) % 60;
+    final dashOff = s.scroll % 60;
     final dash = Paint()..color = skin.card;
     for (var x = -dashOff - 60; x < w * 2; x += 60) {
       canvas.drawRect(Rect.fromLTWH(x, ground + roadH / 2 - 1.5, 26, 3), dash);
     }
 
     // Trees and houses along the road, half as fast as the road.
-    final midOff = metres * _ppm * 0.5;
+    final midOff = s.scroll * 0.5;
     final first = ((midOff - 100) / 150).floor();
     for (var i = first; i * 150 - midOff < w + 100; i++) {
       final x = i * 150 - midOff;
@@ -290,7 +307,7 @@ class _ScenePainter extends CustomPainter {
         x = runnerX + (w - runnerX - 26) * (1 - math.exp(-d / 1.4));
         scale = 0.42 + 0.58 * math.exp(-d / 1.4);
       } else {
-        x = runnerX + d * 1000 * _ppm;
+        x = runnerX + d * 1000 * _ppmVisual;
         scale = 1;
       }
       final sz = h * 0.26 * scale;
@@ -303,7 +320,7 @@ class _ScenePainter extends CustomPainter {
     }
 
     // Flowers and tufts in front, faster than the road.
-    final frontOff = metres * _ppm * 1.6;
+    final frontOff = s.scroll * 1.6;
     final f0 = ((frontOff - 40) / 90).floor();
     for (var i = f0; i * 90 - frontOff < w + 40; i++) {
       final x = i * 90 - frontOff + (i % 3) * 12;
@@ -332,11 +349,10 @@ class _ScenePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final ground = h * RunScene.groundY;
-    final metres = s.km * 1000;
     final runnerX = w * RunScene.runnerX;
     final hillColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
     final hills = Path()..moveTo(0, h);
-    final off = metres * _ppm * 0.12;
+    final off = s.scroll * 0.12;
     for (var x = 0.0; x <= w; x += 6) {
       final wx = x + off;
       hills.lineTo(x, ground - 60 - 22 * math.sin(wx / 90) - 9 * math.sin(wx / 37 + 1.3));
@@ -354,7 +370,7 @@ class _ScenePainter extends CustomPainter {
         x = runnerX + (w - runnerX - 26) * (1 - math.exp(-d / 1.4));
         scale = 0.42 + 0.58 * math.exp(-d / 1.4);
       } else {
-        x = runnerX + d * 1000 * _ppm;
+        x = runnerX + d * 1000 * _ppmVisual;
         scale = 1;
       }
       final sz = h * 0.2 * scale;
@@ -371,11 +387,11 @@ class _ScenePainter extends CustomPainter {
   void _studio(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final floorY = h * 0.56;
+    final floorY = h * RunScene.studioFloorY;
     final wall = Paint()..color = Color.lerp(skin.card, skin.background, 0.5)!;
     canvas.drawRect(Rect.fromLTRB(0, 0, w, floorY), wall);
     // Mirror: a lighter pane with the sky's tint, in a frame.
-    final mirror = Rect.fromLTRB(w * 0.08, h * 0.08, w * 0.92, floorY - 2);
+    final mirror = RunScene.mirrorRect(size);
     canvas.drawRect(mirror.inflate(3), Paint()..color = Color.lerp(skin.ink, skin.card, 0.5)!);
     canvas.drawRect(
       mirror,
@@ -413,8 +429,25 @@ class _ScenePainter extends CustomPainter {
     final mat = Rect.fromCenter(center: Offset(w / 2, h * RunScene.groundY + 4), width: w * 0.5, height: h * 0.12);
     canvas.drawRRect(RRect.fromRectAndRadius(mat, const Radius.circular(6)), Paint()..color = skin.accentSoft);
     canvas.drawRRect(RRect.fromRectAndRadius(mat, const Radius.circular(6)), Paint()..color = skin.ink.withValues(alpha: 0.4)..style = PaintingStyle.stroke..strokeWidth = 1.2);
-    // A plant on one side, a speaker on the other.
-    drawGlyph(canvas, Glyph.tree, Rect.fromLTWH(w * 0.02, floorY - h * 0.16, h * 0.2, h * 0.2), skin.ink, skin.accentSoft);
+    // A clock on the wall, a bottle and a towel on the floor by the wall,
+    // and a speaker on the other side.
+    final clock = Offset(w * 0.5, h * 0.045);
+    canvas.drawCircle(clock, h * 0.028, Paint()..color = skin.card);
+    canvas.drawCircle(clock, h * 0.028, Paint()..color = skin.ink..style = PaintingStyle.stroke..strokeWidth = 1.4);
+    final hands = Paint()
+      ..color = skin.ink
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    final hour = (s.now.hour % 12 + s.now.minute / 60) / 12 * 2 * math.pi - math.pi / 2;
+    final minute = s.now.minute / 60 * 2 * math.pi - math.pi / 2;
+    canvas.drawLine(clock, clock + Offset(math.cos(hour), math.sin(hour)) * h * 0.014, hands);
+    canvas.drawLine(clock, clock + Offset(math.cos(minute), math.sin(minute)) * h * 0.022, hands);
+    final bottle = Rect.fromLTWH(w * 0.05, floorY + h * 0.02, h * 0.03, h * 0.09);
+    canvas.drawRRect(RRect.fromRectAndRadius(bottle, Radius.circular(h * 0.012)), Paint()..color = skin.accent);
+    canvas.drawRect(Rect.fromLTWH(bottle.left + bottle.width * 0.2, bottle.top - h * 0.012, bottle.width * 0.6, h * 0.014), Paint()..color = skin.ink);
+    final towel = Rect.fromLTWH(w * 0.09, floorY + h * 0.07, h * 0.12, h * 0.04);
+    canvas.drawRRect(RRect.fromRectAndRadius(towel, Radius.circular(h * 0.015)), Paint()..color = skin.card);
+    canvas.drawRRect(RRect.fromRectAndRadius(towel, Radius.circular(h * 0.015)), Paint()..color = skin.ink.withValues(alpha: 0.5)..style = PaintingStyle.stroke..strokeWidth = 1);
     final box = Rect.fromLTWH(w * 0.86, floorY - h * 0.1, h * 0.1, h * 0.14);
     canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(4)), Paint()..color = Color.lerp(skin.ink, skin.card, 0.3)!);
     canvas.drawCircle(box.center + Offset(0, box.height * 0.15), box.width * 0.3, Paint()..color = skin.card.withValues(alpha: 0.7));
@@ -431,14 +464,13 @@ class _ScenePainter extends CustomPainter {
     final h = size.height;
     final surface = h * RunScene.waterY;
     final horizon = surface - 26;
-    final metres = s.km * 1000;
     final runnerX = w * RunScene.runnerX;
     final water = RunScene.waterColor(skin);
 
     // The far shore, drifting slowly.
     final shoreColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
     final shore = Path()..moveTo(0, horizon + 2);
-    final off = metres * _ppm * 0.08;
+    final off = s.scroll * 0.08;
     for (var x = 0.0; x <= w; x += 6) {
       final wx = x + off;
       shore.lineTo(x, horizon - 10 - 9 * math.sin(wx / 80) - 5 * math.sin(wx / 33 + 1.3));
@@ -456,7 +488,7 @@ class _ScenePainter extends CustomPainter {
         x = runnerX + (w - runnerX - 26) * (1 - math.exp(-d / 1.4));
         scale = 0.42 + 0.58 * math.exp(-d / 1.4);
       } else {
-        x = runnerX + d * 1000 * _ppm;
+        x = runnerX + d * 1000 * _ppmVisual;
         scale = 1;
       }
       final sz = 34 * scale;
@@ -482,13 +514,13 @@ class _ScenePainter extends CustomPainter {
     for (var i = 0; i < 26; i++) {
       final span = w + 40;
       final speed = 0.4 + rnd.nextDouble() * 0.8;
-      final x = ((rnd.nextDouble() * span + span - metres * _ppm * speed) % span) - 20;
+      final x = ((rnd.nextDouble() * span + span - s.scroll * speed) % span) - 20;
       final y = horizon + 6 + rnd.nextDouble() * (h - horizon - 12);
       final len = 6 + 10 * rnd.nextDouble();
       canvas.drawLine(Offset(x, y), Offset(x + len, y), ripple);
     }
     // Buoys along the course, every 50 m.
-    final buoyOff = metres * _ppm;
+    final buoyOff = s.scroll;
     final first = ((buoyOff - 40) / 200).floor();
     for (var i = first; i * 200 - buoyOff < w + 40; i++) {
       final x = i * 200 - buoyOff;

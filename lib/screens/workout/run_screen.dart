@@ -567,10 +567,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         final rigW = rig == null ? 0.0 : rigH * rig.width / rig.height;
                         final rigLeft = (studio ? c.maxWidth / 2 : c.maxWidth * RunScene.runnerX) - rigW / 2;
                         // Swimming, the figure lies along the water line with
-                        // the hips (39% down the canvas) just under it.
+                        // her back (the hips are 43% down the canvas) just
+                        // above it.
+                        // On the stairs her hips are held high above the
+                        // treads, so the drawing sits lower on the card.
                         final rigTop = swim
-                            ? c.maxHeight * RunScene.waterY - rigH * 0.36
-                            : c.maxHeight * RunScene.groundY - rigH * 0.99;
+                            ? c.maxHeight * RunScene.waterY - rigH * 0.415
+                            : c.maxHeight * RunScene.groundY - rigH * (mode == SceneMode.stairs ? 0.86 : 0.99);
+                        // The ground scrolls by the stride, so the feet do
+                        // not slide on it.
+                        final scroll = _phase * strideUnits(_kind) * CompanionRig.unit * rigH / (rig?.height ?? 1460);
+                        final breath = swim ? swimBreathAmount(_phase) : 0.0;
                         return Stack(
                           children: [
                             if (progress != null)
@@ -588,26 +595,36 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                   labelStyle: (t.labelSmall ?? const TextStyle(fontSize: 11))
                                       .copyWith(color: skin.text, fontWeight: FontWeight.w800),
                                   mode: mode,
+                                  scroll: scroll,
                                 ),
                               ),
                             // In the room, the mirror on the back wall shows
-                            // her from the other side, smaller and paler.
+                            // her again the same way round, further off and
+                            // so smaller and higher, paler, and only within
+                            // the glass; a little to one side, as if seen
+                            // from an angle, so she does not hide it.
                             if (rigged && studio)
-                              Positioned(
-                                left: c.maxWidth / 2 - rigW * 0.72 / 2,
-                                top: c.maxHeight * 0.46 - rigH * 0.72 * 0.99,
-                                child: Opacity(
-                                  opacity: 0.32,
-                                  child: Transform.flip(
-                                    flipX: true,
-                                    child: CompanionRigView(
-                                      rig: rig,
-                                      pose: move.at(figureT),
-                                      height: rigH * 0.72,
-                                      hat: _girlHat,
-                                      gearColor: skin.button,
-                                      ink: skin.ink,
-                                    ),
+                              Positioned.fill(
+                                child: ClipRect(
+                                  clipper: _RectClipper(RunScene.mirrorRect(Size(c.maxWidth, c.maxHeight))),
+                                  child: Stack(
+                                    children: [
+                                      Positioned(
+                                        left: c.maxWidth * 0.68 - rigW * 0.45 / 2,
+                                        top: c.maxHeight * 0.43 - rigH * 0.45 * 0.99,
+                                        child: Opacity(
+                                          opacity: 0.4,
+                                          child: CompanionRigView(
+                                            rig: rig,
+                                            pose: move.at(figureT),
+                                            height: rigH * 0.45,
+                                            hat: _girlHat,
+                                            gearColor: skin.button,
+                                            ink: skin.ink,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -635,7 +652,9 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         prop: rigPropFor(_kind),
                                         phase: _phase,
                                         flow: swim,
-                                        headTurn: swim ? swimBreath(_phase) : 0,
+                                        // A breath: the face turns to the viewer and lifts a little.
+                                        headTurn: -0.45 * breath,
+                                        faceFront: breath,
                                         gearColor: mode == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                         ink: skin.ink,
                                       )
@@ -937,6 +956,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
       ),
     );
   }
+}
+
+class _RectClipper extends CustomClipper<Rect> {
+  const _RectClipper(this.rect);
+  final Rect rect;
+
+  @override
+  Rect getClip(Size size) => rect;
+
+  @override
+  bool shouldReclip(_RectClipper old) => old.rect != rect;
 }
 
 /// A big round control on the scene: start, pause or finish, with its name

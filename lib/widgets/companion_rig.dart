@@ -95,7 +95,7 @@ class CompanionRig {
     }
     // Back to front: the long hair behind everything, both legs behind the
     // skirt, the head behind the collar, the near arm in front.
-    const order = ['hair_back', 'far_arm', 'far_leg', 'near_leg', 'skirt', 'head', 'body', 'near_arm'];
+    const order = ['hair_back', 'far_arm', 'far_leg', 'near_leg', 'skirt', 'head', 'head_front', 'body', 'near_arm'];
     layers.sort((a, b) => order.indexOf(a.name).compareTo(order.indexOf(b.name)));
     final hats = <String, ui.Image>{};
     for (final (id, _) in girlHatUnlocks) {
@@ -248,6 +248,7 @@ class CompanionRigView extends StatelessWidget {
     this.phase = 0,
     this.flow = false,
     this.headTurn = 0,
+    this.faceFront = 0,
     this.gearColor = const Color(0xFF8A7F78),
     this.ink = const Color(0xFF3A3335),
   });
@@ -286,6 +287,10 @@ class CompanionRigView extends StatelessWidget {
 
   /// Extra tilt of the head, radians; negative lifts the face.
   final double headTurn;
+
+  /// How far the head is turned to face the viewer, 0 to 1: the profile
+  /// fades into the front view of the face, as when a swimmer breathes.
+  final double faceFront;
 
   /// Frames, saddles, rails and treads.
   final Color gearColor;
@@ -452,9 +457,16 @@ class _RigPainter extends CustomPainter {
         pos[i * 2] = x;
         pos[i * 2 + 1] = y;
       }
+      final alpha = switch (layer.name) {
+        'head' => 1 - v.faceFront,
+        'head_front' => v.faceFront,
+        _ => 1.0,
+      };
+      if (alpha <= 0) continue;
       final verts = ui.Vertices.raw(VertexMode.triangles, pos, textureCoordinates: layer.uv, indices: layer.indices);
       final paint = Paint()
         ..shader = ImageShader(layer.image, TileMode.clamp, TileMode.clamp, Matrix4.identity().storage)
+        ..color = Color.fromRGBO(255, 255, 255, alpha.clamp(0.0, 1.0))
         ..filterQuality = FilterQuality.medium;
       if (farTint != null && layer.name.startsWith('far')) {
         paint.colorFilter = ColorFilter.mode(farTint!, BlendMode.srcATop);
@@ -487,9 +499,13 @@ class _RigPainter extends CustomPainter {
   void _drawStairs(Canvas canvas, List<BoneXf> xf, List<int> feet) {
     final h = rig.height;
     final u = v.phase % 1;
-    // The near foot stands for the first six tenths of the cycle.
-    final standing = u < 0.6 ? feet[0] : feet[1];
-    final sole = _ballOfFoot(xf, standing);
+    // The near foot stands for the first six tenths of the cycle. The tread
+    // is put where the foot is meant to be rather than where the leg
+    // reached, so the staircase never jumps when the standing foot changes.
+    final near = u < climbStance;
+    final thigh = rig.boneIndex(near ? 'near_thigh' : 'far_thigh');
+    final hip = (thigh >= 0 ? rig.bones[thigh].head : Offset(rig.width / 2, rig.height / 2)) + CompanionRig.rootOffset(pose);
+    final sole = hip + (climbFoot(near ? v.phase : v.phase + 0.5) - climbHip) * CompanionRig.unit;
     final run = climbRun * CompanionRig.unit;
     final rise = climbRise * CompanionRig.unit;
     final nose = Offset(sole.dx + run * 0.35, sole.dy);
@@ -515,7 +531,8 @@ class _RigPainter extends CustomPainter {
       final y = nose.dy - k * rise;
       canvas.drawRect(Rect.fromLTWH(x - run, y, run, h * 0.012), top);
       canvas.drawLine(Offset(x - run, y), Offset(x, y), edge);
-      canvas.drawLine(Offset(x, y), Offset(x, y + rise), edge);
+      // The riser climbs from this tread's nose to the next tread.
+      canvas.drawLine(Offset(x, y), Offset(x, y - rise), edge);
     }
   }
 
@@ -709,5 +726,6 @@ class _RigPainter extends CustomPainter {
       old.v.phase != v.phase ||
       old.v.flow != v.flow ||
       old.v.headTurn != v.headTurn ||
+      old.v.faceFront != v.faceFront ||
       old.v.gearColor != v.gearColor;
 }

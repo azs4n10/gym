@@ -29,7 +29,13 @@ PARTS = {
     "hair_back": ((430, 350), (201, 140), 0.28, 0.37),
     "arm": ((490, 150), (257, 331), 0.40, 0.40),
     "leg": ((575, 450), (341, 1016), 0.411, 0.411),
+    # The head seen from the front, cut from the front-view drawing, for
+    # the swimmer turning to breathe.
+    "head_front": ((67, 80), (290, 292), 3.1, 3.1),
 }
+FRONT_SRC = f"{ROOT}/assets/companion/stand_front.png"
+FRONT_BOX = (22, 0, 112, 88)
+FRONT_FADE = 12
 # Where the far copies sit relative to the near ones.
 FAR_SHIFT = {"arm": (13, 9), "leg": (-24, 0)}
 # Rows of the leg drawing stretched upward to extend the thigh, and the
@@ -69,20 +75,29 @@ LAYERS = [
     ("near_leg", "leg", ["near_thigh", "near_shin", "near_foot"], None),
     ("skirt", "skirt", None, None),
     ("head", "head", None, None),
+    ("head_front", "head_front", None, None),
     ("body", "torso", None, None),
     ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
 ]
-FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png",
+FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png", "head_front": "side_head_front.png",
         "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
 # Blend width (canvas px) around the inner joints of a limb chain.
 BLEND = {"arm": (60, 40), "leg": (70, 45)}
 
 
 def load_part(name):
-    im = Image.open(f"{IDEA}/part_{name}.png").convert("RGBA")
-    a = np.array(im).astype(np.float32)
-    # Trim the glow: only nearly opaque pixels stay, with a short ramp.
-    a[:, :, 3] = np.clip((a[:, :, 3] - 120) / (255 - 120), 0, 1) * 255
+    if name == "head_front":
+        im = Image.open(FRONT_SRC).convert("RGBA").crop(FRONT_BOX)
+        a = np.array(im).astype(np.float32)
+        # The cut through the hair and neck fades out.
+        rows = a.shape[0]
+        fade = np.clip((rows - 1 - np.arange(rows)) / FRONT_FADE, 0, 1)
+        a[:, :, 3] *= fade[:, None]
+    else:
+        im = Image.open(f"{IDEA}/part_{name}.png").convert("RGBA")
+        a = np.array(im).astype(np.float32)
+        # Trim the glow: only nearly opaque pixels stay, with a short ramp.
+        a[:, :, 3] = np.clip((a[:, :, 3] - 120) / (255 - 120), 0, 1) * 255
     top = 0  # drawing y of the first row of a
     if name == "leg":
         # The drawing stops at mid thigh; the thigh is carried on up to just
@@ -145,7 +160,7 @@ def weights_for(layer, part, bones, x, y):
         return chain_weights(np.array([x, y], float), bones, BLEND[part])
     if layer == "body":
         w[NAME["spine"]] = 1.0
-    elif layer == "head":
+    elif layer in ("head", "head_front"):
         w[NAME["head"]] = 1.0
     elif layer == "skirt":
         # The waistband stays on the belt; below it the skirt hangs from the

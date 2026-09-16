@@ -359,14 +359,19 @@ RigProp rigPropFor(CardioType kind) => switch (kind) {
 /// Only the road, from the side or from behind, has a second view.
 bool hasAheadView(CardioType kind) => sceneModeFor(kind) == SceneMode.road && rigPropFor(kind) == RigProp.none || kind == CardioType.cycling;
 
-/// How the swimmer's head tilts at [strokes] into the swim: every other
-/// stroke the face comes up for a breath while the near arm recovers,
-/// negative being a lift.
-double swimBreath(double strokes) {
-  final u = (strokes % 2 - 1.55) / 0.5;
-  if (u <= 0 || u >= 1) return 0;
-  return -0.9 * math.sin(math.pi * u);
-}
+/// How far the ground goes by in one cycle of an activity, in units of the
+/// figure's 100-unit box: the scenery scrolls at this rate so the feet do
+/// not slide on the road.
+double strideUnits(CardioType kind) => switch (kind) {
+      CardioType.running => 74,
+      CardioType.walking => 46,
+      CardioType.cycling => 230,
+      CardioType.elliptical => 50,
+      CardioType.stairs => 20,
+      CardioType.rowing => 70,
+      CardioType.swimming => 55,
+      _ => 0,
+    };
 
 /// Fastest setting of the speed slider, in km/h, and where it starts.
 double topSpeed(CardioType kind) => switch (kind) {

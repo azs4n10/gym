@@ -73,11 +73,14 @@ void main() {
                                 ja: false,
                                 labelStyle: const TextStyle(fontSize: 11),
                                 mode: sceneModeFor(kind),
+                                scroll: (i / n) * strideUnits(kind) * CompanionRig.unit * rigH / rig.height,
                               ),
                             ),
                             Positioned(
                               left: (sceneModeFor(kind) == SceneMode.studio ? w / 2 : w * RunScene.runnerX) - rigW / 2,
-                              top: swim ? h * RunScene.waterY - rigH * 0.36 : h * RunScene.groundY - rigH * 0.99,
+                              top: swim
+                                  ? h * RunScene.waterY - rigH * 0.415
+                                  : h * RunScene.groundY - rigH * (sceneModeFor(kind) == SceneMode.stairs ? 0.86 : 0.99),
                               child: CompanionRigView(
                                 rig: rig,
                                 pose: move.at(i / n),
@@ -88,7 +91,8 @@ void main() {
                                 prop: rigPropFor(kind),
                                 phase: i / n,
                                 flow: swim,
-                                headTurn: swim ? swimBreath(i / n + 1.6) : 0,
+                                headTurn: swim ? -0.45 * swimBreathAmount(i / n + 1.5) : 0,
+                                faceFront: swim ? swimBreathAmount(i / n + 1.5) : 0,
                                 gearColor: sceneModeFor(kind) == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                 ink: skin.ink,
                               ),
