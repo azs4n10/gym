@@ -45,6 +45,9 @@ KIT_SRC = f"{IDEA}/part_leg_kit.png"
 # above it, and drawn over the shin so the ankle end sits inside it.
 KIT_BOX = {"thigh": (20, 10, 360, 900), "shin": (405, 130, 675, 1310), "shoe": (700, 1062, 1125, 1330)}
 KIT_KNEE = ((215, 780), 115)
+# Half the height of the band, in kit px, over which the thigh fades out
+# and the shin fades in at the knee.
+KNEE_SEAM = 28
 # The shin carried a rivet at the knee too, under the thigh; painted out
 # with the skin so nothing shows through the softened knee.
 KIT_SHIN_KNEE = ((560, 190), 64)
@@ -124,8 +127,8 @@ def compose_leg():
 # The knee patch: a disc of the leg image around the knee joint, drawn over
 # the leg and turned by the average of the thigh and the shin, so it fills
 # the crease that opens on the inside of a deep bend.
-KNEE_R = 44
-KNEE_FEATHER = 8
+KNEE_R = 34
+KNEE_FEATHER = 10
 
 
 def compose_knee(leg):
@@ -154,18 +157,18 @@ def load_kit_piece(name):
     box = np.zeros_like(mask)
     box[y0:y1, x0:x1] = True
     mask &= box
+    (kx, ky), _ = KIT_KNEE
+    rows = np.arange(mask.shape[0])
     if name == "thigh":
-        (kx, ky), r = KIT_KNEE
-        yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
-        mask &= (yy < ky) | ((xx - kx) ** 2 + (yy - ky) ** 2 <= r * r)
+        # The thigh ends just below the knee, fading out level over the
+        # opaque shin, so the two make one leg with no step in the
+        # outline at the knee.
+        yy = rows[:, None]
+        mask &= yy < ky + KNEE_SEAM
     mask = ndimage.binary_erosion(mask, iterations=3)
     alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0) * 255
     if name == "thigh":
-        # The round knee end melts into the shin instead of ending in an
-        # edge: it fades out over the lower part of the circle.
-        (kx, ky), r = KIT_KNEE
-        rows = np.arange(mask.shape[0])
-        fade = np.clip((ky + r - rows) / (0.6 * r), 0, 1)
+        fade = np.clip((ky + KNEE_SEAM - rows) / (2 * KNEE_SEAM), 0, 1)
         alpha = alpha * fade[:, None]
     a = np.dstack([rgb.astype(np.float32), alpha])
     if name == "shin":
