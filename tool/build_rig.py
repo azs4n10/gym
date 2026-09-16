@@ -102,6 +102,9 @@ FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.pn
         "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
 # Blend width (canvas px) around the inner joints of a limb chain.
 BLEND = {"arm": (60, 40), "leg": (70,)}
+KNEE_HALF = 44
+KNEE_BLEND_BACK = 16
+KNEE_BLEND_FRONT = 96
 
 
 def compose_leg():
@@ -121,8 +124,8 @@ def compose_leg():
 # The knee patch: a disc of the leg image around the knee joint, drawn over
 # the leg and turned by the average of the thigh and the shin, so it fills
 # the crease that opens on the inside of a deep bend.
-KNEE_R = 46
-KNEE_FEATHER = 6
+KNEE_R = 44
+KNEE_FEATHER = 8
 
 
 def compose_knee(leg):
@@ -224,6 +227,13 @@ def chain_weights(p, bones, blends):
     s = best[1]
     w = {}
     cum = np.cumsum(lengths)
+    if bones[-1].endswith("_shin"):
+        # The knee: a sharp change on the back of the leg, where the bend
+        # closes into a crease, and a wide one across the front, where the
+        # kneecap stretches over the bend.
+        kx = joints[1][0]
+        t = min(1.0, max(0.0, (p[0] - (kx - KNEE_HALF)) / (2 * KNEE_HALF)))
+        blends = (KNEE_BLEND_BACK + (KNEE_BLEND_FRONT - KNEE_BLEND_BACK) * t,)
     if bones[-1].endswith("_foot"):
         # The shoe belongs to the foot whole, so the heel keeps its shape
         # when the foot turns on its own; the sock above the ankle goes
