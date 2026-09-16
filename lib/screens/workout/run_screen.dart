@@ -275,6 +275,8 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
       CardioType.stairs => 0.5 + speed * 0.1,
       CardioType.rowing => 0.3 + speed * 0.03,
       CardioType.swimming => 0.3 + speed * 0.2,
+      // About 110 steps a minute at 5 km/h.
+      CardioType.walking => 0.45 + speed * 0.1,
       _ => 0.35 + speed * 0.1,
     };
   }
@@ -470,7 +472,10 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                     child: LayoutBuilder(
                       builder: (_, c) {
                         const size = 150.0;
-                        final ahead = _view == SceneView.ahead;
+                        // Swimming is only drawn from the side.
+                        final swim = _kind == CardioType.swimming;
+                        final ahead = _view == SceneView.ahead && !swim;
+                        final view = ahead ? SceneView.ahead : SceneView.side;
                         final left = ahead ? (c.maxWidth - size) / 2 : c.maxWidth * RunScene.runnerX - size / 2;
                         final top = ahead ? c.maxHeight - size * 0.94 - 6 : c.maxHeight * RunScene.groundY - size * 0.94;
                         // The drawings keep their feet 3% above the canvas bottom.
@@ -486,7 +491,11 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         final rigH = spriteH * 1.02;
                         final rigW = rig == null ? 0.0 : rigH * rig.width / rig.height;
                         final rigLeft = c.maxWidth * RunScene.runnerX - rigW / 2;
-                        final rigTop = c.maxHeight * RunScene.groundY - rigH * 0.99;
+                        // Swimming, the figure lies along the water line with
+                        // the hips (39% down the canvas) just under it.
+                        final rigTop = swim
+                            ? c.maxHeight * RunScene.waterY - rigH * 0.36
+                            : c.maxHeight * RunScene.groundY - rigH * 0.99;
                         return Stack(
                           children: [
                             if (progress != null)
@@ -495,7 +504,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                   route: progress.route,
                                   km: progress.routeKm,
                                   seconds: _sceneT,
-                                  view: _view,
+                                  view: view,
                                   weather: _weather,
                                   incline: _incline,
                                   now: DateTime.now(),
@@ -503,6 +512,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                   ja: l.isJa,
                                   labelStyle: (t.labelSmall ?? const TextStyle(fontSize: 11))
                                       .copyWith(color: skin.text, fontWeight: FontWeight.w800),
+                                  water: swim,
                                 ),
                               ),
                             Positioned(
@@ -521,12 +531,16 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         height: rigH,
                                         farTint: skin.ink.withValues(alpha: 0.08),
                                         // Trails the bob of the stride by a quarter turn.
-                                        hairSway: 0.09 * math.sin(4 * math.pi * _phase - 1.4),
+                                        hairSway: (_kind == CardioType.running ? 0.09 : 0.05) * math.sin(4 * math.pi * _phase - 1.4),
                                         hat: _girlHat,
+                                        ground: !swim && _kind != CardioType.cycling,
+                                        bike: _kind == CardioType.cycling,
+                                        gearColor: skin.button,
+                                        ink: skin.ink,
                                       )
                                     : _girl
                                     ? CompanionSprite(
-                                        view: _view,
+                                        view: view,
                                         resting: _resting,
                                         face: _face,
                                         phase: _phase,
@@ -547,29 +561,38 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                       ),
                               ),
                             ),
-                            Positioned(
-                              left: 10,
-                              top: 10,
-                              child: Row(
-                                children: [
-                                  for (final (v, label) in [(SceneView.side, l.viewSide), (SceneView.ahead, l.viewAhead)])
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 6),
-                                      child: ChoiceChip(
-                                        label: Text(label),
-                                        selected: _view == v,
-                                        visualDensity: VisualDensity.compact,
-                                        onSelected: progress == null
-                                            ? null
-                                            : (_) => setState(() {
-                                                  progress.view = v.name;
-                                                  progress.save();
-                                                }),
-                                      ),
-                                    ),
-                                ],
+                            if (swim && !ahead)
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: CustomPaint(
+                                    painter: WaterOverlay(skin: skin, seconds: _sceneT, km: progress?.routeKm ?? 0, swimmerX: RunScene.runnerX),
+                                  ),
+                                ),
                               ),
-                            ),
+                            if (!swim)
+                              Positioned(
+                                left: 10,
+                                top: 10,
+                                child: Row(
+                                  children: [
+                                    for (final (v, label) in [(SceneView.side, l.viewSide), (SceneView.ahead, l.viewAhead)])
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 6),
+                                        child: ChoiceChip(
+                                          label: Text(label),
+                                          selected: _view == v,
+                                          visualDensity: VisualDensity.compact,
+                                          onSelected: progress == null
+                                              ? null
+                                              : (_) => setState(() {
+                                                    progress.view = v.name;
+                                                    progress.save();
+                                                  }),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
                             if (_bubble != null)
                               Positioned(
                                 top: 10,

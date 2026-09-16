@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -28,7 +29,17 @@ class RunScene extends StatelessWidget {
     required this.skin,
     required this.ja,
     required this.labelStyle,
+    this.water = false,
   });
+
+  /// Open water instead of a road: the swimmer's world.
+  final bool water;
+
+  /// The water surface as a fraction of the height, when [water].
+  static const waterY = 0.6;
+
+  /// The colour of the water in a skin: its accent pulled toward a sea blue.
+  static Color waterColor(Skin skin) => Color.lerp(skin.accent, const Color(0xFF6FA8C9), 0.55)!;
 
   final RunRoute route;
 
@@ -81,7 +92,13 @@ class _ScenePainter extends CustomPainter {
     _stars(canvas, size);
     _sunMoon(canvas, size);
     _clouds(canvas, size);
-    if (s.view == SceneView.side) {
+    if (s.water) {
+      if (s.view == SceneView.side) {
+        _water(canvas, size);
+      } else {
+        _aheadWater(canvas, size);
+      }
+    } else if (s.view == SceneView.side) {
       _side(canvas, size);
     } else {
       _ahead(canvas, size);
@@ -295,6 +312,137 @@ class _ScenePainter extends CustomPainter {
     canvas.restore();
   }
 
+  // --------------------------------------------------------------- water
+
+  /// Open water from the side: a far shore on the horizon, the sea from
+  /// there down, buoys drifting past at the swimmer's pace, and the route's
+  /// landmarks coming up along the shore.
+  void _water(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final surface = h * RunScene.waterY;
+    final horizon = surface - 26;
+    final metres = s.km * 1000;
+    final runnerX = w * RunScene.runnerX;
+    final water = RunScene.waterColor(skin);
+
+    // The far shore, drifting slowly.
+    final shoreColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
+    final shore = Path()..moveTo(0, horizon + 2);
+    final off = metres * _ppm * 0.08;
+    for (var x = 0.0; x <= w; x += 6) {
+      final wx = x + off;
+      shore.lineTo(x, horizon - 10 - 9 * math.sin(wx / 80) - 5 * math.sin(wx / 33 + 1.3));
+    }
+    shore.lineTo(w, horizon + 2);
+    shore.close();
+    canvas.drawPath(shore, Paint()..color = shoreColor);
+    // Landmarks stand on the far shore and slide by with it.
+    for (final lm in s.route.landmarks) {
+      final d = lm.km - s.km;
+      if (d > 8 || d < -0.12) continue;
+      final double x;
+      final double scale;
+      if (d >= 0) {
+        x = runnerX + (w - runnerX - 26) * (1 - math.exp(-d / 1.4));
+        scale = 0.42 + 0.58 * math.exp(-d / 1.4);
+      } else {
+        x = runnerX + d * 1000 * _ppm;
+        scale = 1;
+      }
+      final sz = 34 * scale;
+      final reached = d <= 0;
+      drawGlyph(canvas, lm.glyph, Rect.fromLTWH(x - sz / 2, horizon - sz + 3, sz, sz), skin.ink,
+          reached ? skin.accent : skin.accentSoft);
+      if (scale > 0.55) _label(canvas, lm.label(s.ja), Offset(x, horizon + 4), scale.clamp(0.7, 1.0));
+    }
+
+    // The sea, deeper toward the bottom.
+    final deep = Color.lerp(water, skin.ink, 0.35)!;
+    canvas.drawRect(
+      Rect.fromLTRB(0, horizon, w, h),
+      Paint()
+        ..shader = ui.Gradient.linear(Offset(0, horizon), Offset(0, h), [Color.lerp(water, _skyColor(), 0.35)!, water, deep], [0, 0.25, 1]),
+    );
+    // Ripples on the surface, sliding past.
+    final ripple = Paint()
+      ..color = skin.card.withValues(alpha: 0.55)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    final rnd = math.Random(11);
+    for (var i = 0; i < 26; i++) {
+      final span = w + 40;
+      final speed = 0.4 + rnd.nextDouble() * 0.8;
+      final x = ((rnd.nextDouble() * span + span - metres * _ppm * speed) % span) - 20;
+      final y = horizon + 6 + rnd.nextDouble() * (h - horizon - 12);
+      final len = 6 + 10 * rnd.nextDouble();
+      canvas.drawLine(Offset(x, y), Offset(x + len, y), ripple);
+    }
+    // Buoys along the course, every 50 m.
+    final buoyOff = metres * _ppm;
+    final first = ((buoyOff - 40) / 200).floor();
+    for (var i = first; i * 200 - buoyOff < w + 40; i++) {
+      final x = i * 200 - buoyOff;
+      final bob = 2 * math.sin(s.seconds * 2 + i);
+      final y = surface + bob;
+      canvas.drawCircle(Offset(x, y), 5, Paint()..color = i.isEven ? skin.accent : skin.heading);
+      canvas.drawCircle(Offset(x, y), 5, Paint()..color = skin.ink..style = PaintingStyle.stroke..strokeWidth = 1);
+      canvas.drawLine(Offset(x, y - 5), Offset(x, y - 11), Paint()..color = skin.ink..strokeWidth = 1.2);
+    }
+  }
+
+  /// Open water from behind: the sea to the horizon with a line of buoys
+  /// coming toward the viewer.
+  void _aheadWater(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final horizon = h * (RunScene.horizonY - 0.1 * s.incline);
+    final cx = w / 2;
+    final metres = s.km * 1000;
+    final water = RunScene.waterColor(skin);
+    final shoreColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
+    final shore = Path()..moveTo(0, horizon + 2);
+    for (var x = 0.0; x <= w; x += 6) {
+      final wx = x + metres * 0.03;
+      shore.lineTo(x, horizon - 8 - 7 * math.sin(wx / 70) - 4 * math.sin(wx / 29 + 2));
+    }
+    shore.lineTo(w, horizon + 2);
+    shore.close();
+    canvas.drawPath(shore, Paint()..color = shoreColor);
+    final deep = Color.lerp(water, skin.ink, 0.35)!;
+    canvas.drawRect(
+      Rect.fromLTRB(0, horizon, w, h),
+      Paint()..shader = ui.Gradient.linear(Offset(0, horizon), Offset(0, h), [Color.lerp(water, _skyColor(), 0.4)!, water, deep], [0, 0.3, 1]),
+    );
+    double yAt(double u) => horizon + (h - horizon) * u * u;
+    final ripple = Paint()
+      ..color = skin.card.withValues(alpha: 0.5)
+      ..strokeCap = StrokeCap.round;
+    final rnd = math.Random(5);
+    for (var i = 0; i < 30; i++) {
+      final u = ((rnd.nextDouble() + metres / 40) % 1);
+      final x = rnd.nextDouble() * w;
+      canvas.drawLine(Offset(x, yAt(u)), Offset(x + 4 + 14 * u, yAt(u)), ripple..strokeWidth = 0.6 + 1.4 * u);
+    }
+    // Buoys every 25 m on both sides, far to near.
+    const spacing = 25.0;
+    const horizonM = 220.0;
+    final firstIndex = (metres / spacing).floor();
+    for (var k = 8; k >= 0; k--) {
+      final i = firstIndex + k;
+      final ahead = i * spacing - metres;
+      if (ahead < 0 || ahead > horizonM) continue;
+      final u = 1 - ahead / horizonM;
+      final scale = 0.15 + 0.85 * u * u;
+      for (final side in [-1, 1]) {
+        final x = cx + side * (12 + w * 0.3 * u * u);
+        final y = yAt(u);
+        canvas.drawCircle(Offset(x, y), 5 * scale, Paint()..color = i.isEven ? skin.accent : skin.heading);
+        canvas.drawCircle(Offset(x, y), 5 * scale, Paint()..color = skin.ink..style = PaintingStyle.stroke..strokeWidth = 1);
+      }
+    }
+  }
+
   // --------------------------------------------------------------- ahead
 
   void _ahead(Canvas canvas, Size size) {
@@ -391,4 +539,61 @@ class _ScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ScenePainter old) => true;
+}
+
+/// The water in front of the swimmer: painted over the figure from the
+/// surface down, so what is under the surface shows through the water, with
+/// the surface itself drawn as a wavy line and a little foam around the
+/// swimmer.
+class WaterOverlay extends CustomPainter {
+  WaterOverlay({required this.skin, required this.seconds, required this.km, required this.swimmerX});
+
+  final Skin skin;
+  final double seconds;
+  final double km;
+
+  /// Where the swimmer is, as a fraction of the width.
+  final double swimmerX;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final surface = h * RunScene.waterY;
+    final water = RunScene.waterColor(skin);
+    final metres = km * 1000;
+    final top = Path()..moveTo(-10, surface);
+    for (var x = -10.0; x <= w + 10; x += 4) {
+      top.lineTo(x, surface + 2.2 * math.sin((x - metres * 4) / 14 + seconds * 2) + 1.2 * math.sin(x / 5.5 - seconds * 3));
+    }
+    top.lineTo(w + 10, h + 10);
+    top.lineTo(-10, h + 10);
+    top.close();
+    canvas.drawPath(top, Paint()..color = water.withValues(alpha: 0.42));
+    canvas.drawPath(
+      top,
+      Paint()
+        ..color = skin.card.withValues(alpha: 0.8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6,
+    );
+    // Foam where the arms and feet break the surface.
+    final foam = Paint()
+      ..color = skin.card
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    final cx = w * swimmerX;
+    final rnd = math.Random(3);
+    for (var i = 0; i < 9; i++) {
+      final phase = (seconds * (0.8 + 0.5 * rnd.nextDouble()) + rnd.nextDouble()) % 1;
+      final x = cx - 40 + 100 * rnd.nextDouble() + 8 * phase;
+      final y = surface - 3 - 9 * math.sin(phase * math.pi);
+      final r = 2 + 3 * math.sin(phase * math.pi);
+      canvas.drawArc(Rect.fromCircle(center: Offset(x, y), radius: r), math.pi, math.pi, false, foam);
+    }
+  }
+
+  @override
+  bool shouldRepaint(WaterOverlay old) => true;
 }

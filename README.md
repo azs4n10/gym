@@ -151,9 +151,13 @@ copies tinted), and writes `assets/companion/rig/side.json` plus the layer
 images. The bones take their angles from the same Pose cycles the stick
 figure uses, the skirt swings with the thighs, the hair hangs from two bones
 that trail the stride, and hats ride on the head bone. The rig is drawn with
-`Canvas.drawVertices` (`lib/widgets/companion_rig.dart`). The part drawings
-themselves are kept outside the repository (`idea/part_*.png`). Sitting and
-the view from behind still use single drawings.
+`Canvas.drawVertices` (`lib/widgets/companion_rig.dart`). The lower foot is
+kept on the floor line, so a bent leg lowers the hips rather than lifting
+the foot; cycling draws a bicycle under her with the pedals at her feet and
+the wheels turning with the crank; swimming puts her in open water, drawn
+from the side only, with the water painted over the submerged half. The
+part drawings themselves are kept outside the repository (`idea/part_*.png`).
+Sitting and the view from behind still use single drawings.
 
 A finished session's menu offers "Add to Google Calendar" (a prefilled event
 link) and, on the web, a calendar file (.ics) that any calendar app imports.

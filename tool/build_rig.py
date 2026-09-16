@@ -168,7 +168,10 @@ def weights_for(layer, part, bones, x, y):
     return w
 
 
-rig = {"size": [W, H], "crown": list(CROWN), "bones": [], "layers": []}
+# Heel and toe of the sole relative to the ankle, for standing the figure
+# on the floor and for the pedals.
+SOLE = [[-40, 130], [90, 128]]
+rig = {"size": [W, H], "floor": FLOOR, "crown": list(CROWN), "sole": SOLE, "bones": [], "layers": []}
 for name, parent, head, tail in BONES:
     rig["bones"].append({"name": name, "parent": parent, "head": list(head), "tail": list(tail)})
 

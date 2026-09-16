@@ -7,11 +7,13 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym/data/exercise_moves.dart';
 import 'package:gym/models/enums.dart';
+import 'package:gym/models/run_play.dart';
 import 'package:gym/state/app_state.dart';
 import 'package:gym/theme/app_theme.dart';
 import 'package:gym/widgets/companion_rig.dart';
 import 'package:gym/widgets/companion_sprite.dart';
 import 'package:gym/widgets/exercise_figure.dart';
+import 'package:gym/widgets/run_scene.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,9 +28,96 @@ void main() {
     final rest = only == 'rest';
     final back = only == 'back';
     final girl = only == 'girl';
+    if (only == 'scene') {
+      // The scene card as the run screen lays it out: the world, the rigged
+      // figure and, for swimming, the water in front of her.
+      final rig = await tester.runAsync(() => CompanionRig.side());
+      final kind = CardioType.values.byName(Platform.environment['PREVIEW_KIND'] ?? 'running');
+      final move = cardioMoves[kind]!;
+      final skin = app.skin;
+      const n = 4;
+      const w = 360.0;
+      const h = 240.0;
+      final rkey = GlobalKey();
+      await tester.binding.setSurfaceSize(Size(n * (w + 8) + 16, h + 16));
+      final swim = kind == CardioType.swimming;
+      final rigH = 176 * 1.02;
+      final rigW = rigH * rig!.width / rig.height;
+      await tester.pumpWidget(MaterialApp(
+        home: RepaintBoundary(
+          key: rkey,
+          child: ColoredBox(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  for (var i = 0; i < n; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: w,
+                        height: h,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: RunScene(
+                                route: runRoutes.first,
+                                km: 0.9 + i * 0.05,
+                                seconds: i * 0.7,
+                                view: SceneView.side,
+                                weather: SceneWeather.clear,
+                                incline: 0,
+                                now: DateTime(2026, 9, 16, 10 + i * 3),
+                                skin: skin,
+                                ja: false,
+                                labelStyle: const TextStyle(fontSize: 11),
+                                water: swim,
+                              ),
+                            ),
+                            Positioned(
+                              left: w * RunScene.runnerX - rigW / 2,
+                              top: swim ? h * RunScene.waterY - rigH * 0.36 : h * RunScene.groundY - rigH * 0.99,
+                              child: CompanionRigView(
+                                rig: rig,
+                                pose: move.at(i / n),
+                                height: rigH,
+                                farTint: skin.ink.withValues(alpha: 0.08),
+                                hairSway: 0.05 * math.sin(4 * math.pi * i / n - 1.4),
+                                ground: !swim && kind != CardioType.cycling,
+                                bike: kind == CardioType.cycling,
+                                gearColor: skin.button,
+                                ink: skin.ink,
+                              ),
+                            ),
+                            if (swim)
+                              Positioned.fill(
+                                child: CustomPaint(painter: WaterOverlay(skin: skin, seconds: i * 0.7, km: 0.9, swimmerX: RunScene.runnerX)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      final out = Platform.environment['PREVIEW_OUT'];
+      if (out != null && out.isNotEmpty) {
+        final boundary = rkey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final image = await boundary.toImage(pixelRatio: 2);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        File(out).writeAsBytesSync(bytes!.buffer.asUint8List());
+      }
+      return;
+    }
     if (only == 'rig') {
       final rig = await tester.runAsync(() => CompanionRig.side());
-      final move = cardioMoves[CardioType.running]!;
+      final kind = CardioType.values.byName(Platform.environment['PREVIEW_KIND'] ?? 'running');
+      final move = cardioMoves[kind]!;
       const n = 8;
       const h = 300.0;
       final rkey = GlobalKey();
@@ -54,6 +143,8 @@ void main() {
                           farTint: const Color(0x20000000),
                           hairSway: 0.09 * math.sin(4 * math.pi * i / n - 1.4),
                           hat: const ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon', 'glasses', 'none'][i],
+                          ground: kind != CardioType.cycling && kind != CardioType.swimming,
+                          bike: kind == CardioType.cycling,
                         ),
                       ),
                     ),

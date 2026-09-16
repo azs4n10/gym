@@ -16,13 +16,19 @@ import 'exercise_figure.dart';
 /// bones take their angles from the same [Pose] the stick figure uses, so
 /// every cycle the app already has plays on the illustration, smoothly.
 class CompanionRig {
-  CompanionRig._(this.width, this.height, this.crown, this.bones, this.layers, this.hats);
+  CompanionRig._(this.width, this.height, this.floor, this.crown, this.sole, this.bones, this.layers, this.hats);
 
   final double width;
   final double height;
 
+  /// The line the feet stand on in the rest pose.
+  final double floor;
+
   /// Top of the head in the rest pose, where hats sit.
   final Offset crown;
+
+  /// Heel and toe of the sole, relative to a foot bone's head (the ankle).
+  final List<Offset> sole;
   final List<RigBone> bones;
   final List<RigLayer> layers;
 
@@ -39,6 +45,11 @@ class CompanionRig {
     final dir = path.substring(0, path.lastIndexOf('/'));
     final size = (json['size'] as List).cast<num>();
     final crown = (json['crown'] as List).cast<num>();
+    final floor = (json['floor'] as num?)?.toDouble() ?? size[1] - 12;
+    final sole = [
+      for (final p in (json['sole'] as List? ?? const [[-40, 130], [90, 128]]).cast<List>())
+        Offset((p[0] as num).toDouble(), (p[1] as num).toDouble()),
+    ];
     final bones = [
       for (final b in (json['bones'] as List).cast<Map<String, dynamic>>())
         RigBone(
@@ -91,8 +102,19 @@ class CompanionRig {
       final bytes = await rootBundle.load('${CompanionSprite.folder}/hat_$id.png');
       hats[id] = await decodeImageFromList(bytes.buffer.asUint8List());
     }
-    return CompanionRig._(size[0].toDouble(), size[1].toDouble(), Offset(crown[0].toDouble(), crown[1].toDouble()), bones, layers, hats);
+    return CompanionRig._(
+      size[0].toDouble(),
+      size[1].toDouble(),
+      floor,
+      Offset(crown[0].toDouble(), crown[1].toDouble()),
+      sole,
+      bones,
+      layers,
+      hats,
+    );
   }
+
+  int boneIndex(String name) => bones.indexWhere((b) => b.name == name);
 
   /// Where each bone's head ends up and how much it turned, for a pose.
   List<BoneXf> solve(Pose pose, {double unit = 17, double hairSway = 0}) {
@@ -188,6 +210,10 @@ class CompanionRigView extends StatelessWidget {
     this.farTint,
     this.hairSway = 0,
     this.hat = 'none',
+    this.ground = true,
+    this.bike = false,
+    this.gearColor = const Color(0xFF8A7F78),
+    this.ink = const Color(0xFF3A3335),
   });
 
   final CompanionRig rig;
@@ -203,29 +229,77 @@ class CompanionRigView extends StatelessWidget {
   /// One of the ids in [girlHatUnlocks], or 'none'.
   final String hat;
 
+  /// Keeps the lower foot on the floor line, so a bent leg lowers the hips
+  /// instead of lifting the foot off the ground.
+  final bool ground;
+
+  /// Draws a bicycle under the figure, its pedals under the feet.
+  final bool bike;
+
+  /// Frame and saddle of the bicycle.
+  final Color gearColor;
+
+  /// Tyres, spokes and chain of the bicycle.
+  final Color ink;
+
   @override
   Widget build(BuildContext context) {
     final width = height * rig.width / rig.height;
     return SizedBox(
       width: width,
       height: height,
-      child: CustomPaint(painter: _RigPainter(rig, pose, farTint, hairSway, hat), willChange: true),
+      child: CustomPaint(painter: _RigPainter(this), willChange: true),
     );
   }
 }
 
 class _RigPainter extends CustomPainter {
-  _RigPainter(this.rig, this.pose, this.farTint, this.hairSway, this.hat);
-  final CompanionRig rig;
-  final Pose pose;
-  final Color? farTint;
-  final double hairSway;
-  final String hat;
+  _RigPainter(this.v);
+  final CompanionRigView v;
+  CompanionRig get rig => v.rig;
+  Pose get pose => v.pose;
+  Color? get farTint => v.farTint;
+  double get hairSway => v.hairSway;
+  String get hat => v.hat;
+
+  /// A point fixed to a bone in the rest pose, where it ends up.
+  Offset _at(List<BoneXf> xf, int bone, Offset rest) => xf[bone].apply(rest, rig.bones[bone]);
+
+  /// Middle of the sole of a foot, under the ball of the foot.
+  Offset _ballOfFoot(List<BoneXf> xf, int foot) {
+    final head = rig.bones[foot].head;
+    var sum = Offset.zero;
+    for (final s in rig.sole) {
+      sum += _at(xf, foot, head + s);
+    }
+    return sum / rig.sole.length.toDouble();
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.height / rig.height;
     final xf = rig.solve(pose, hairSway: hairSway);
+    final nearFoot = rig.boneIndex('near_foot');
+    final farFoot = rig.boneIndex('far_foot');
+    final feet = [if (nearFoot >= 0) nearFoot, if (farFoot >= 0) farFoot];
+    // Where the drawing is lifted or lowered as a whole: onto the pedals
+    // of the bicycle, or the lower foot onto the floor line.
+    var shift = 0.0;
+    Offset? crank;
+    if (v.bike && feet.length == 2) {
+      final pedals = [for (final f in feet) _ballOfFoot(xf, f)];
+      crank = (pedals[0] + pedals[1]) / 2;
+      shift = rig.floor - _wheelRadius + _crankDrop - crank.dy;
+    } else if (v.ground && feet.isNotEmpty) {
+      var lowest = double.negativeInfinity;
+      for (final f in feet) {
+        final head = rig.bones[f].head;
+        for (final s in rig.sole) {
+          lowest = math.max(lowest, _at(xf, f, head + s).dy);
+        }
+      }
+      shift = rig.floor - lowest;
+    }
     // The skirt's front is weighted to the near thigh and its back to the
     // far one, but a skirt follows whichever leg is in front: the front hem
     // goes with the forward thigh and the back hem with the other, so
@@ -240,6 +314,8 @@ class _RigPainter extends CustomPainter {
     }
     canvas.save();
     canvas.scale(scale);
+    canvas.translate(0, shift);
+    if (crank != null) _drawBike(canvas, xf, crank, [for (final f in feet) _ballOfFoot(xf, f)]);
     for (final layer in rig.layers) {
       final n = layer.rest.length ~/ 2;
       final pos = Float32List(n * 2);
@@ -276,6 +352,69 @@ class _RigPainter extends CustomPainter {
     canvas.restore();
   }
 
+  double get _wheelRadius => rig.height * 0.17;
+
+  /// How far the crank sits below the hubs.
+  double get _crankDrop => rig.height * 0.03;
+
+  /// A bicycle drawn behind the figure: the crank between the feet, the
+  /// wheels on the floor, the saddle under the hips and the bars at the
+  /// near hand. The wheels turn with the crank.
+  void _drawBike(Canvas canvas, List<BoneXf> xf, Offset crank, List<Offset> pedals) {
+    final h = rig.height;
+    final r = _wheelRadius;
+    final hubY = crank.dy - _crankDrop;
+    final rear = Offset(crank.dx - h * 0.2, hubY);
+    final front = Offset(crank.dx + h * 0.29, hubY);
+    final thigh = rig.boneIndex('near_thigh');
+    final hand = rig.boneIndex('near_hand');
+    final saddle = (thigh >= 0 ? xf[thigh].head : crank - Offset(0, h * 0.3)) + Offset(-h * 0.035, h * 0.03);
+    final grip = (hand >= 0 ? _at(xf, hand, rig.bones[hand].tail) : crank + Offset(h * 0.25, -h * 0.25)) + Offset(h * 0.012, h * 0.008);
+    final head = Offset(front.dx - h * 0.03, grip.dy + h * 0.03);
+    final tyre = Paint()
+      ..color = v.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.009
+      ..strokeCap = StrokeCap.round;
+    final thin = Paint()
+      ..color = v.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.004
+      ..strokeCap = StrokeCap.round;
+    final frame = Paint()
+      ..color = v.gearColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.011
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final spin = math.atan2(pedals[0].dy - crank.dy, pedals[0].dx - crank.dx) * 2.6;
+    for (final hub in [rear, front]) {
+      canvas.drawCircle(hub, r, tyre);
+      canvas.drawCircle(hub, r - h * 0.012, thin);
+      for (var i = 0; i < 8; i++) {
+        final a = spin + i * math.pi / 4;
+        canvas.drawLine(hub, hub + Offset(math.cos(a), math.sin(a)) * (r - h * 0.012), thin);
+      }
+      canvas.drawCircle(hub, h * 0.012, Paint()..color = v.ink);
+    }
+    // Chain from the ring at the crank to the cog at the rear hub.
+    final ring = h * 0.045;
+    final cog = h * 0.018;
+    canvas.drawCircle(crank, ring, thin);
+    canvas.drawLine(Offset(crank.dx, crank.dy - ring), Offset(rear.dx, rear.dy - cog), thin);
+    canvas.drawLine(Offset(crank.dx, crank.dy + ring), Offset(rear.dx, rear.dy + cog), thin);
+    canvas.drawPath(Path()..addPolygon([rear, crank, saddle], true), frame);
+    canvas.drawPath(Path()..addPolygon([saddle, head, crank], true), frame);
+    canvas.drawLine(head, front, frame);
+    canvas.drawLine(head, grip + Offset(-h * 0.01, 0), frame);
+    canvas.drawLine(grip + Offset(-h * 0.03, h * 0.004), grip + Offset(h * 0.035, -h * 0.01), frame);
+    canvas.drawOval(Rect.fromCenter(center: saddle, width: h * 0.08, height: h * 0.024), Paint()..color = v.gearColor);
+    for (final p in pedals) {
+      canvas.drawLine(crank, p, tyre);
+      canvas.drawLine(p + Offset(-h * 0.025, 0), p + Offset(h * 0.025, 0), tyre);
+    }
+  }
+
   /// The hat rides on the crown, turning with the head. Sizes and offsets
   /// are the fractions of the figure's height used on the single drawings,
   /// scaled down because this figure's head is three quarters the size.
@@ -310,5 +449,12 @@ class _RigPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RigPainter old) => old.pose != pose || old.rig != rig || old.hairSway != hairSway || old.hat != hat;
+  bool shouldRepaint(_RigPainter old) =>
+      old.pose != pose ||
+      old.rig != rig ||
+      old.hairSway != hairSway ||
+      old.hat != hat ||
+      old.v.ground != v.ground ||
+      old.v.bike != v.bike ||
+      old.v.gearColor != v.gearColor;
 }
