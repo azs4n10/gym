@@ -211,6 +211,7 @@ class CompanionRigView extends StatelessWidget {
     this.hairSway = 0,
     this.hat = 'none',
     this.ground = true,
+    this.flight = 40,
     this.bike = false,
     this.gearColor = const Color(0xFF8A7F78),
     this.ink = const Color(0xFF3A3335),
@@ -232,6 +233,11 @@ class CompanionRigView extends StatelessWidget {
   /// Keeps the lower foot on the floor line, so a bent leg lowers the hips
   /// instead of lifting the foot off the ground.
   final bool ground;
+
+  /// How far (canvas px) the feet may float above the floor while they
+  /// change over: small for a walk, larger for a run, which then has a
+  /// moment in the air at each stride.
+  final double flight;
 
   /// Draws a bicycle under the figure, its pedals under the feet.
   final bool bike;
@@ -291,14 +297,24 @@ class _RigPainter extends CustomPainter {
       crank = (pedals[0] + pedals[1]) / 2;
       shift = rig.floor - _wheelRadius + _crankDrop - crank.dy;
     } else if (v.ground && feet.isNotEmpty) {
-      var lowest = double.negativeInfinity;
+      // The lower foot, taken softly: while the feet change over the figure
+      // floats a little rather than jolting from one leg to the other.
+      final lows = <double>[];
       for (final f in feet) {
         final head = rig.bones[f].head;
+        var low = double.negativeInfinity;
         for (final s in rig.sole) {
-          lowest = math.max(lowest, _at(xf, f, head + s).dy);
+          low = math.max(low, _at(xf, f, head + s).dy);
         }
+        lows.add(low);
       }
-      shift = rig.floor - lowest;
+      final m = lows.reduce(math.max);
+      final k = math.max(1.0, v.flight);
+      var sum = 0.0;
+      for (final y in lows) {
+        sum += math.exp((y - m) / k);
+      }
+      shift = rig.floor - (m + k * math.log(sum));
     }
     // The skirt's front is weighted to the near thigh and its back to the
     // far one, but a skirt follows whichever leg is in front: the front hem
@@ -472,6 +488,7 @@ class _RigPainter extends CustomPainter {
       old.hairSway != hairSway ||
       old.hat != hat ||
       old.v.ground != v.ground ||
+      old.v.flight != v.flight ||
       old.v.bike != v.bike ||
       old.v.gearColor != v.gearColor;
 }

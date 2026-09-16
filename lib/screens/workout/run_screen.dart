@@ -352,11 +352,42 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     }, onError: (_) {});
   }
 
+  /// Stops the clock and asks; on yes the outing is saved and the screen is
+  /// ready for the next one, on no the clock carries on where it was.
   Future<void> _finish() async {
     final l = context.read<AppState>().l;
+    final wasRunning = _running;
+    if (wasRunning) setState(() => _running = false);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.finishRun),
+        content: Text(l.finishRunAsk),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.save)),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (ok != true) {
+      if (wasRunning) setState(() => _running = true);
+      return;
+    }
+    await _save();
+    if (mounted) _reset();
+  }
+
+  /// Writes the outing into today's session, unless it was too short to be
+  /// worth a line.
+  Future<void> _save() async {
+    final l = context.read<AppState>().l;
     final w = context.read<WorkoutState>();
-    setState(() => _running = false);
     await _progress?.save();
+    if (_elapsedS < 30) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.runTooShort)));
+      return;
+    }
     final id = await w.startSession();
     final minutes = _elapsedS / 60;
     await w.addCardio(
@@ -370,7 +401,36 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text([l.runSaved, if (_stampsNow > 0) l.newStamps(_stampsNow)].join(' · ')),
     ));
-    Navigator.of(context).pop();
+  }
+
+  /// Back to the start line: the clock, the distance and the outing's quests
+  /// and laps are cleared, the road and the stamps stay.
+  void _reset() {
+    setState(() {
+      _running = false;
+      _elapsedS = 0;
+      _distanceKm = 0;
+      _journeyKm = 0;
+      _journeyAppliedKm = 0;
+      _kcal = 0;
+      _beat = 0;
+      _maxSpeed = 0;
+      _fastKm = 0;
+      _laps = 0;
+      _nextLapKm = _lapM / 1000;
+      _nextKmMark = 1;
+      _call = null;
+      _callLeft = 0;
+      _callsDone = 0;
+      _nonstopKm = 0;
+      _stoppedS = 0;
+      _steadyS = 0;
+      _steadyRef = 0;
+      _landmarksNow = 0;
+      _stampsNow = 0;
+      _routeDoneSaid = false;
+      _quests = Quest.draw(_kind, seed: DateTime.now().millisecondsSinceEpoch);
+    });
   }
 
   String _pace(double speed) {
@@ -448,16 +508,25 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                   label: Text(k.label(l)),
                   selected: _kind == k,
                   visualDensity: VisualDensity.compact,
-                  onSelected: _elapsedS > 0
+                  // Another activity while paused saves the one so far and
+                  // starts afresh.
+                  onSelected: _running || k == _kind
                       ? null
-                      : (_) => setState(() {
+                      : (_) async {
+                          if (_elapsedS > 0) {
+                            await _save();
+                            if (!mounted) return;
+                            _reset();
+                          }
+                          setState(() {
                             _kind = k;
                             _speed = startSpeed(k);
                             _quests = Quest.draw(k, seed: DateTime.now().millisecondsSinceEpoch);
                             if (!hasDistance(k)) _lapM = 300;
                             _nextLapKm = _journeyKm + _lapM / 1000;
                             if (_gps && !_outdoorKind) _setGps(false);
-                          }),
+                          });
+                        },
                 ),
             ],
           ),
@@ -468,10 +537,12 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(kCardRadius - 2)),
                   child: SizedBox(
-                    height: 240,
+                    // Most of the width, so the figure and the controls on
+                    // it are big enough for a thumb.
+                    height: (MediaQuery.sizeOf(context).width * 0.8).clamp(240.0, 340.0),
                     child: LayoutBuilder(
                       builder: (_, c) {
-                        const size = 150.0;
+                        final size = c.maxHeight * 0.625;
                         // Swimming is only drawn from the side.
                         final swim = _kind == CardioType.swimming;
                         final ahead = _view == SceneView.ahead && !swim;
@@ -479,7 +550,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         final left = ahead ? (c.maxWidth - size) / 2 : c.maxWidth * RunScene.runnerX - size / 2;
                         final top = ahead ? c.maxHeight - size * 0.94 - 6 : c.maxHeight * RunScene.groundY - size * 0.94;
                         // The drawings keep their feet 3% above the canvas bottom.
-                        final spriteH = ahead ? 150.0 : 176.0;
+                        final spriteH = c.maxHeight * (ahead ? 0.625 : 0.733);
                         final spriteW = spriteH * (ahead ? 218 / 477 : 440 / 492);
                         final girlLeft = ahead ? (c.maxWidth - spriteW) / 2 : c.maxWidth * RunScene.runnerX - spriteW / 2;
                         final girlTop = ahead
@@ -534,6 +605,8 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         hairSway: (_kind == CardioType.running ? 0.09 : 0.05) * math.sin(4 * math.pi * _phase - 1.4),
                                         hat: _girlHat,
                                         ground: !swim && _kind != CardioType.cycling,
+                                        // A run leaves the ground a little at each stride.
+                                        flight: _kind == CardioType.running ? 120 : 40,
                                         bike: _kind == CardioType.cycling,
                                         gearColor: skin.button,
                                         ink: skin.ink,
@@ -569,6 +642,30 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                   ),
                                 ),
                               ),
+                            Positioned(
+                              right: 12,
+                              bottom: 8,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  _SceneButton(
+                                    icon: Icons.stop_rounded,
+                                    label: l.finishRun,
+                                    size: 50,
+                                    filled: false,
+                                    onTap: _elapsedS > 0 ? _finish : null,
+                                  ),
+                                  const SizedBox(width: 14),
+                                  _SceneButton(
+                                    icon: _running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                    label: _running ? l.pause : (_elapsedS > 0 ? l.resume : l.start),
+                                    size: 64,
+                                    filled: true,
+                                    onTap: _toggleRun,
+                                  ),
+                                ],
+                              ),
+                            ),
                             if (!swim)
                               Positioned(
                                 left: 10,
@@ -810,27 +907,53 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
           ],
         ],
       ),
-      bottomNavigationBar: SafeArea(
+    );
+  }
+}
+
+/// A big round control on the scene: start, pause or finish, with its name
+/// underneath, sized for a thumb.
+class _SceneButton extends StatelessWidget {
+  const _SceneButton({required this.icon, required this.label, required this.size, required this.filled, this.onTap});
+  final IconData icon;
+  final String label;
+  final double size;
+  final bool filled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = context.skin;
+    final t = Theme.of(context).textTheme;
+    final enabled = onTap != null;
+    final fill = filled ? skin.button : skin.card;
+    final fg = filled ? skin.buttonText : skin.ink;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(size / 2 + 6),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Row(
+          padding: const EdgeInsets.all(4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                flex: 3,
-                child: FilledButton.icon(
-                  onPressed: _toggleRun,
-                  icon: Icon(_running ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                  label: Text(_running ? l.pause : (_elapsedS > 0 ? l.resume : l.start)),
+              Material(
+                color: enabled ? fill : fill.withValues(alpha: 0.5),
+                shape: CircleBorder(side: BorderSide(color: skin.ink.withValues(alpha: enabled ? 0.9 : 0.35), width: 1.6)),
+                elevation: enabled ? 2 : 0,
+                shadowColor: skin.ink.withValues(alpha: 0.4),
+                child: SizedBox(
+                  width: size,
+                  height: size,
+                  child: Icon(icon, size: size * 0.58, color: enabled ? fg : fg.withValues(alpha: 0.4)),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: OutlinedButton.icon(
-                  onPressed: _elapsedS >= 30 ? _finish : null,
-                  icon: const Icon(Icons.check_rounded),
-                  label: Text(l.finishRun),
-                ),
+              const SizedBox(height: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                decoration: BoxDecoration(color: skin.card.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(8)),
+                child: Text(label, style: t.labelSmall?.copyWith(color: skin.text, fontWeight: FontWeight.w800)),
               ),
             ],
           ),

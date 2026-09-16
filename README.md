@@ -129,7 +129,10 @@ every kilometre, and calls out landmarks; a road (three fictional routes of
 leaves a stamp; a wheel spins every lap (200 m, 400 m or 1 km) and calls the
 next minute; three small quests are drawn per outing. Distance comes from the
 speed you set to match the machine, or from the phone's location when GPS is
-switched on (web only). Finish writes a cardio entry into today's session.
+switched on (web only). Start, pause and finish are big round buttons on the
+scene itself; finish asks first, writes a cardio entry into today's session
+(outings under 30 seconds are dropped) and leaves the screen ready for the
+next one. Picking another activity while paused saves the one so far.
 Progress and stamps live in local preferences (`lib/models/run_play.dart`).
 
 The figure runs through a drawn world (`lib/widgets/run_scene.dart`): from

@@ -207,6 +207,8 @@ abstract class L {
   String get resume;
   String get finishRun;
   String get runSaved;
+  String get finishRunAsk;
+  String get runTooShort;
   String newStamps(int n);
   String get questDone;
   String get calendarGoogle;
@@ -642,6 +644,10 @@ class LEn extends L {
   String get finishRun => 'Finish';
   @override
   String get runSaved => "Saved to today's workout";
+  @override
+  String get finishRunAsk => "Finish and save to today's workout?";
+  @override
+  String get runTooShort => 'Under 30 seconds, not saved';
   @override
   String newStamps(int n) => n == 1 ? '+1 stamp' : '+$n stamps';
   @override
@@ -1115,6 +1121,10 @@ class LJa extends L {
   String get finishRun => '終了';
   @override
   String get runSaved => '今日のトレーニングに保存しました';
+  @override
+  String get finishRunAsk => '終了して今日のトレーニングに保存しますか？';
+  @override
+  String get runTooShort => '30秒未満なので保存していません';
   @override
   String newStamps(int n) => 'スタンプ +$n';
   @override

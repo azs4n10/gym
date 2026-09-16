@@ -144,6 +144,7 @@ void main() {
                           hairSway: 0.09 * math.sin(4 * math.pi * i / n - 1.4),
                           hat: const ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon', 'glasses', 'none'][i % 8],
                           ground: kind != CardioType.cycling && kind != CardioType.swimming,
+                          flight: kind == CardioType.running ? 120 : 40,
                           bike: kind == CardioType.cycling,
                         ),
                       ),
