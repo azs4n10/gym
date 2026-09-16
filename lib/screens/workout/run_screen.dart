@@ -655,6 +655,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         // A breath: the face turns to the viewer and lifts a little.
                                         headTurn: -0.45 * breath,
                                         faceFront: breath,
+                                        footFollow: swim ? 1 : 0.35,
                                         gearColor: mode == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                         ink: skin.ink,
                                       )

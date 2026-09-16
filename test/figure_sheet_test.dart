@@ -93,6 +93,7 @@ void main() {
                                 flow: swim,
                                 headTurn: swim ? -0.45 * swimBreathAmount(i / n + 1.5) : 0,
                                 faceFront: swim ? swimBreathAmount(i / n + 1.5) : 0,
+                                footFollow: swim ? 1 : 0.35,
                                 gearColor: sceneModeFor(kind) == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                 ink: skin.ink,
                               ),

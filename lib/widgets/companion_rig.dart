@@ -128,7 +128,7 @@ class CompanionRig {
   /// [headTurn] tilts the head (and the hair with it) on top of the pose.
   /// [ankles] gives the near and far leg an ankle to reach instead of the
   /// pose's angles, keyed by the thigh bone's name, in canvas px.
-  List<BoneXf> solve(Pose pose, {double hairSway = 0, double headTurn = 0, Map<String, Offset>? ankles}) {
+  List<BoneXf> solve(Pose pose, {double hairSway = 0, double headTurn = 0, double footFollow = 0.35, Map<String, Offset>? ankles}) {
     final out = List<BoneXf>.filled(bones.length, const BoneXf(Offset.zero, 0));
     final root = rootOffset(pose);
     final reach = <String, Offset>{};
@@ -182,8 +182,13 @@ class CompanionRig {
         turn = out[b.parent].turn + hairSway;
       } else if (b.name == 'head') {
         turn = out[b.parent].turn + headTurn;
+      } else if (b.name.endsWith('_foot')) {
+        // The ankle gives: the foot takes only a share of the shin's turn,
+        // staying near level as the leg swings and flat on the ground
+        // while the shin rolls over it. Pointed toes take all of it.
+        turn = out[b.parent].turn * footFollow;
       } else {
-        // Hands and feet keep their parent's turn.
+        // Hands keep their parent's turn.
         turn = b.parent >= 0 ? out[b.parent].turn : 0;
       }
       final head = b.parent >= 0 ? out[b.parent].apply(b.head, bones[b.parent]) : b.head + root;
@@ -249,6 +254,7 @@ class CompanionRigView extends StatelessWidget {
     this.flow = false,
     this.headTurn = 0,
     this.faceFront = 0,
+    this.footFollow = 0.35,
     this.gearColor = const Color(0xFF8A7F78),
     this.ink = const Color(0xFF3A3335),
   });
@@ -291,6 +297,10 @@ class CompanionRigView extends StatelessWidget {
   /// How far the head is turned to face the viewer, 0 to 1: the profile
   /// fades into the front view of the face, as when a swimmer breathes.
   final double faceFront;
+
+  /// How much of the shin's turn the foot takes: a little on land, so the
+  /// shoe stays level with the ground; all of it in water, toes pointed.
+  final double footFollow;
 
   /// Frames, saddles, rails and treads.
   final Color gearColor;
@@ -346,12 +356,12 @@ class _RigPainter extends CustomPainter {
     var ankles = Map<String, Offset>.from(targets);
     final ball = rig.sole.reduce((a, b) => a + b) / rig.sole.length.toDouble();
     for (var pass = 0; pass < 2; pass++) {
-      final xf = rig.solve(pose, hairSway: hairSway, headTurn: v.headTurn, ankles: ankles);
+      final xf = rig.solve(pose, hairSway: hairSway, headTurn: v.headTurn, footFollow: v.footFollow, ankles: ankles);
       ankles = {
         for (final e in targets.entries)
           e.key: () {
-            final shin = rig.boneIndex(e.key.replaceFirst('thigh', 'shin'));
-            final turn = shin >= 0 ? xf[shin].turn : 0.0;
+            final foot = rig.boneIndex(e.key.replaceFirst('thigh', 'foot'));
+            final turn = foot >= 0 ? xf[foot].turn : 0.0;
             final c = math.cos(turn);
             final s = math.sin(turn);
             return e.value - Offset(ball.dx * c - ball.dy * s, ball.dx * s + ball.dy * c);
@@ -368,6 +378,7 @@ class _RigPainter extends CustomPainter {
       pose,
       hairSway: hairSway,
       headTurn: v.headTurn,
+      footFollow: v.footFollow,
       ankles: v.prop == RigProp.stairs ? _climbAnkles() : null,
     );
     final nearFoot = rig.boneIndex('near_foot');
@@ -727,5 +738,6 @@ class _RigPainter extends CustomPainter {
       old.v.flow != v.flow ||
       old.v.headTurn != v.headTurn ||
       old.v.faceFront != v.faceFront ||
+      old.v.footFollow != v.footFollow ||
       old.v.gearColor != v.gearColor;
 }
