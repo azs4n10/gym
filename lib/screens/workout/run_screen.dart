@@ -648,7 +648,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         hat: _girlHat,
                                         ground: !swim && rigPropFor(_kind) == RigProp.none,
                                         // A run leaves the ground a little at each stride.
-                                        flight: _kind == CardioType.running ? 140 : 40,
+                                        flight: _kind == CardioType.running ? 60 : 40,
                                         prop: rigPropFor(_kind),
                                         phase: _phase,
                                         flow: swim,

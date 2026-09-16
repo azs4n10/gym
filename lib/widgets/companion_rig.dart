@@ -424,6 +424,9 @@ class _RigPainter extends CustomPainter {
         sum += math.exp((y - m) / k);
       }
       shift = rig.floor - (m + k * math.log(sum));
+      // The pose's own rise above standing height is kept on top: a run
+      // leaves the ground between push-off and landing.
+      shift += (pose.hip.dy - 55) * CompanionRig.unit;
     }
     // The skirt's front is weighted to the near thigh and its back to the
     // far one, but a skirt follows whichever leg is in front: the front hem

@@ -343,9 +343,13 @@ Pose _run(double p) {
     return Limb(upper, upper + 88);
   }
 
+  // Flight: after each push-off, until the other foot lands, the body is
+  // in the air. Twice a cycle, centred between the push-off and the next
+  // landing.
+  final flight = _bump(2 * (p - 1.58), 4.0);
   return Pose(
-    hip: Offset(50, 55 + 1.5 * _cos(2 * p)),
-    torso: 14,
+    hip: Offset(50, 55 - 7 * flight),
+    torso: 16,
     arm: arm(p),
     arm2: arm(p + math.pi),
     leg: leg(p),
