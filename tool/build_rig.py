@@ -141,11 +141,12 @@ def chain_weights(p, bones, blends):
     w = {}
     cum = np.cumsum(lengths)
     if bones[-1].endswith("_foot"):
-        # The shoe belongs to the foot whole, the sock to the shin; the
-        # two meet in a short band at the ankle, cut level, so the heel
-        # behind the ankle does not bend when the foot turns on its own.
+        # The shoe belongs to the foot whole, so the heel keeps its shape
+        # when the foot turns on its own; the sock above the ankle goes
+        # from the shin at the top to the foot at the bottom, so there is
+        # no seam where the two turn differently.
         ankle_y = joints[2][1]
-        u = min(1.0, max(0.0, (p[1] - (ankle_y - 12)) / 24))
+        u = min(1.0, max(0.0, (p[1] - (ankle_y - 64)) / 52))
         if u > 0:
             if u < 1:
                 w[NAME[bones[1]]] = 1 - u
