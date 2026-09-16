@@ -28,20 +28,27 @@ PARTS = {
     "head": ((540, 1250), (290, 292), 0.24, 0.24),
     "hair_back": ((430, 350), (201, 140), 0.28, 0.37),
     "arm": ((490, 150), (257, 331), 0.40, 0.40),
-    "leg": ((575, 450), (341, 1016), 0.411, 0.411),
+    # The leg is three pieces from the paper-doll kit drawing, each one
+    # rigid on its bone, the round joint ends overlapping.
+    "thigh": ((152, 72), (318, 636), 0.534, 0.534),
+    "shin": ((560, 190), (352, 1014), 0.46, 0.286),
+    "shoe": ((820, 1030), (352, 1314), 0.48, 0.48),
     # The head seen from the front, cut from the front-view drawing, for
     # the swimmer turning to breathe.
     "head_front": ((67, 80), (290, 292), 3.1, 3.1),
 }
 FRONT_SRC = f"{ROOT}/assets/companion/stand_front.png"
+KIT_SRC = f"{IDEA}/part_leg_kit.png"
+# Where each piece sits in the kit drawing, and the knee the thigh piece is
+# cut round at (it was drawn down to the ankle).
+# The shoe is taken from its collar down, without the hinge tab drawn
+# above it, and drawn over the shin so the ankle end sits inside it.
+KIT_BOX = {"thigh": (20, 10, 360, 900), "shin": (405, 130, 675, 1310), "shoe": (700, 1062, 1125, 1330)}
+KIT_KNEE = ((215, 780), 112)
 FRONT_BOX = (22, 0, 112, 88)
 FRONT_FADE = 12
 # Where the far copies sit relative to the near ones.
-FAR_SHIFT = {"arm": (13, 9), "leg": (-24, 0)}
-# Rows of the leg drawing stretched upward to extend the thigh, and the
-# drawing y the extension reaches.
-LEG_BAND = (44, 94)
-LEG_TOP = -330
+FAR_SHIFT = {"arm": (13, 9), "thigh": (-24, 0), "shin": (-24, 0), "shoe": (-24, 0)}
 # Where the crown of the head is, for hats (canvas px).
 CROWN = (287, 37)
 
@@ -57,12 +64,12 @@ BONES = [
     ("far_upper", 0, (270, 340), (281, 576)),
     ("far_lower", 7, (281, 576), (285, 754)),
     ("far_hand", 8, (285, 754), (292, 876)),
-    ("near_thigh", -1, (318, 636), (341, 1016)),
-    ("near_shin", 10, (341, 1016), (333, 1316)),
-    ("near_foot", 11, (333, 1316), (424, 1423)),
-    ("far_thigh", -1, (294, 636), (317, 1016)),
-    ("far_shin", 13, (317, 1016), (309, 1316)),
-    ("far_foot", 14, (309, 1316), (400, 1423)),
+    ("near_thigh", -1, (318, 636), (352, 1014)),
+    ("near_shin", 10, (352, 1014), (352, 1314)),
+    ("near_foot", 11, (352, 1314), (480, 1420)),
+    ("far_thigh", -1, (294, 636), (328, 1014)),
+    ("far_shin", 13, (328, 1014), (328, 1314)),
+    ("far_foot", 14, (328, 1314), (456, 1420)),
 ]
 NAME = {b[0]: i for i, b in enumerate(BONES)}
 BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
@@ -71,22 +78,50 @@ BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
 LAYERS = [
     ("hair_back", "hair_back", None, None),
     ("far_arm", "arm", ["far_upper", "far_lower", "far_hand"], FAR_SHIFT["arm"]),
-    ("far_leg", "leg", ["far_thigh", "far_shin", "far_foot"], FAR_SHIFT["leg"]),
-    ("near_leg", "leg", ["near_thigh", "near_shin", "near_foot"], None),
+    ("far_shin", "shin", ["far_shin"], FAR_SHIFT["shin"]),
+    ("far_shoe", "shoe", ["far_foot"], FAR_SHIFT["shoe"]),
+    ("far_thigh", "thigh", ["far_thigh"], FAR_SHIFT["thigh"]),
+    ("near_shin", "shin", ["near_shin"], None),
+    ("near_shoe", "shoe", ["near_foot"], None),
+    ("near_thigh", "thigh", ["near_thigh"], None),
     ("skirt", "skirt", None, None),
     ("head", "head", None, None),
     ("head_front", "head_front", None, None),
     ("body", "torso", None, None),
     ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
 ]
-FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png", "head_front": "side_head_front.png",
+FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "thigh": "side_thigh.png", "shin": "side_shin.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
         "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
 # Blend width (canvas px) around the inner joints of a limb chain.
 BLEND = {"arm": (60, 40), "leg": (70, 45)}
 
 
+def load_kit_piece(name):
+    """A piece of the paper-doll kit: keyed off the black, the glow outside
+    the outline dropped, holes (the dark shoe) filled, cut round at the
+    knee for the thigh."""
+    from scipy import ndimage
+    rgb = np.array(Image.open(KIT_SRC).convert("RGB")).astype(int)
+    lum = rgb.max(axis=2)
+    mask = ndimage.binary_fill_holes(lum > 110)
+    x0, y0, x1, y1 = KIT_BOX[name]
+    box = np.zeros_like(mask)
+    box[y0:y1, x0:x1] = True
+    mask &= box
+    if name == "thigh":
+        (kx, ky), r = KIT_KNEE
+        yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
+        mask &= (yy < ky) | ((xx - kx) ** 2 + (yy - ky) ** 2 <= r * r)
+    mask = ndimage.binary_erosion(mask, iterations=3)
+    alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0) * 255
+    a = np.dstack([rgb.astype(np.float32), alpha])
+    return a
+
+
 def load_part(name):
-    if name == "head_front":
+    if name in KIT_BOX:
+        a = load_kit_piece(name)
+    elif name == "head_front":
         im = Image.open(FRONT_SRC).convert("RGBA").crop(FRONT_BOX)
         a = np.array(im).astype(np.float32)
         # The cut through the hair and neck fades out.
@@ -99,16 +134,6 @@ def load_part(name):
         # Trim the glow: only nearly opaque pixels stay, with a short ramp.
         a[:, :, 3] = np.clip((a[:, :, 3] - 120) / (255 - 120), 0, 1) * 255
     top = 0  # drawing y of the first row of a
-    if name == "leg":
-        # The drawing stops at mid thigh; the thigh is carried on up to just
-        # under the hip (which sits at y=-475 here) so that, whichever way
-        # the leg swings, no cut edge shows past the skirt.
-        band = a[LEG_BAND[0]:LEG_BAND[1]]
-        rows = LEG_BAND[0] - LEG_TOP
-        ext = np.array(Image.fromarray(band.astype(np.uint8), "RGBA").resize((band.shape[1], rows), Image.BILINEAR)).astype(np.float32)
-        ext[:, :, 3] *= np.clip(np.arange(rows) / 40, 0, 1)[:, None]
-        a = np.concatenate([ext, a[LEG_BAND[0]:]], axis=0)
-        top = LEG_TOP
     m = a[:, :, 3] > 8
     ys, xs = np.where(m)
     x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
@@ -169,6 +194,9 @@ def chain_weights(p, bones, blends):
 
 def weights_for(layer, part, bones, x, y):
     w = {}
+    if bones is not None and len(bones) == 1:
+        # A rigid piece on one bone.
+        return {NAME[bones[0]]: 1.0}
     if bones is not None:
         return chain_weights(np.array([x, y], float), bones, BLEND[part])
     if layer == "body":
@@ -199,7 +227,7 @@ def weights_for(layer, part, bones, x, y):
 
 # Heel and toe of the sole relative to the ankle, for standing the figure
 # on the floor and for the pedals.
-SOLE = [[-40, 130], [90, 128]]
+SOLE = [[-45, 130], [130, 128]]
 rig = {"size": [W, H], "floor": FLOOR, "crown": list(CROWN), "sole": SOLE, "bones": [], "layers": []}
 for name, parent, head, tail in BONES:
     rig["bones"].append({"name": name, "parent": parent, "head": list(head), "tail": list(tail)})

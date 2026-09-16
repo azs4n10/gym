@@ -147,11 +147,13 @@ by the browser itself (footfall clicks, a chime at a landmark, the wheel).
 
 The illustrated companion is a cut-out rig rather than a set of frames. Each
 part of the side view was drawn on its own (head, long hair, torso, skirt,
-one arm, one leg); `tool/build_rig.py` trims and scales them onto a common
+one arm, and a leg as a paper-doll kit of thigh, shin and shoe with round
+joint ends); `tool/build_rig.py` trims and scales them onto a common
 canvas, covers each with a small triangle mesh whose vertices follow the
 bones with blended weights (the arm and the leg are used twice, the far
-copies tinted), and writes `assets/companion/rig/side.json` plus the layer
-images. The bones take their angles from the same Pose cycles the stick
+copies tinted; the leg pieces are rigid and overlap at the knee and ankle,
+so they turn without bending), and writes `assets/companion/rig/side.json`
+plus the layer images. The bones take their angles from the same Pose cycles the stick
 figure uses, the skirt swings with the thighs, the hair hangs from two bones
 that trail the stride, and hats ride on the head bone. The rig is drawn with
 `Canvas.drawVertices` (`lib/widgets/companion_rig.dart`). The lower foot is

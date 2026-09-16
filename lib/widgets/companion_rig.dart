@@ -95,7 +95,12 @@ class CompanionRig {
     }
     // Back to front: the long hair behind everything, both legs behind the
     // skirt, the head behind the collar, the near arm in front.
-    const order = ['hair_back', 'far_arm', 'far_leg', 'near_leg', 'skirt', 'head', 'head_front', 'body', 'near_arm'];
+    // Each leg is three rigid pieces: the thigh over the shin at the knee,
+    // the shoe over the shin at the ankle.
+    const order = [
+      'hair_back', 'far_arm', 'far_shin', 'far_shoe', 'far_thigh', 'near_shin', 'near_shoe', 'near_thigh', //
+      'skirt', 'head', 'head_front', 'body', 'near_arm',
+    ];
     layers.sort((a, b) => order.indexOf(a.name).compareTo(order.indexOf(b.name)));
     final hats = <String, ui.Image>{};
     for (final (id, _) in girlHatUnlocks) {
