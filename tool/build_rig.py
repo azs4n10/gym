@@ -31,7 +31,9 @@ PARTS = {
     # The leg is three pieces from the paper-doll kit drawing, each one
     # rigid on its bone, the round joint ends overlapping.
     "thigh": ((152, 72), (318, 636), 0.38, 0.534),
-    "shin": ((560, 190), (352, 1014), 0.42, 0.286),
+    # Anchored at the ankle hinge; a little taller than the bone so its
+    # top reaches well up under the thigh.
+    "shin": ((560, 1240), (352, 1314), 0.32, 0.314),
     "shoe": ((820, 1030), (352, 1314), 0.44, 0.44),
     # The head seen from the front, cut from the front-view drawing, for
     # the swimmer turning to breathe.
@@ -45,8 +47,14 @@ KIT_SRC = f"{IDEA}/part_leg_kit.png"
 # above it, and drawn over the shin so the ankle end sits inside it.
 KIT_BOX = {"thigh": (20, 10, 360, 900), "shin": (405, 130, 675, 1310), "shoe": (700, 1062, 1125, 1330)}
 KIT_KNEE = ((215, 780), 115)
-# Half the height of the band, in kit px, over which the thigh fades out
-# and the shin fades in at the knee.
+# The thigh fades out over the shin in a band centred this far above the
+# knee (negative: below it), of this half-height (kit px): just under the
+# joint, where the shin is at its full width and the two drawings match,
+# so the outline shows neither a step nor a waist.
+KNEE_SEAM_UP = -28
+# The shin is cut flat this far down its drawing, taking off the round
+# top end whose outline would show through the thigh.
+KIT_SHIN_TOP = 160
 KNEE_SEAM = 28
 # The shin carried a rivet at the knee too, under the thigh; painted out
 # with the skin so nothing shows through the softened knee.
@@ -159,27 +167,37 @@ def load_kit_piece(name):
     mask &= box
     (kx, ky), _ = KIT_KNEE
     rows = np.arange(mask.shape[0])
+    yy = rows[:, None]
     if name == "thigh":
-        # The thigh ends just below the knee, fading out level over the
+        # The thigh ends just above the knee, fading out level over the
         # opaque shin, so the two make one leg with no step in the
         # outline at the knee.
-        yy = rows[:, None]
-        mask &= yy < ky + KNEE_SEAM
+        mask &= yy < ky - KNEE_SEAM_UP + KNEE_SEAM
+    if name == "shin":
+        mask &= yy >= KIT_SHIN_TOP
     mask = ndimage.binary_erosion(mask, iterations=3)
     alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0) * 255
     if name == "thigh":
-        fade = np.clip((ky + KNEE_SEAM - rows) / (2 * KNEE_SEAM), 0, 1)
+        fade = np.clip((ky - KNEE_SEAM_UP + KNEE_SEAM - rows) / (2 * KNEE_SEAM), 0, 1)
         alpha = alpha * fade[:, None]
     a = np.dstack([rgb.astype(np.float32), alpha])
     if name == "shin":
+        # The rivets the kit drew at both ends are filled from the colours
+        # around them (a blur of the surroundings only), so the shading
+        # runs on through where they were.
         yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
         (rx, ry), r = KIT_SHIN_RIVET
-        ring = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
-        a[ring, 0:3] = np.array([246, 244, 242], np.float32)
+        ankle = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
+        a[ankle, 0:3] = np.array([246, 244, 242], np.float32)
         (rx, ry), r = KIT_SHIN_KNEE
-        ring = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
-        skin = a[ry + r + 40:ry + r + 80, rx - 20:rx + 20, 0:3].reshape(-1, 3).mean(axis=0)
-        a[ring, 0:3] = skin
+        rivets = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
+        # Only the skin around it, not the outline, feeds the fill.
+        keep = (mask & ~rivets & (lum > 170)).astype(np.float32)
+        for c in range(3):
+            num = ndimage.gaussian_filter(a[:, :, c] * keep, 18)
+            den = ndimage.gaussian_filter(keep, 18)
+            fill = num / np.maximum(den, 1e-3)
+            a[:, :, c] = np.where(rivets, fill, a[:, :, c])
     return a
 
 
