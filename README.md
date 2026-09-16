@@ -155,12 +155,20 @@ images. The bones take their angles from the same Pose cycles the stick
 figure uses, the skirt swings with the thighs, the hair hangs from two bones
 that trail the stride, and hats ride on the head bone. The rig is drawn with
 `Canvas.drawVertices` (`lib/widgets/companion_rig.dart`). The lower foot is
-kept on the floor line, so a bent leg lowers the hips rather than lifting
-the foot; cycling draws a bicycle under her with the pedals at her feet and
-the wheels turning with the crank; swimming puts her in open water, drawn
-from the side only, with the water painted over the submerged half. The
-part drawings themselves are kept outside the repository (`idea/part_*.png`).
-Sitting and the view from behind still use single drawings.
+kept on the floor line through a soft maximum, so a bent leg lowers the
+hips rather than lifting the foot, and a run floats a little at each
+stride. Each activity gets its own world (`sceneModeFor`, `rigPropFor` in
+`lib/models/run_play.dart`): cycling draws a bicycle under her with the
+pedals at her feet and the wheels turning with the crank; the stair climber
+is an endless hillside staircase whose treads pass under her feet (the legs
+are solved to reach them); rowing and the elliptical draw their machines
+from her hands and feet; swimming puts her in open water, with the water
+painted over the submerged half, her skirt streaming along her body and a
+breath taken every other stroke; HIIT, yoga and "other" happen in a
+practice room with a mirror wall that reflects her. Only the road has the
+view from behind. The part drawings themselves are kept outside the
+repository (`idea/part_*.png`). Sitting and the view from behind still use
+single drawings.
 
 A finished session's menu offers "Add to Google Calendar" (a prefilled event
 link) and, on the web, a calendar file (.ics) that any calendar app imports.

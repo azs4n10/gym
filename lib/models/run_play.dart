@@ -321,6 +321,53 @@ const cheersJa = ['いいね', 'その調子', 'きれいなフォーム', 'も�
 bool hasDistance(CardioType kind) =>
     kind != CardioType.hiit && kind != CardioType.yoga && kind != CardioType.other;
 
+/// The kind of place the companion moves through.
+enum SceneMode {
+  /// A road with the countryside sliding past.
+  road,
+
+  /// Open water with a far shore.
+  water,
+
+  /// A hillside; the steps themselves are drawn with the figure.
+  stairs,
+
+  /// A practice room with a mirror wall and a wooden floor.
+  studio,
+}
+
+/// Equipment drawn with the rigged figure, placed from its hands and feet.
+enum RigProp { none, bike, stairs, rower, elliptical }
+
+/// The world each activity is drawn in.
+SceneMode sceneModeFor(CardioType kind) => switch (kind) {
+      CardioType.swimming => SceneMode.water,
+      CardioType.stairs => SceneMode.stairs,
+      CardioType.hiit || CardioType.yoga || CardioType.other => SceneMode.studio,
+      _ => SceneMode.road,
+    };
+
+/// The equipment drawn with the rigged figure for an activity.
+RigProp rigPropFor(CardioType kind) => switch (kind) {
+      CardioType.cycling => RigProp.bike,
+      CardioType.stairs => RigProp.stairs,
+      CardioType.rowing => RigProp.rower,
+      CardioType.elliptical => RigProp.elliptical,
+      _ => RigProp.none,
+    };
+
+/// Only the road, from the side or from behind, has a second view.
+bool hasAheadView(CardioType kind) => sceneModeFor(kind) == SceneMode.road && rigPropFor(kind) == RigProp.none || kind == CardioType.cycling;
+
+/// How the swimmer's head tilts at [strokes] into the swim: every other
+/// stroke the face comes up for a breath while the near arm recovers,
+/// negative being a lift.
+double swimBreath(double strokes) {
+  final u = (strokes % 2 - 1.55) / 0.5;
+  if (u <= 0 || u >= 1) return 0;
+  return -0.9 * math.sin(math.pi * u);
+}
+
 /// Fastest setting of the speed slider, in km/h, and where it starts.
 double topSpeed(CardioType kind) => switch (kind) {
       CardioType.cycling => 40,

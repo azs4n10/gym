@@ -29,11 +29,13 @@ class RunScene extends StatelessWidget {
     required this.skin,
     required this.ja,
     required this.labelStyle,
-    this.water = false,
+    this.mode = SceneMode.road,
   });
 
-  /// Open water instead of a road: the swimmer's world.
-  final bool water;
+  /// What the world is: a road, open water, a hillside of steps, or a room.
+  final SceneMode mode;
+
+  bool get water => mode == SceneMode.water;
 
   /// The water surface as a fraction of the height, when [water].
   static const waterY = 0.6;
@@ -92,16 +94,24 @@ class _ScenePainter extends CustomPainter {
     _stars(canvas, size);
     _sunMoon(canvas, size);
     _clouds(canvas, size);
-    if (s.water) {
-      if (s.view == SceneView.side) {
-        _water(canvas, size);
-      } else {
-        _aheadWater(canvas, size);
-      }
-    } else if (s.view == SceneView.side) {
-      _side(canvas, size);
-    } else {
-      _ahead(canvas, size);
+    switch (s.mode) {
+      case SceneMode.water:
+        if (s.view == SceneView.side) {
+          _water(canvas, size);
+        } else {
+          _aheadWater(canvas, size);
+        }
+      case SceneMode.stairs:
+        _hillside(canvas, size);
+      case SceneMode.studio:
+        _studio(canvas, size);
+        return;
+      case SceneMode.road:
+        if (s.view == SceneView.side) {
+          _side(canvas, size);
+        } else {
+          _ahead(canvas, size);
+        }
     }
     _precipitation(canvas, size);
     // A thin frame line at the bottom keeps the card edge tidy.
@@ -241,21 +251,23 @@ class _ScenePainter extends CustomPainter {
       canvas.translate(-runnerX, -ground);
     }
 
-    // Ground and road.
+    // Ground and road. Sizes follow the card's height, as the figure does,
+    // so the road and what stands by it keep their scale against her.
+    final roadH = h * 0.075;
     canvas.drawRect(Rect.fromLTRB(-w, ground, w * 2, h + w), Paint()..color = skin.buttonSoft);
-    final road = Rect.fromLTRB(-w, ground, w * 2, ground + 13);
+    final road = Rect.fromLTRB(-w, ground, w * 2, ground + roadH);
     canvas.drawRect(road, Paint()..color = Color.lerp(skin.background, skin.ink, 0.22)!);
-    final dashOff = (metres * _ppm) % 40;
+    final dashOff = (metres * _ppm) % 60;
     final dash = Paint()..color = skin.card;
-    for (var x = -dashOff - 40; x < w * 2; x += 40) {
-      canvas.drawRect(Rect.fromLTWH(x, ground + 5.5, 18, 2.5), dash);
+    for (var x = -dashOff - 60; x < w * 2; x += 60) {
+      canvas.drawRect(Rect.fromLTWH(x, ground + roadH / 2 - 1.5, 26, 3), dash);
     }
 
     // Trees and houses along the road, half as fast as the road.
     final midOff = metres * _ppm * 0.5;
-    final first = ((midOff - 60) / 90).floor();
-    for (var i = first; i * 90 - midOff < w + 60; i++) {
-      final x = i * 90 - midOff;
+    final first = ((midOff - 100) / 150).floor();
+    for (var i = first; i * 150 - midOff < w + 100; i++) {
+      final x = i * 150 - midOff;
       final kind = (i * 7919) % 5;
       if (kind == 3 || kind == 4) continue;
       final glyph = switch (kind) {
@@ -263,7 +275,7 @@ class _ScenePainter extends CustomPainter {
         1 => Glyph.house,
         _ => Glyph.tree,
       };
-      final sz = kind == 1 ? 30.0 : 26.0;
+      final sz = kind == 1 ? h * 0.28 : h * 0.22;
       drawGlyph(canvas, glyph, Rect.fromLTWH(x - sz / 2, ground - sz + 2, sz, sz), skin.ink, skin.accentSoft);
     }
 
@@ -281,35 +293,132 @@ class _ScenePainter extends CustomPainter {
         x = runnerX + d * 1000 * _ppm;
         scale = 1;
       }
-      final sz = 44 * scale;
+      final sz = h * 0.26 * scale;
       final reached = d <= 0;
       drawGlyph(canvas, lm.glyph, Rect.fromLTWH(x - sz / 2, ground - sz + 3, sz, sz), skin.ink,
           reached ? skin.accent : skin.accentSoft);
       if (scale > 0.55) {
-        _label(canvas, lm.label(s.ja), Offset(x, ground + 16), scale.clamp(0.7, 1.0));
+        _label(canvas, lm.label(s.ja), Offset(x, ground + roadH + 4), scale.clamp(0.7, 1.0));
       }
     }
 
     // Flowers and tufts in front, faster than the road.
     final frontOff = metres * _ppm * 1.6;
-    final f0 = ((frontOff - 40) / 70).floor();
-    for (var i = f0; i * 70 - frontOff < w + 40; i++) {
-      final x = i * 70 - frontOff + (i % 3) * 9;
-      final y = ground + 24 + (i % 4) * 7;
+    final f0 = ((frontOff - 40) / 90).floor();
+    for (var i = f0; i * 90 - frontOff < w + 40; i++) {
+      final x = i * 90 - frontOff + (i % 3) * 12;
+      final y = ground + roadH + 14 + (i % 4) * 9;
       final flower = (i * 31) % 3 == 0;
       if (flower) {
-        canvas.drawCircle(Offset(x, y), 3.2, Paint()..color = (i % 2 == 0) ? skin.accent : skin.heading);
-        canvas.drawCircle(Offset(x, y), 3.2, Paint()..color = skin.ink..style = PaintingStyle.stroke..strokeWidth = 1);
+        canvas.drawCircle(Offset(x, y), 4.5, Paint()..color = (i % 2 == 0) ? skin.accent : skin.heading);
+        canvas.drawCircle(Offset(x, y), 4.5, Paint()..color = skin.ink..style = PaintingStyle.stroke..strokeWidth = 1.2);
       } else {
         final p = Paint()
           ..color = skin.ink.withValues(alpha: 0.5)
-          ..strokeWidth = 1.4
+          ..strokeWidth = 1.6
           ..strokeCap = StrokeCap.round;
-        canvas.drawLine(Offset(x, y), Offset(x - 3, y - 6), p);
-        canvas.drawLine(Offset(x, y), Offset(x + 3, y - 6), p);
+        canvas.drawLine(Offset(x, y), Offset(x - 4, y - 8), p);
+        canvas.drawLine(Offset(x, y), Offset(x + 4, y - 8), p);
       }
     }
     canvas.restore();
+  }
+
+  // ------------------------------------------------------------ hillside
+
+  /// Sky and hills only: the steps are drawn with the figure, over a bank
+  /// that covers the ground here. Landmarks come up along the hilltops.
+  void _hillside(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final ground = h * RunScene.groundY;
+    final metres = s.km * 1000;
+    final runnerX = w * RunScene.runnerX;
+    final hillColor = _night ? Color.lerp(_skyColor(), skin.card, 0.16)! : Color.lerp(_skyColor(), skin.ink, 0.14)!;
+    final hills = Path()..moveTo(0, h);
+    final off = metres * _ppm * 0.12;
+    for (var x = 0.0; x <= w; x += 6) {
+      final wx = x + off;
+      hills.lineTo(x, ground - 60 - 22 * math.sin(wx / 90) - 9 * math.sin(wx / 37 + 1.3));
+    }
+    hills.lineTo(w, h);
+    hills.close();
+    canvas.drawPath(hills, Paint()..color = hillColor);
+    canvas.drawRect(Rect.fromLTRB(0, ground, w, h), Paint()..color = skin.buttonSoft);
+    for (final lm in s.route.landmarks) {
+      final d = lm.km - s.km;
+      if (d > 8 || d < -0.12) continue;
+      final double x;
+      final double scale;
+      if (d >= 0) {
+        x = runnerX + (w - runnerX - 26) * (1 - math.exp(-d / 1.4));
+        scale = 0.42 + 0.58 * math.exp(-d / 1.4);
+      } else {
+        x = runnerX + d * 1000 * _ppm;
+        scale = 1;
+      }
+      final sz = h * 0.2 * scale;
+      final y = ground - 60 - 22 * math.sin((x + off) / 90) - 9 * math.sin((x + off) / 37 + 1.3);
+      drawGlyph(canvas, lm.glyph, Rect.fromLTWH(x - sz / 2, y - sz + 3, sz, sz), skin.ink, d <= 0 ? skin.accent : skin.accentSoft);
+      if (scale > 0.55) _label(canvas, lm.label(s.ja), Offset(x, y + 4), scale.clamp(0.7, 1.0));
+    }
+  }
+
+  // -------------------------------------------------------------- studio
+
+  /// A practice room: a wall with a long mirror and a barre, a window with
+  /// the day's light, a wooden floor with a mat, and a plant and a speaker.
+  void _studio(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final floorY = h * 0.56;
+    final wall = Paint()..color = Color.lerp(skin.card, skin.background, 0.5)!;
+    canvas.drawRect(Rect.fromLTRB(0, 0, w, floorY), wall);
+    // Mirror: a lighter pane with the sky's tint, in a frame.
+    final mirror = Rect.fromLTRB(w * 0.08, h * 0.08, w * 0.92, floorY - 2);
+    canvas.drawRect(mirror.inflate(3), Paint()..color = Color.lerp(skin.ink, skin.card, 0.5)!);
+    canvas.drawRect(
+      mirror,
+      Paint()..shader = ui.Gradient.linear(mirror.topLeft, mirror.bottomRight, [Color.lerp(_skyColor(), skin.card, 0.55)!, Color.lerp(_skyColor(), skin.card, 0.8)!]),
+    );
+    final glint = Paint()
+      ..color = skin.card.withValues(alpha: 0.6)
+      ..strokeWidth = 3;
+    canvas.drawLine(Offset(mirror.left + 14, mirror.bottom - 8), Offset(mirror.left + 60, mirror.top + 8), glint);
+    canvas.drawLine(Offset(mirror.left + 70, mirror.bottom - 8), Offset(mirror.left + 90, mirror.bottom - 40), glint);
+    // The barre across the mirror.
+    final barre = Paint()
+      ..color = Color.lerp(skin.ink, skin.button, 0.45)!
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    final barreY = floorY - h * 0.2;
+    canvas.drawLine(Offset(w * 0.1, barreY), Offset(w * 0.9, barreY), barre);
+    for (final x in [w * 0.16, w * 0.5, w * 0.84]) {
+      canvas.drawLine(Offset(x, barreY), Offset(x, floorY), Paint()..color = barre.color..strokeWidth = 2.5);
+    }
+    // Wooden floor: boards running toward the viewer, warmer than the wall.
+    final wood = Color.lerp(skin.button, skin.card, 0.35)!;
+    canvas.drawRect(Rect.fromLTRB(0, floorY, w, h), Paint()..color = wood);
+    final seam = Paint()
+      ..color = skin.ink.withValues(alpha: 0.12)
+      ..strokeWidth = 1;
+    for (var i = -6; i <= 6; i++) {
+      canvas.drawLine(Offset(w / 2 + i * w * 0.06, floorY), Offset(w / 2 + i * w * 0.16, h), seam);
+    }
+    for (final t in [0.25, 0.55, 0.8]) {
+      final y = floorY + (h - floorY) * t;
+      canvas.drawLine(Offset(0, y), Offset(w, y), seam);
+    }
+    // A mat where the figure stands.
+    final mat = Rect.fromCenter(center: Offset(w / 2, h * RunScene.groundY + 4), width: w * 0.5, height: h * 0.12);
+    canvas.drawRRect(RRect.fromRectAndRadius(mat, const Radius.circular(6)), Paint()..color = skin.accentSoft);
+    canvas.drawRRect(RRect.fromRectAndRadius(mat, const Radius.circular(6)), Paint()..color = skin.ink.withValues(alpha: 0.4)..style = PaintingStyle.stroke..strokeWidth = 1.2);
+    // A plant on one side, a speaker on the other.
+    drawGlyph(canvas, Glyph.tree, Rect.fromLTWH(w * 0.02, floorY - h * 0.16, h * 0.2, h * 0.2), skin.ink, skin.accentSoft);
+    final box = Rect.fromLTWH(w * 0.86, floorY - h * 0.1, h * 0.1, h * 0.14);
+    canvas.drawRRect(RRect.fromRectAndRadius(box, const Radius.circular(4)), Paint()..color = Color.lerp(skin.ink, skin.card, 0.3)!);
+    canvas.drawCircle(box.center + Offset(0, box.height * 0.15), box.width * 0.3, Paint()..color = skin.card.withValues(alpha: 0.7));
+    canvas.drawCircle(box.center - Offset(0, box.height * 0.28), box.width * 0.16, Paint()..color = skin.card.withValues(alpha: 0.7));
   }
 
   // --------------------------------------------------------------- water

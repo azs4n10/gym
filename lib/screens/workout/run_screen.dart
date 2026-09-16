@@ -473,9 +473,10 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   /// speed is zero; from behind in the ahead view; no floor of its own.
   Move _sceneMove() {
     final base = cardioMoves[_kind] ?? cardioMoves[CardioType.running]!;
-    if (_resting) return _view == SceneView.ahead ? standBackMove : sitMove;
+    final ahead = _view == SceneView.ahead && hasAheadView(_kind);
+    if (_resting) return ahead ? standBackMove : sitMove;
     final gear = [for (final g in base.gear) if (g != Gear.floor) g];
-    if (_view == SceneView.ahead) return backMoveFor(_kind);
+    if (ahead) return backMoveFor(_kind);
     if (base.loops) return Move.cycle(base.cycle!, gear: gear);
     if (base.frames.isNotEmpty) return Move.frames(base.frames, gear: gear);
     return Move(start: base.start!, end: base.end!, gear: gear);
@@ -543,9 +544,12 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                     child: LayoutBuilder(
                       builder: (_, c) {
                         final size = c.maxHeight * 0.625;
-                        // Swimming is only drawn from the side.
-                        final swim = _kind == CardioType.swimming;
-                        final ahead = _view == SceneView.ahead && !swim;
+                        // Water, stairs, machines and the room are only
+                        // drawn from the side.
+                        final mode = sceneModeFor(_kind);
+                        final swim = mode == SceneMode.water;
+                        final studio = mode == SceneMode.studio;
+                        final ahead = _view == SceneView.ahead && hasAheadView(_kind);
                         final view = ahead ? SceneView.ahead : SceneView.side;
                         final left = ahead ? (c.maxWidth - size) / 2 : c.maxWidth * RunScene.runnerX - size / 2;
                         final top = ahead ? c.maxHeight - size * 0.94 - 6 : c.maxHeight * RunScene.groundY - size * 0.94;
@@ -561,7 +565,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         final rigged = _girl && !ahead && !_resting && rig != null;
                         final rigH = spriteH * 1.02;
                         final rigW = rig == null ? 0.0 : rigH * rig.width / rig.height;
-                        final rigLeft = c.maxWidth * RunScene.runnerX - rigW / 2;
+                        final rigLeft = (studio ? c.maxWidth / 2 : c.maxWidth * RunScene.runnerX) - rigW / 2;
                         // Swimming, the figure lies along the water line with
                         // the hips (39% down the canvas) just under it.
                         final rigTop = swim
@@ -583,7 +587,28 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                   ja: l.isJa,
                                   labelStyle: (t.labelSmall ?? const TextStyle(fontSize: 11))
                                       .copyWith(color: skin.text, fontWeight: FontWeight.w800),
-                                  water: swim,
+                                  mode: mode,
+                                ),
+                              ),
+                            // In the room, the mirror on the back wall shows
+                            // her from the other side, smaller and paler.
+                            if (rigged && studio)
+                              Positioned(
+                                left: c.maxWidth / 2 - rigW * 0.72 / 2,
+                                top: c.maxHeight * 0.46 - rigH * 0.72 * 0.99,
+                                child: Opacity(
+                                  opacity: 0.32,
+                                  child: Transform.flip(
+                                    flipX: true,
+                                    child: CompanionRigView(
+                                      rig: rig,
+                                      pose: move.at(figureT),
+                                      height: rigH * 0.72,
+                                      hat: _girlHat,
+                                      gearColor: skin.button,
+                                      ink: skin.ink,
+                                    ),
+                                  ),
                                 ),
                               ),
                             Positioned(
@@ -604,11 +629,14 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         // Trails the bob of the stride by a quarter turn.
                                         hairSway: (_kind == CardioType.running ? 0.09 : 0.05) * math.sin(4 * math.pi * _phase - 1.4),
                                         hat: _girlHat,
-                                        ground: !swim && _kind != CardioType.cycling,
+                                        ground: !swim && rigPropFor(_kind) == RigProp.none,
                                         // A run leaves the ground a little at each stride.
-                                        flight: _kind == CardioType.running ? 120 : 40,
-                                        bike: _kind == CardioType.cycling,
-                                        gearColor: skin.button,
+                                        flight: _kind == CardioType.running ? 140 : 40,
+                                        prop: rigPropFor(_kind),
+                                        phase: _phase,
+                                        flow: swim,
+                                        headTurn: swim ? swimBreath(_phase) : 0,
+                                        gearColor: mode == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                         ink: skin.ink,
                                       )
                                     : _girl
@@ -634,7 +662,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                       ),
                               ),
                             ),
-                            if (swim && !ahead)
+                            if (swim)
                               Positioned.fill(
                                 child: IgnorePointer(
                                   child: CustomPaint(
@@ -666,7 +694,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                 ],
                               ),
                             ),
-                            if (!swim)
+                            if (hasAheadView(_kind))
                               Positioned(
                                 left: 10,
                                 top: 10,

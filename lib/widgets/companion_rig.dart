@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/exercise_moves.dart';
 import '../models/run_play.dart';
 import 'companion_sprite.dart';
 import 'exercise_figure.dart';
@@ -116,10 +117,21 @@ class CompanionRig {
 
   int boneIndex(String name) => bones.indexWhere((b) => b.name == name);
 
+  /// Canvas px per unit of the pose's 100-unit box.
+  static const unit = 17.0;
+
+  /// Where the root bones sit for a pose: the hips' place in the box, off
+  /// the standing one.
+  static Offset rootOffset(Pose pose) => Offset((pose.hip.dx - 50) * unit, (pose.hip.dy - 55) * unit);
+
   /// Where each bone's head ends up and how much it turned, for a pose.
-  List<BoneXf> solve(Pose pose, {double unit = 17, double hairSway = 0}) {
+  /// [headTurn] tilts the head (and the hair with it) on top of the pose.
+  /// [ankles] gives the near and far leg an ankle to reach instead of the
+  /// pose's angles, keyed by the thigh bone's name, in canvas px.
+  List<BoneXf> solve(Pose pose, {double hairSway = 0, double headTurn = 0, Map<String, Offset>? ankles}) {
     final out = List<BoneXf>.filled(bones.length, const BoneXf(Offset.zero, 0));
-    final root = Offset(0, (pose.hip.dy - 55) * unit);
+    final root = rootOffset(pose);
+    final reach = <String, Offset>{};
     for (var i = 0; i < bones.length; i++) {
       final b = bones[i];
       final rest = b.tail - b.head;
@@ -130,12 +142,30 @@ class CompanionRig {
         'near_lower' => dirOf(pose.arm.lower),
         'far_upper' => dirOf((pose.arm2 ?? pose.arm).upper),
         'far_lower' => dirOf((pose.arm2 ?? pose.arm).lower),
-        'near_thigh' => dirOf(pose.leg.upper),
-        'near_shin' => dirOf(pose.leg.lower),
-        'far_thigh' => dirOf((pose.leg2 ?? pose.leg).upper),
-        'far_shin' => dirOf((pose.leg2 ?? pose.leg).lower),
+        'near_thigh' => reach['near_thigh'] ?? dirOf(pose.leg.upper),
+        'near_shin' => reach['near_shin'] ?? dirOf(pose.leg.lower),
+        'far_thigh' => reach['far_thigh'] ?? dirOf((pose.leg2 ?? pose.leg).upper),
+        'far_shin' => reach['far_shin'] ?? dirOf((pose.leg2 ?? pose.leg).lower),
         _ => null,
       };
+      if (ankles != null && ankles.containsKey(b.name) && i + 1 < bones.length) {
+        // Two-bone reach: the knee goes to the forward side.
+        final shin = bones[i + 1];
+        final l1 = rest.distance;
+        final l2 = (shin.tail - shin.head).distance;
+        final hip = b.head + root;
+        final v = ankles[b.name]! - hip;
+        final d = v.distance.clamp((l1 - l2).abs() + 1, l1 + l2 - 1);
+        final u = v / v.distance;
+        final cosA = ((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)).clamp(-1.0, 1.0);
+        final a = math.acos(cosA);
+        Offset rot(double r) => Offset(u.dx * math.cos(r) - u.dy * math.sin(r), u.dx * math.sin(r) + u.dy * math.cos(r));
+        final k1 = rot(a);
+        final k2 = rot(-a);
+        final knee = k1.dx > k2.dx ? k1 : k2;
+        want = knee;
+        reach[shin.name] = u * d - knee * l1;
+      }
       final double turn;
       if (want != null) {
         var t = math.atan2(want.dy, want.dx) - restAngle;
@@ -150,8 +180,10 @@ class CompanionRig {
         // Hair trails the head and sways with the stride; the second bone
         // adds its own share so the ends swing wider than the roots.
         turn = out[b.parent].turn + hairSway;
+      } else if (b.name == 'head') {
+        turn = out[b.parent].turn + headTurn;
       } else {
-        // Head, hands and feet keep their parent's turn.
+        // Hands and feet keep their parent's turn.
         turn = b.parent >= 0 ? out[b.parent].turn : 0;
       }
       final head = b.parent >= 0 ? out[b.parent].apply(b.head, bones[b.parent]) : b.head + root;
@@ -212,7 +244,10 @@ class CompanionRigView extends StatelessWidget {
     this.hat = 'none',
     this.ground = true,
     this.flight = 40,
-    this.bike = false,
+    this.prop = RigProp.none,
+    this.phase = 0,
+    this.flow = false,
+    this.headTurn = 0,
     this.gearColor = const Color(0xFF8A7F78),
     this.ink = const Color(0xFF3A3335),
   });
@@ -239,13 +274,23 @@ class CompanionRigView extends StatelessWidget {
   /// moment in the air at each stride.
   final double flight;
 
-  /// Draws a bicycle under the figure, its pedals under the feet.
-  final bool bike;
+  /// Equipment drawn with the figure: a bicycle with the pedals under the
+  /// feet, a staircase the feet step up, a rowing machine or an elliptical.
+  final RigProp prop;
 
-  /// Frame and saddle of the bicycle.
+  /// The cycle count the equipment moves with (the stairs pass by it).
+  final double phase;
+
+  /// In water: the skirt streams along the body instead of hanging down.
+  final bool flow;
+
+  /// Extra tilt of the head, radians; negative lifts the face.
+  final double headTurn;
+
+  /// Frames, saddles, rails and treads.
   final Color gearColor;
 
-  /// Tyres, spokes and chain of the bicycle.
+  /// Tyres, spokes, cables and edges.
   final Color ink;
 
   @override
@@ -281,21 +326,64 @@ class _RigPainter extends CustomPainter {
     return sum / rig.sole.length.toDouble();
   }
 
+  /// Ankle targets for climbing: each foot's place on the staircase, from
+  /// [climbFoot], less the sole's offset under the ankle, which depends on
+  /// how the shin ends up turned, so it is solved twice.
+  Map<String, Offset> _climbAnkles() {
+    final root = CompanionRig.rootOffset(pose);
+    final targets = <String, Offset>{};
+    for (final (thigh, t) in [('near_thigh', v.phase), ('far_thigh', v.phase + 0.5)]) {
+      final i = rig.boneIndex(thigh);
+      if (i < 0) continue;
+      final hip = rig.bones[i].head + root;
+      targets[thigh] = hip + (climbFoot(t) - climbHip) * CompanionRig.unit;
+    }
+    var ankles = Map<String, Offset>.from(targets);
+    final ball = rig.sole.reduce((a, b) => a + b) / rig.sole.length.toDouble();
+    for (var pass = 0; pass < 2; pass++) {
+      final xf = rig.solve(pose, hairSway: hairSway, headTurn: v.headTurn, ankles: ankles);
+      ankles = {
+        for (final e in targets.entries)
+          e.key: () {
+            final shin = rig.boneIndex(e.key.replaceFirst('thigh', 'shin'));
+            final turn = shin >= 0 ? xf[shin].turn : 0.0;
+            final c = math.cos(turn);
+            final s = math.sin(turn);
+            return e.value - Offset(ball.dx * c - ball.dy * s, ball.dx * s + ball.dy * c);
+          }(),
+      };
+    }
+    return ankles;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.height / rig.height;
-    final xf = rig.solve(pose, hairSway: hairSway);
+    final xf = rig.solve(
+      pose,
+      hairSway: hairSway,
+      headTurn: v.headTurn,
+      ankles: v.prop == RigProp.stairs ? _climbAnkles() : null,
+    );
     final nearFoot = rig.boneIndex('near_foot');
     final farFoot = rig.boneIndex('far_foot');
     final feet = [if (nearFoot >= 0) nearFoot, if (farFoot >= 0) farFoot];
     // Where the drawing is lifted or lowered as a whole: onto the pedals
-    // of the bicycle, or the lower foot onto the floor line.
+    // of the bicycle, the seat of the machine, or the lower foot onto the
+    // floor line. On the stairs the hips stay put and the treads move.
     var shift = 0.0;
     Offset? crank;
-    if (v.bike && feet.length == 2) {
+    if (v.prop == RigProp.bike && feet.length == 2) {
       final pedals = [for (final f in feet) _ballOfFoot(xf, f)];
       crank = (pedals[0] + pedals[1]) / 2;
       shift = rig.floor - _wheelRadius + _crankDrop - crank.dy;
+    } else if (v.prop == RigProp.rower) {
+      shift = rig.floor - _rowerRail(xf) - rig.height * 0.03;
+    } else if (v.prop == RigProp.elliptical && feet.length == 2) {
+      final low = feet.map((f) => _ballOfFoot(xf, f).dy).reduce(math.max);
+      shift = rig.floor - rig.height * 0.07 - low;
+    } else if (v.prop == RigProp.stairs) {
+      shift = 0;
     } else if (v.ground && feet.isNotEmpty) {
       // The lower foot, taken softly: while the feet change over the figure
       // floats a little rather than jolting from one leg to the other.
@@ -332,6 +420,11 @@ class _RigPainter extends CustomPainter {
     canvas.scale(scale);
     canvas.translate(0, shift);
     if (crank != null) _drawBike(canvas, xf, crank, [for (final f in feet) _ballOfFoot(xf, f)]);
+    if (v.prop == RigProp.stairs && feet.length == 2) _drawStairs(canvas, xf, feet);
+    if (v.prop == RigProp.rower) _drawRower(canvas, xf, feet);
+    if (v.prop == RigProp.elliptical && feet.length == 2) _drawElliptical(canvas, xf, feet);
+    final spine = rig.boneIndex('spine');
+    final spineTurn = spine >= 0 ? xf[spine].turn : 0.0;
     for (final layer in rig.layers) {
       final n = layer.rest.length ~/ 2;
       final pos = Float32List(n * 2);
@@ -351,7 +444,7 @@ class _RigPainter extends CustomPainter {
           final thigh = b == nearThigh || b == farThigh;
           final forward = swapThighs ? b == farThigh : b == nearThigh;
           final q = thigh && layer.name == 'skirt'
-              ? _skirtSwing(xf[b], rig.bones[b], p, forward ? 0.5 : 0.25)
+              ? _skirtSwing(xf[b], rig.bones[b], p, forward ? 0.5 : 0.25, v.flow ? spineTurn : 0)
               : xf[b].apply(p, rig.bones[b]);
           x += q.dx * w;
           y += q.dy * w;
@@ -375,14 +468,137 @@ class _RigPainter extends CustomPainter {
   /// How a thigh carries the skirt: the panel in front of it swings from the
   /// waist like a pendulum, by half the thigh's angle, so the hem rides up
   /// over a raised knee; the panel behind the other leg trails by a quarter.
-  Offset _skirtSwing(BoneXf x, RigBone bone, Offset p, double share) {
+  /// [base] is the angle the skirt hangs at before the thighs push it: down,
+  /// or along the body when it streams in water.
+  Offset _skirtSwing(BoneXf x, RigBone bone, Offset p, double share, double base) {
     final lift = rig.height * 0.068;
     final pivotRest = bone.head - Offset(0, lift);
     final pivotPosed = x.head - Offset(0, lift);
     final d = p - pivotRest;
-    final c = math.cos(x.turn * share);
-    final s = math.sin(x.turn * share);
+    final angle = base + (x.turn - base) * share;
+    final c = math.cos(angle);
+    final s = math.sin(angle);
     return Offset(pivotPosed.dx + d.dx * c - d.dy * s, pivotPosed.dy + d.dx * s + d.dy * c);
+  }
+
+  /// The staircase the feet climb: the tread under the foot that is
+  /// standing, and the rest at the same pitch up and down from it, over a
+  /// filled bank. Treads pass at two a cycle, so the foot rides its tread.
+  void _drawStairs(Canvas canvas, List<BoneXf> xf, List<int> feet) {
+    final h = rig.height;
+    final u = v.phase % 1;
+    // The near foot stands for the first six tenths of the cycle.
+    final standing = u < 0.6 ? feet[0] : feet[1];
+    final sole = _ballOfFoot(xf, standing);
+    final run = climbRun * CompanionRig.unit;
+    final rise = climbRise * CompanionRig.unit;
+    final nose = Offset(sole.dx + run * 0.35, sole.dy);
+    final top = Paint()..color = Color.lerp(v.gearColor, const Color(0xFFFFFFFF), 0.35)!;
+    final face = Paint()..color = v.gearColor;
+    final edge = Paint()
+      ..color = v.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.004;
+    // The bank under the steps, then each step.
+    final bank = Path()..moveTo(nose.dx - 16 * run, h * 3);
+    for (var k = -16; k <= 16; k++) {
+      final x = nose.dx + k * run;
+      final y = nose.dy - k * rise;
+      bank.lineTo(x - run, y);
+      bank.lineTo(x, y);
+    }
+    bank.lineTo(nose.dx + 16 * run, h * 3);
+    bank.close();
+    canvas.drawPath(bank, face);
+    for (var k = -16; k <= 16; k++) {
+      final x = nose.dx + k * run;
+      final y = nose.dy - k * rise;
+      canvas.drawRect(Rect.fromLTWH(x - run, y, run, h * 0.012), top);
+      canvas.drawLine(Offset(x - run, y), Offset(x, y), edge);
+      canvas.drawLine(Offset(x, y), Offset(x, y + rise), edge);
+    }
+  }
+
+  /// The rail of the rowing machine: just under the seat, which is under
+  /// the hips.
+  double _rowerRail(List<BoneXf> xf) {
+    final thigh = rig.boneIndex('near_thigh');
+    final hip = thigh >= 0 ? xf[thigh].head : Offset(rig.width / 2, rig.height / 2);
+    return hip.dy + rig.height * 0.06;
+  }
+
+  /// A rowing machine: a rail on the floor, the seat under the hips sliding
+  /// on it, the footplate under the feet, and the handle in the hands on a
+  /// cord to the flywheel at the front.
+  void _drawRower(Canvas canvas, List<BoneXf> xf, List<int> feet) {
+    final h = rig.height;
+    final thigh = rig.boneIndex('near_thigh');
+    final hand = rig.boneIndex('near_hand');
+    final hip = thigh >= 0 ? xf[thigh].head : Offset(rig.width / 2, rig.height / 2);
+    final rail = _rowerRail(xf);
+    final foot = feet.isEmpty ? hip + Offset(h * 0.3, h * 0.2) : _ballOfFoot(xf, feet.first);
+    final grip = hand >= 0 ? _at(xf, hand, rig.bones[hand].tail) : hip + Offset(h * 0.2, -h * 0.1);
+    final frame = Paint()
+      ..color = v.gearColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.012
+      ..strokeCap = StrokeCap.round;
+    final thin = Paint()
+      ..color = v.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.004
+      ..strokeCap = StrokeCap.round;
+    final fill = Paint()..color = v.gearColor;
+    final wheel = Offset(foot.dx + h * 0.16, rail - h * 0.08);
+    canvas.drawLine(Offset(hip.dx - h * 0.28, rail), Offset(wheel.dx, rail), frame);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(hip.dx - h * 0.02, rail - h * 0.02), width: h * 0.09, height: h * 0.026), Radius.circular(h * 0.01)),
+      fill,
+    );
+    // Footplate at the feet, leaning back.
+    canvas.drawLine(foot + Offset(-h * 0.02, h * 0.035), foot + Offset(h * 0.03, -h * 0.05), frame);
+    canvas.drawLine(foot + Offset(-h * 0.01, h * 0.03), Offset(foot.dx, rail), thin);
+    // Flywheel housing and the cord to the handle.
+    canvas.drawCircle(wheel, h * 0.075, fill);
+    canvas.drawCircle(wheel, h * 0.075, thin);
+    canvas.drawCircle(wheel, h * 0.02, Paint()..color = v.ink);
+    canvas.drawLine(wheel, Offset(wheel.dx, rail), frame);
+    canvas.drawLine(Offset(wheel.dx - h * 0.075, wheel.dy - h * 0.02), grip, thin);
+    canvas.drawLine(grip + Offset(h * 0.01, -h * 0.03), grip + Offset(h * 0.01, h * 0.03), frame);
+  }
+
+  /// An elliptical: pedals under the feet on arms from a hub at the back,
+  /// a post in front with the handles at the hand, on a base on the floor.
+  void _drawElliptical(Canvas canvas, List<BoneXf> xf, List<int> feet) {
+    final h = rig.height;
+    final hand = rig.boneIndex('near_hand');
+    final pedals = [for (final f in feet) _ballOfFoot(xf, f)];
+    final low = pedals.map((p) => p.dy).reduce(math.max);
+    final base = low + h * 0.07;
+    final back = Offset(pedals.map((p) => p.dx).reduce(math.min) - h * 0.12, base - h * 0.08);
+    final grip = hand >= 0 ? _at(xf, hand, rig.bones[hand].tail) : back + Offset(h * 0.4, -h * 0.4);
+    final frame = Paint()
+      ..color = v.gearColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.012
+      ..strokeCap = StrokeCap.round;
+    final thin = Paint()
+      ..color = v.ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = h * 0.004
+      ..strokeCap = StrokeCap.round;
+    final fill = Paint()..color = v.gearColor;
+    final postX = pedals.map((p) => p.dx).reduce(math.max) + h * 0.14;
+    canvas.drawLine(Offset(back.dx - h * 0.03, base), Offset(postX + h * 0.05, base), frame);
+    canvas.drawCircle(back, h * 0.06, fill);
+    canvas.drawCircle(back, h * 0.06, thin);
+    for (final p in pedals) {
+      canvas.drawLine(back, p + Offset(0, h * 0.01), thin);
+      canvas.drawLine(p + Offset(-h * 0.035, h * 0.012), p + Offset(h * 0.04, h * 0.012), frame);
+    }
+    canvas.drawLine(Offset(postX, base), Offset(postX, grip.dy - h * 0.02), frame);
+    canvas.drawLine(Offset(postX, grip.dy + h * 0.02), grip + Offset(-h * 0.01, 0), thin);
+    canvas.drawLine(grip + Offset(-h * 0.01, h * 0.03), grip + Offset(-h * 0.01, -h * 0.05), frame);
   }
 
   double get _wheelRadius => rig.height * 0.17;
@@ -489,6 +705,9 @@ class _RigPainter extends CustomPainter {
       old.hat != hat ||
       old.v.ground != v.ground ||
       old.v.flight != v.flight ||
-      old.v.bike != v.bike ||
+      old.v.prop != v.prop ||
+      old.v.phase != v.phase ||
+      old.v.flow != v.flow ||
+      old.v.headTurn != v.headTurn ||
       old.v.gearColor != v.gearColor;
 }

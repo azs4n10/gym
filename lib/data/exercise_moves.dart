@@ -323,23 +323,33 @@ Limb _legTo(Offset hip, Offset foot, {bool kneeUp = false}) {
 double _sin(double x) => math.sin(x);
 double _cos(double x) => math.cos(x);
 
-/// Running: thigh swings, knee folds during the swing and stays near straight
-/// through the stance, arms pump against the legs.
+/// A raised-cosine bump of half-width [w] around zero, for shaping a cycle.
+double _bump(double x, double w) {
+  if (x <= -w || x >= w) return 0;
+  final c = _cos(math.pi * x / (2 * w));
+  return c * c;
+}
+
+/// Running: the thigh swings, the knee bends most just after the foot leaves
+/// the ground (the heel kicks up behind), stays a little bent as the knee
+/// drives forward and the foot lands, gives through the stance and is
+/// straight again at the push-off. The arms pump against the legs.
 Pose _run(double p) {
   Limb leg(double q) {
-    final thigh = 8 + 38 * _sin(q);
-    final flex = 20 + 70 * (1 + _cos(q + 0.5)) / 2;
+    final thigh = 10 + 36 * _sin(q);
+    final x = q % (2 * math.pi);
+    final flex = 12 + 100 * _bump(x - 5.7, 1.5) + 100 * _bump(x + 2 * math.pi - 5.7, 1.5) + 28 * _bump(x - 2.9, 1.3) + 25 * _bump(x - 1.4, 0.8);
     return Limb(thigh, thigh - flex);
   }
 
   Limb arm(double q) {
-    final upper = -40 * _sin(q);
-    return Limb(upper, upper + 85);
+    final upper = -42 * _sin(q);
+    return Limb(upper, upper + 88);
   }
 
   return Pose(
     hip: Offset(50, 55 + 1.5 * _cos(2 * p)),
-    torso: 12,
+    torso: 14,
     arm: arm(p),
     arm2: arm(p + math.pi),
     leg: leg(p),
@@ -379,9 +389,53 @@ Pose _cycle(double p) {
   return Pose(
     hip: hip,
     torso: 35,
-    arm: const Limb(70, 30),
+    // Upper arms hang forward from the leaning shoulders, elbows low.
+    arm: const Limb(46, 30),
     leg: _legTo(hip, foot(p)),
     leg2: _legTo(hip, foot(p + math.pi)),
+  );
+}
+
+/// Where a foot is on an endless staircase, in the box, for a phase [t] in
+/// cycles: it rides a tread back and down for six tenths of the cycle, then
+/// swings up and forward over the next one. The other foot is half a cycle
+/// behind. Treads pass at two a cycle, [climbRun] across and [climbRise] up.
+const climbRun = 10.0;
+const climbRise = 7.5;
+Offset climbFoot(double t) {
+  const stance = 0.6;
+  const land = Offset(58, 74);
+  final u = t % 1;
+  if (u < stance) {
+    final d = 2 * u;
+    return Offset(land.dx - climbRun * d, land.dy + climbRise * d);
+  }
+  final lift = Offset(land.dx - climbRun * 2 * stance, land.dy + climbRise * 2 * stance);
+  final s = (u - stance) / (1 - stance);
+  final e = Curves.easeInOut.transform(s);
+  final along = Offset.lerp(lift, land, e)!;
+  return along - Offset(0, 9 * _sin(math.pi * s));
+}
+
+/// Climbing stairs: the hips stay level over the treads while the feet step
+/// up; the arms swing a little.
+const climbHip = Offset(50, 56);
+
+Pose _climb(double p) {
+  const hip = climbHip;
+  final t = p / (2 * math.pi);
+  Limb arm(double q) {
+    final upper = -14 * _sin(q);
+    return Limb(upper, upper + 30);
+  }
+
+  return Pose(
+    hip: hip,
+    torso: 10,
+    arm: arm(p),
+    arm2: arm(p + math.pi),
+    leg: _legTo(hip, climbFoot(t), kneeUp: true),
+    leg2: _legTo(hip, climbFoot(t + 0.5), kneeUp: true),
   );
 }
 
@@ -401,19 +455,6 @@ Pose _elliptical(double p) {
     arm2: arm(p + math.pi),
     leg: _legTo(hip, foot(p)),
     leg2: _legTo(hip, foot(p + math.pi)),
-  );
-}
-
-/// Stepper: the two pedals rise and fall against each other.
-Pose _stepper(double p) {
-  const hip = Offset(48, 54);
-  return Pose(
-    hip: hip,
-    torso: 10,
-    arm: const Limb(40, 20),
-    arm2: const Limb(40, 20),
-    leg: _legTo(hip, Offset(56, 80 + 7 * _sin(p))),
-    leg2: _legTo(hip, Offset(44, 80 - 7 * _sin(p))),
   );
 }
 
@@ -579,7 +620,7 @@ final Map<CardioType, Move> cardioMoves = {
   CardioType.walking: const Move.cycle(_walk, gear: [Gear.floor]),
   CardioType.cycling: const Move.cycle(_cycle, gear: [Gear.bike, Gear.floor]),
   CardioType.elliptical: const Move.cycle(_elliptical, gear: [Gear.pedals, Gear.post, Gear.floor]),
-  CardioType.stairs: const Move.cycle(_stepper, gear: [Gear.pedals, Gear.post, Gear.floor]),
+  CardioType.stairs: const Move.cycle(_climb, gear: [Gear.floor]),
   CardioType.rowing: const Move.cycle(_row, gear: [Gear.seat, Gear.plateFeet, Gear.cableFront]),
   CardioType.swimming: const Move.cycle(_swim, gear: [Gear.water]),
   CardioType.hiit: const Move(
