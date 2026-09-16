@@ -151,7 +151,7 @@ def weights_for(layer, part, bones, x, y):
         # The skirt swings with the thighs, more toward the hem; its front
         # half with the near leg, its back with the far.
         t = min(1.0, max(0.0, (y - 600) / 300)) ** 1.2
-        share = 0.75 * t
+        share = 0.85 * t
         side = min(1.0, max(0.0, (x - 250) / 100))
         w[NAME["near_thigh"]] = share * side
         w[NAME["far_thigh"]] = share * (1 - side)

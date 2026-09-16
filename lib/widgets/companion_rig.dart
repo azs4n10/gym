@@ -123,9 +123,7 @@ class CompanionRig {
         while (t < -math.pi) {
           t += 2 * math.pi;
         }
-        // The far arm is drawn behind the body, so a full swing would only
-        // show as stray pieces poking out; it swings gently instead.
-        turn = b.name.startsWith('far_') && b.name.contains('upper') || b.name == 'far_lower' ? t * 0.35 : t;
+        turn = t;
       } else if (b.name.startsWith('hair')) {
         // Hair trails the head and sways with the stride; the second bone
         // adds its own share so the ends swing wider than the roots.
@@ -228,16 +226,36 @@ class _RigPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final scale = size.height / rig.height;
     final xf = rig.solve(pose, hairSway: hairSway);
+    // The skirt's front is weighted to the near thigh and its back to the
+    // far one, but a skirt follows whichever leg is in front: the front hem
+    // goes with the forward thigh and the back hem with the other, so
+    // neither leg comes out from under it.
+    final nearThigh = rig.bones.indexWhere((b) => b.name == 'near_thigh');
+    final farThigh = rig.bones.indexWhere((b) => b.name == 'far_thigh');
+    var swapThighs = false;
+    if (nearThigh >= 0 && farThigh >= 0) {
+      final nearKnee = xf[nearThigh].apply(rig.bones[nearThigh].tail, rig.bones[nearThigh]);
+      final farKnee = xf[farThigh].apply(rig.bones[farThigh].tail, rig.bones[farThigh]);
+      swapThighs = farKnee.dx > nearKnee.dx;
+    }
     canvas.save();
     canvas.scale(scale);
     for (final layer in rig.layers) {
       final n = layer.rest.length ~/ 2;
       final pos = Float32List(n * 2);
+      final swap = swapThighs && layer.name == 'skirt';
       for (var i = 0; i < n; i++) {
         final p = Offset(layer.rest[i * 2], layer.rest[i * 2 + 1]);
         var x = 0.0;
         var y = 0.0;
-        for (final (b, w) in layer.weights[i]) {
+        for (final (bone, w) in layer.weights[i]) {
+          final b = !swap
+              ? bone
+              : bone == nearThigh
+              ? farThigh
+              : bone == farThigh
+              ? nearThigh
+              : bone;
           final q = xf[b].apply(p, rig.bones[b]);
           x += q.dx * w;
           y += q.dy * w;
