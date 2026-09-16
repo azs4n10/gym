@@ -30,10 +30,10 @@ PARTS = {
     "arm": ((490, 150), (257, 331), 0.40, 0.40),
     # The leg is three pieces from the paper-doll kit drawing, each one
     # rigid on its bone, the round joint ends overlapping.
-    "thigh": ((152, 72), (318, 636), 0.38, 0.534),
+    "thigh": ((152, 72), (318, 636), 0.40, 0.534),
     # Anchored at the ankle hinge; a little taller than the bone so its
     # top reaches well up under the thigh.
-    "shin": ((560, 1240), (352, 1314), 0.32, 0.314),
+    "shin": ((560, 1240), (352, 1314), 0.34, 0.314),
     "shoe": ((820, 1030), (352, 1314), 0.44, 0.44),
     # The head seen from the front, cut from the front-view drawing, for
     # the swimmer turning to breathe.
@@ -55,6 +55,12 @@ KNEE_SEAM_UP = -28
 # The shin is cut flat this far down its drawing, taking off the round
 # top end whose outline would show through the thigh.
 KIT_SHIN_TOP = 160
+# The calf is widened on its own, row by row, so the shin can match the
+# thigh at the knee and still have a calf: the bulge peaks at this kit y,
+# with this spread, by this much.
+CALF_Y = 380
+CALF_SPREAD = 120
+CALF_BULGE = 0.14
 KNEE_SEAM = 28
 # The shin carried a rivet at the knee too, under the thigh; painted out
 # with the skin so nothing shows through the softened knee.
@@ -227,7 +233,31 @@ def load_part(name):
     # Canvas position of the top-left corner of the crop.
     ox = cx + (x0 - ax) * sx
     oy = cy + (y0 + top - ay) * sy
+    if name == "shin":
+        scaled, ox = calf_bulge(scaled, ox, y0, sy)
     return scaled, (ox, oy)
+
+
+def calf_bulge(img, ox, y0, sy):
+    """Widens each row of the shin about its own centre by a bump that
+    peaks at the calf."""
+    a = np.array(img).astype(np.float32)
+    h, w = a.shape[:2]
+    pad = int(w * CALF_BULGE) + 2
+    out = np.zeros((h, w + 2 * pad, 4), np.float32)
+    xs = np.arange(w + 2 * pad, dtype=np.float32) - pad
+    for i in range(h):
+        y = y0 + i / sy
+        f = 1 + CALF_BULGE * np.exp(-((y - CALF_Y) / CALF_SPREAD) ** 2)
+        row = a[i]
+        alpha = row[:, 3]
+        if alpha.sum() < 1:
+            continue
+        c = float((alpha * np.arange(w)).sum() / alpha.sum())
+        src = c + (xs - c) / f
+        for ch in range(4):
+            out[i, :, ch] = np.interp(src, np.arange(w), row[:, ch], left=0, right=0)
+    return Image.fromarray(out.astype(np.uint8), "RGBA"), ox - pad
 
 
 def chain_weights(p, bones, blends):
