@@ -6,6 +6,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/run_play.dart';
+import 'companion_sprite.dart';
 import 'exercise_figure.dart';
 
 /// A cut-out rig of the illustrated companion: the drawing split into a few
@@ -14,12 +16,18 @@ import 'exercise_figure.dart';
 /// bones take their angles from the same [Pose] the stick figure uses, so
 /// every cycle the app already has plays on the illustration, smoothly.
 class CompanionRig {
-  CompanionRig._(this.width, this.height, this.bones, this.layers);
+  CompanionRig._(this.width, this.height, this.crown, this.bones, this.layers, this.hats);
 
   final double width;
   final double height;
+
+  /// Top of the head in the rest pose, where hats sit.
+  final Offset crown;
   final List<RigBone> bones;
   final List<RigLayer> layers;
+
+  /// The wardrobe's hat drawings by id.
+  final Map<String, ui.Image> hats;
 
   static Future<CompanionRig>? _side;
 
@@ -30,6 +38,7 @@ class CompanionRig {
     final json = jsonDecode(await rootBundle.loadString(path)) as Map<String, dynamic>;
     final dir = path.substring(0, path.lastIndexOf('/'));
     final size = (json['size'] as List).cast<num>();
+    final crown = (json['crown'] as List).cast<num>();
     final bones = [
       for (final b in (json['bones'] as List).cast<Map<String, dynamic>>())
         RigBone(
@@ -40,9 +49,14 @@ class CompanionRig {
         ),
     ];
     final layers = <RigLayer>[];
+    // The arm and the leg are drawn once and used on both sides.
+    final images = <String, ui.Image>{};
     for (final l in (json['layers'] as List).cast<Map<String, dynamic>>()) {
-      final bytes = await rootBundle.load('$dir/${l['image']}');
-      final image = await decodeImageFromList(bytes.buffer.asUint8List());
+      final file = l['image'] as String;
+      final image = images[file] ??= await () async {
+        final bytes = await rootBundle.load('$dir/$file');
+        return decodeImageFromList(bytes.buffer.asUint8List());
+      }();
       final verts = (l['verts'] as List).cast<List>();
       final offset = (l['offset'] as List).cast<num>();
       final n = verts.length;
@@ -67,12 +81,17 @@ class CompanionRig {
         ],
       ));
     }
-    layers.sort((a, b) => a.name.compareTo(b.name));
-    // Far to near, with both legs behind the body so the skirt covers the
-    // thighs; the near arm hangs in front.
-    const order = ['far_arm', 'far_leg', 'near_leg', 'body', 'near_arm'];
+    // Back to front: the long hair behind everything, both legs behind the
+    // skirt, the head behind the collar, the near arm in front.
+    const order = ['hair_back', 'far_arm', 'far_leg', 'near_leg', 'skirt', 'head', 'body', 'near_arm'];
     layers.sort((a, b) => order.indexOf(a.name).compareTo(order.indexOf(b.name)));
-    return CompanionRig._(size[0].toDouble(), size[1].toDouble(), bones, layers);
+    final hats = <String, ui.Image>{};
+    for (final (id, _) in girlHatUnlocks) {
+      if (id == 'none') continue;
+      final bytes = await rootBundle.load('${CompanionSprite.folder}/hat_$id.png');
+      hats[id] = await decodeImageFromList(bytes.buffer.asUint8List());
+    }
+    return CompanionRig._(size[0].toDouble(), size[1].toDouble(), Offset(crown[0].toDouble(), crown[1].toDouble()), bones, layers, hats);
   }
 
   /// Where each bone's head ends up and how much it turned, for a pose.
@@ -107,8 +126,9 @@ class CompanionRig {
         // The far arm is drawn behind the body, so a full swing would only
         // show as stray pieces poking out; it swings gently instead.
         turn = b.name.startsWith('far_') && b.name.contains('upper') || b.name == 'far_lower' ? t * 0.35 : t;
-      } else if (b.name == 'hair') {
-        // Hair trails the head and sways with the stride.
+      } else if (b.name.startsWith('hair')) {
+        // Hair trails the head and sways with the stride; the second bone
+        // adds its own share so the ends swing wider than the roots.
         turn = out[b.parent].turn + hairSway;
       } else {
         // Head, hands and feet keep their parent's turn.
@@ -162,17 +182,28 @@ class BoneXf {
 
 /// Draws the rig in a pose at a given height, feet on the widget's bottom.
 class CompanionRigView extends StatelessWidget {
-  const CompanionRigView({super.key, required this.rig, required this.pose, required this.height, this.farTint, this.hairSway = 0});
+  const CompanionRigView({
+    super.key,
+    required this.rig,
+    required this.pose,
+    required this.height,
+    this.farTint,
+    this.hairSway = 0,
+    this.hat = 'none',
+  });
 
   final CompanionRig rig;
   final Pose pose;
   final double height;
 
-  /// Extra turn of the hair bone, radians.
+  /// Extra turn of the hair bones, radians.
   final double hairSway;
 
   /// Colour laid over the far arm and leg so they sit behind.
   final Color? farTint;
+
+  /// One of the ids in [girlHatUnlocks], or 'none'.
+  final String hat;
 
   @override
   Widget build(BuildContext context) {
@@ -180,17 +211,18 @@ class CompanionRigView extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: CustomPaint(painter: _RigPainter(rig, pose, farTint, hairSway), willChange: true),
+      child: CustomPaint(painter: _RigPainter(rig, pose, farTint, hairSway, hat), willChange: true),
     );
   }
 }
 
 class _RigPainter extends CustomPainter {
-  _RigPainter(this.rig, this.pose, this.farTint, this.hairSway);
+  _RigPainter(this.rig, this.pose, this.farTint, this.hairSway, this.hat);
   final CompanionRig rig;
   final Pose pose;
   final Color? farTint;
   final double hairSway;
+  final String hat;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -222,9 +254,43 @@ class _RigPainter extends CustomPainter {
       }
       canvas.drawVertices(verts, BlendMode.srcOver, paint);
     }
+    _drawHat(canvas, xf);
+    canvas.restore();
+  }
+
+  /// The hat rides on the crown, turning with the head. Sizes and offsets
+  /// are the fractions of the figure's height used on the single drawings,
+  /// scaled down because this figure's head is three quarters the size.
+  void _drawHat(Canvas canvas, List<BoneXf> xf) {
+    final image = rig.hats[hat];
+    if (image == null) return;
+    final h = rig.height * 0.75;
+    final (double w, double dx, double dy) = switch (hat) {
+      'cap' => (h * 0.21, h * 0.015, -h * 0.03),
+      'beanie' => (h * 0.17, h * 0.005, -h * 0.045),
+      'flower' => (h * 0.21, h * 0.005, h * 0.01),
+      'headphones' => (h * 0.19, h * 0.005, h * 0.015),
+      'ribbon' => (h * 0.085, -h * 0.06, h * 0.045),
+      'glasses' => (h * 0.14, h * 0.03, h * 0.085),
+      _ => (0.0, 0.0, 0.0),
+    };
+    if (w <= 0) return;
+    final head = rig.bones.indexWhere((b) => b.name == 'head');
+    if (head < 0) return;
+    final at = xf[head].apply(rig.crown, rig.bones[head]);
+    final ih = w * image.height / image.width;
+    canvas.save();
+    canvas.translate(at.dx, at.dy);
+    canvas.rotate(xf[head].turn);
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(dx - w / 2, dy, w, ih),
+      Paint()..filterQuality = FilterQuality.medium,
+    );
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_RigPainter old) => old.pose != pose || old.rig != rig || old.hairSway != hairSway;
+  bool shouldRepaint(_RigPainter old) => old.pose != pose || old.rig != rig || old.hairSway != hairSway || old.hat != hat;
 }

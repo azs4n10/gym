@@ -1,0 +1,236 @@
+"""Builds the side-view rig from parts drawn one per image (idea/part_*.png):
+each part is trimmed, scaled onto a common figure canvas, covered by a small
+triangle mesh and skinned to the bones. The arm and leg are drawn once and
+used for both the near and the far side. Joint positions were read off a
+100 px grid over each 1024x1536 drawing.
+
+Writes assets/companion/rig/side.json and the layer images, and a preview of
+the rest pose with the bones to build/rig_preview.png."""
+import json
+import os
+
+import numpy as np
+from PIL import Image, ImageDraw
+
+SP = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(SP)
+IDEA = f"{ROOT}/idea"
+OUT = f"{ROOT}/assets/companion/rig"
+
+W, H = 520, 1460
+FLOOR = 1448
+
+# Part name -> (anchor in the drawing, anchor on the canvas, sx, sy).
+# The anchor is the point of the drawing that lands on the given canvas point.
+PARTS = {
+    "torso": ((541, 1249), (300, 576), 0.315, 0.315),
+    "skirt": ((512, 240), (300, 536), 0.29, 0.344),
+    "head": ((540, 1250), (290, 292), 0.24, 0.24),
+    "hair_back": ((430, 350), (201, 140), 0.28, 0.37),
+    "arm": ((490, 150), (257, 331), 0.40, 0.40),
+    "leg": ((575, 450), (341, 1016), 0.411, 0.411),
+}
+# Where the far copies sit relative to the near ones.
+FAR_SHIFT = {"arm": (-10, 5), "leg": (-36, 0)}
+# Rows of the leg drawing stretched upward to extend the thigh, and the
+# drawing y the extension reaches.
+LEG_BAND = (44, 94)
+LEG_TOP = -330
+# Where the crown of the head is, for hats (canvas px).
+CROWN = (287, 37)
+
+# Bones: name, parent, head, tail (canvas px).
+BONES = [
+    ("spine", -1, (300, 576), (290, 296)),
+    ("head", 0, (290, 296), (270, 40)),
+    ("hair", 1, (201, 140), (190, 340)),
+    ("hair2", 2, (190, 340), (180, 548)),
+    ("near_upper", 0, (257, 331), (268, 567)),
+    ("near_lower", 4, (268, 567), (272, 745)),
+    ("near_hand", 5, (272, 745), (279, 867)),
+    ("far_upper", 0, (247, 336), (258, 572)),
+    ("far_lower", 7, (258, 572), (262, 750)),
+    ("far_hand", 8, (262, 750), (269, 872)),
+    ("near_thigh", -1, (318, 636), (341, 1016)),
+    ("near_shin", 10, (341, 1016), (333, 1316)),
+    ("near_foot", 11, (333, 1316), (424, 1423)),
+    ("far_thigh", -1, (282, 636), (305, 1016)),
+    ("far_shin", 13, (305, 1016), (297, 1316)),
+    ("far_foot", 14, (297, 1316), (388, 1423)),
+]
+NAME = {b[0]: i for i, b in enumerate(BONES)}
+BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
+
+# Layers back to front: name, part, bones (for the chain rules), far shift.
+LAYERS = [
+    ("hair_back", "hair_back", None, None),
+    ("far_arm", "arm", ["far_upper", "far_lower", "far_hand"], FAR_SHIFT["arm"]),
+    ("far_leg", "leg", ["far_thigh", "far_shin", "far_foot"], FAR_SHIFT["leg"]),
+    ("near_leg", "leg", ["near_thigh", "near_shin", "near_foot"], None),
+    ("skirt", "skirt", None, None),
+    ("head", "head", None, None),
+    ("body", "torso", None, None),
+    ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
+]
+FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png",
+        "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
+# Blend width (canvas px) around the inner joints of a limb chain.
+BLEND = {"arm": (60, 40), "leg": (70, 45)}
+
+
+def load_part(name):
+    im = Image.open(f"{IDEA}/part_{name}.png").convert("RGBA")
+    a = np.array(im).astype(np.float32)
+    # Trim the glow: only nearly opaque pixels stay, with a short ramp.
+    a[:, :, 3] = np.clip((a[:, :, 3] - 120) / (255 - 120), 0, 1) * 255
+    top = 0  # drawing y of the first row of a
+    if name == "leg":
+        # The drawing stops at mid thigh; the thigh is carried on up to just
+        # under the hip (which sits at y=-475 here) so that, whichever way
+        # the leg swings, no cut edge shows past the skirt.
+        band = a[LEG_BAND[0]:LEG_BAND[1]]
+        rows = LEG_BAND[0] - LEG_TOP
+        ext = np.array(Image.fromarray(band.astype(np.uint8), "RGBA").resize((band.shape[1], rows), Image.BILINEAR)).astype(np.float32)
+        ext[:, :, 3] *= np.clip(np.arange(rows) / 40, 0, 1)[:, None]
+        a = np.concatenate([ext, a[LEG_BAND[0]:]], axis=0)
+        top = LEG_TOP
+    m = a[:, :, 3] > 8
+    ys, xs = np.where(m)
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    crop = Image.fromarray(a[y0:y1, x0:x1].astype(np.uint8), "RGBA")
+    (ax, ay), (cx, cy), sx, sy = PARTS[name]
+    size = (max(1, round(crop.width * sx)), max(1, round(crop.height * sy)))
+    scaled = crop.resize(size, Image.LANCZOS)
+    # Canvas position of the top-left corner of the crop.
+    ox = cx + (x0 - ax) * sx
+    oy = cy + (y0 + top - ay) * sy
+    return scaled, (ox, oy)
+
+
+def chain_weights(p, bones, blends):
+    """Weights along a limb chain: one bone per stretch, blended near the
+    inner joints. p is a canvas point; bones the names of the chain."""
+    joints = [BONE_AT[bones[0]][0]] + [BONE_AT[b][1] for b in bones]
+    lengths = [np.linalg.norm(joints[i + 1] - joints[i]) for i in range(len(bones))]
+    # Arc length of the closest point on the chain.
+    best = None
+    for i in range(len(bones)):
+        a, b = joints[i], joints[i + 1]
+        ab = b - a
+        t = float(np.clip(((p - a) @ ab) / (ab @ ab), 0, 1))
+        d = float(np.linalg.norm(p - (a + t * ab)))
+        s = sum(lengths[:i]) + t * lengths[i]
+        if best is None or d < best[0]:
+            best = (d, s)
+    s = best[1]
+    w = {}
+    cum = np.cumsum(lengths)
+    for k, b in enumerate(blends):
+        S = cum[k]
+        if s < S - b:
+            w[NAME[bones[k]]] = 1.0
+            return w
+        if s <= S + b:
+            u = (s - (S - b)) / (2 * b)
+            w[NAME[bones[k]]] = 1 - u
+            w[NAME[bones[k + 1]]] = u
+            return w
+    w[NAME[bones[-1]]] = 1.0
+    return w
+
+
+def weights_for(layer, part, bones, x, y):
+    w = {}
+    if bones is not None:
+        return chain_weights(np.array([x, y], float), bones, BLEND[part])
+    if layer == "body":
+        w[NAME["spine"]] = 1.0
+    elif layer == "head":
+        w[NAME["head"]] = 1.0
+    elif layer == "skirt":
+        # The skirt swings with the thighs, more toward the hem; its front
+        # half with the near leg, its back with the far.
+        t = min(1.0, max(0.0, (y - 600) / 300)) ** 1.2
+        share = 0.75 * t
+        side = min(1.0, max(0.0, (x - 250) / 100))
+        w[NAME["near_thigh"]] = share * side
+        w[NAME["far_thigh"]] = share * (1 - side)
+        w[NAME["spine"]] = 1 - share
+    elif layer == "hair_back":
+        # The crown sits on the head; the length hangs from two bones so
+        # the ends trail a little behind the sway.
+        k = min(1.0, max(0.0, (y - 150) / 130))
+        k2 = min(1.0, max(0.0, (y - 300) / 140))
+        w[NAME["head"]] = 1 - k
+        w[NAME["hair"]] = k * (1 - k2)
+        w[NAME["hair2"]] = k * k2
+    return w
+
+
+rig = {"size": [W, H], "crown": list(CROWN), "bones": [], "layers": []}
+for name, parent, head, tail in BONES:
+    rig["bones"].append({"name": name, "parent": parent, "head": list(head), "tail": list(tail)})
+
+STEP = 14
+images = {}
+composite = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+for order, (layer, part, bones, shift) in enumerate(LAYERS):
+    if part not in images:
+        images[part] = load_part(part)
+        images[part][0].save(f"{OUT}/{FILE[part]}", optimize=True)
+    img, (ox, oy) = images[part]
+    if shift:
+        ox, oy = ox + shift[0], oy + shift[1]
+    ox, oy = int(round(ox)), int(round(oy))
+    alpha = np.array(img)[:, :, 3] > 10
+    h, w = alpha.shape
+    cols = list(range(0, w, STEP)) + [w]
+    rows = list(range(0, h, STEP)) + [h]
+    index = {}
+    verts = []
+    tris = []
+
+    def vid(x, y):
+        k = (x, y)
+        if k not in index:
+            index[k] = len(verts)
+            verts.append((x, y))
+        return index[k]
+
+    for j in range(len(rows) - 1):
+        for i in range(len(cols) - 1):
+            cx0, cx1, cy0, cy1 = cols[i], cols[i + 1], rows[j], rows[j + 1]
+            if not alpha[cy0:cy1, cx0:cx1].any():
+                continue
+            a, b, c, d = vid(cx0, cy0), vid(cx1, cy0), vid(cx0, cy1), vid(cx1, cy1)
+            tris += [a, b, c, b, d, c]
+    weights = []
+    for (vx, vy) in verts:
+        w = weights_for(layer, part, bones, vx + ox, vy + oy)
+        total = float(sum(w.values()))
+        keep = [(int(k), float(v) / total) for k, v in w.items() if float(v) / total > 0.02]
+        total = sum(v for _, v in keep)
+        weights.append([[k, round(v / total, 4)] for k, v in keep])
+    rig["layers"].append({
+        "name": layer, "image": FILE[part], "order": order, "offset": [ox, oy],
+        "verts": [[int(x + ox), int(y + oy)] for x, y in verts], "tris": tris, "weights": weights,
+    })
+    composite.paste(img, (ox, oy), img)
+    print(layer, img.size, "at", (ox, oy), "verts", len(verts), "tris", len(tris) // 3)
+
+json.dump(rig, open(f"{OUT}/side.json", "w"), separators=(",", ":"))
+print("json", os.path.getsize(f"{OUT}/side.json"))
+
+# Preview: the assembled rest pose, once plain and once with the bones.
+prev = Image.new("RGBA", (W * 2, H), (255, 255, 255, 255))
+prev.paste(composite, (0, 0), composite)
+prev.paste(composite, (W, 0), composite)
+d = ImageDraw.Draw(prev)
+for name, parent, head, tail in BONES:
+    d.line([(W + head[0], head[1]), (W + tail[0], tail[1])], fill=(255, 0, 0, 255), width=5)
+    d.ellipse([W + head[0] - 7, head[1] - 7, W + head[0] + 7, head[1] + 7], fill=(0, 0, 255, 255))
+d.line([(0, FLOOR), (2 * W, FLOOR)], fill=(0, 160, 0, 255), width=2)
+prev = prev.resize((prev.width * 2 // 3, prev.height * 2 // 3), Image.LANCZOS)
+os.makedirs(f"{ROOT}/build", exist_ok=True)
+prev.save(f"{ROOT}/build/rig_preview.png")
+print("preview", prev.size)

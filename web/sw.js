@@ -58,11 +58,12 @@ const SHELL = [
   'assets/assets/companion/face_shy.png',
   'assets/assets/companion/face_tired.png',
   'assets/assets/companion/rig/side.json',
-  'assets/assets/companion/rig/side_far_arm.png',
-  'assets/assets/companion/rig/side_far_leg.png',
+  'assets/assets/companion/rig/side_hair.png',
+  'assets/assets/companion/rig/side_arm.png',
+  'assets/assets/companion/rig/side_leg.png',
+  'assets/assets/companion/rig/side_skirt.png',
+  'assets/assets/companion/rig/side_head.png',
   'assets/assets/companion/rig/side_body.png',
-  'assets/assets/companion/rig/side_near_leg.png',
-  'assets/assets/companion/rig/side_near_arm.png',
 ];
 
 // Same choice flutter.js makes between the two CanvasKit builds.
