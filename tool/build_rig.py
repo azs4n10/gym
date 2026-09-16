@@ -24,14 +24,14 @@ FLOOR = 1448
 # The anchor is the point of the drawing that lands on the given canvas point.
 PARTS = {
     "torso": ((541, 1249), (300, 576), 0.315, 0.315),
-    "skirt": ((512, 240), (300, 536), 0.29, 0.344),
+    "skirt": ((512, 240), (290, 536), 0.32, 0.344),
     "head": ((540, 1250), (290, 292), 0.24, 0.24),
     "hair_back": ((430, 350), (201, 140), 0.28, 0.37),
     "arm": ((490, 150), (257, 331), 0.40, 0.40),
     "leg": ((575, 450), (341, 1016), 0.411, 0.411),
 }
 # Where the far copies sit relative to the near ones.
-FAR_SHIFT = {"arm": (-10, 5), "leg": (-36, 0)}
+FAR_SHIFT = {"arm": (13, 9), "leg": (-24, 0)}
 # Rows of the leg drawing stretched upward to extend the thigh, and the
 # drawing y the extension reaches.
 LEG_BAND = (44, 94)
@@ -48,15 +48,15 @@ BONES = [
     ("near_upper", 0, (257, 331), (268, 567)),
     ("near_lower", 4, (268, 567), (272, 745)),
     ("near_hand", 5, (272, 745), (279, 867)),
-    ("far_upper", 0, (247, 336), (258, 572)),
-    ("far_lower", 7, (258, 572), (262, 750)),
-    ("far_hand", 8, (262, 750), (269, 872)),
+    ("far_upper", 0, (270, 340), (281, 576)),
+    ("far_lower", 7, (281, 576), (285, 754)),
+    ("far_hand", 8, (285, 754), (292, 876)),
     ("near_thigh", -1, (318, 636), (341, 1016)),
     ("near_shin", 10, (341, 1016), (333, 1316)),
     ("near_foot", 11, (333, 1316), (424, 1423)),
-    ("far_thigh", -1, (282, 636), (305, 1016)),
-    ("far_shin", 13, (305, 1016), (297, 1316)),
-    ("far_foot", 14, (297, 1316), (388, 1423)),
+    ("far_thigh", -1, (294, 636), (317, 1016)),
+    ("far_shin", 13, (317, 1016), (309, 1316)),
+    ("far_foot", 14, (309, 1316), (400, 1423)),
 ]
 NAME = {b[0]: i for i, b in enumerate(BONES)}
 BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
@@ -148,14 +148,15 @@ def weights_for(layer, part, bones, x, y):
     elif layer == "head":
         w[NAME["head"]] = 1.0
     elif layer == "skirt":
-        # The skirt swings with the thighs, more toward the hem; its front
-        # half with the near leg, its back with the far.
-        t = min(1.0, max(0.0, (y - 600) / 300)) ** 1.2
-        share = 0.85 * t
-        side = min(1.0, max(0.0, (x - 250) / 100))
-        w[NAME["near_thigh"]] = share * side
-        w[NAME["far_thigh"]] = share * (1 - side)
-        w[NAME["spine"]] = 1 - share
+        # The skirt swings with the thighs, more toward the hem. Its front
+        # half rides up on the forward thigh; its back half is only pushed a
+        # little by the other, so the back hem does not fan up. (The app
+        # hands the front to whichever thigh is forward at the time.)
+        t = min(1.0, max(0.0, (y - 560) / 300)) ** 1.2
+        side = min(1.0, max(0.0, (x - 240) / 100))
+        w[NAME["near_thigh"]] = 0.85 * t * side
+        w[NAME["far_thigh"]] = 0.5 * t * (1 - side)
+        w[NAME["spine"]] = 1 - w[NAME["near_thigh"]] - w[NAME["far_thigh"]]
     elif layer == "hair_back":
         # The crown sits on the head; the length hangs from two bones so
         # the ends trail a little behind the sway.
