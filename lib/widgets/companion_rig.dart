@@ -332,7 +332,8 @@ class _RigPainter extends CustomPainter {
               : bone == farThigh
               ? nearThigh
               : bone;
-          final q = xf[b].apply(p, rig.bones[b]);
+          final thigh = b == nearThigh || b == farThigh;
+          final q = thigh && layer.name == 'skirt' ? _skirtSwing(xf[b], rig.bones[b], p) : xf[b].apply(p, rig.bones[b]);
           x += q.dx * w;
           y += q.dy * w;
         }
@@ -350,6 +351,21 @@ class _RigPainter extends CustomPainter {
     }
     _drawHat(canvas, xf);
     canvas.restore();
+  }
+
+  /// How a thigh carries the skirt: not turning about the hip, which would
+  /// fan the hem up into a straight slant, but about a point well above it
+  /// and by a fraction of the angle, so the hem is pushed along in front of
+  /// the leg and only tilts a little.
+  Offset _skirtSwing(BoneXf x, RigBone bone, Offset p) {
+    final lift = rig.height * 0.41;
+    const share = 0.35;
+    final pivotRest = bone.head - Offset(0, lift);
+    final pivotPosed = x.head - Offset(0, lift);
+    final d = p - pivotRest;
+    final c = math.cos(x.turn * share);
+    final s = math.sin(x.turn * share);
+    return Offset(pivotPosed.dx + d.dx * c - d.dy * s, pivotPosed.dy + d.dx * s + d.dy * c);
   }
 
   double get _wheelRadius => rig.height * 0.17;
