@@ -30,8 +30,8 @@ PARTS = {
     "arm": ((490, 150), (257, 331), 0.40, 0.40),
     # The leg is three pieces from the paper-doll kit drawing, each one
     # rigid on its bone, the round joint ends overlapping.
-    "thigh": ((152, 72), (318, 636), 0.534, 0.534),
-    "shin": ((560, 190), (352, 1014), 0.46, 0.286),
+    "thigh": ((152, 72), (318, 636), 0.47, 0.534),
+    "shin": ((560, 190), (352, 1014), 0.50, 0.286),
     "shoe": ((820, 1030), (352, 1314), 0.48, 0.48),
     # The head seen from the front, cut from the front-view drawing, for
     # the swimmer turning to breathe.
@@ -44,7 +44,10 @@ KIT_SRC = f"{IDEA}/part_leg_kit.png"
 # The shoe is taken from its collar down, without the hinge tab drawn
 # above it, and drawn over the shin so the ankle end sits inside it.
 KIT_BOX = {"thigh": (20, 10, 360, 900), "shin": (405, 130, 675, 1310), "shoe": (700, 1062, 1125, 1330)}
-KIT_KNEE = ((215, 780), 112)
+KIT_KNEE = ((215, 780), 108)
+# The hinge rivet the kit drew at the bottom of the shin sits at the ankle,
+# above the shoe; it is painted over with the sock.
+KIT_SHIN_RIVET = ((560, 1240), 52)
 FRONT_BOX = (22, 0, 112, 88)
 FRONT_FADE = 12
 # Where the far copies sit relative to the near ones.
@@ -115,6 +118,11 @@ def load_kit_piece(name):
     mask = ndimage.binary_erosion(mask, iterations=3)
     alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0) * 255
     a = np.dstack([rgb.astype(np.float32), alpha])
+    if name == "shin":
+        (rx, ry), r = KIT_SHIN_RIVET
+        yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
+        ring = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
+        a[ring, 0:3] = np.array([246, 244, 242], np.float32)
     return a
 
 
