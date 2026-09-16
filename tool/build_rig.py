@@ -30,9 +30,9 @@ PARTS = {
     "arm": ((490, 150), (257, 331), 0.40, 0.40),
     # The leg is three pieces from the paper-doll kit drawing, each one
     # rigid on its bone, the round joint ends overlapping.
-    "thigh": ((152, 72), (318, 636), 0.47, 0.534),
-    "shin": ((560, 190), (352, 1014), 0.50, 0.286),
-    "shoe": ((820, 1030), (352, 1314), 0.48, 0.48),
+    "thigh": ((152, 72), (318, 636), 0.38, 0.534),
+    "shin": ((560, 190), (352, 1014), 0.42, 0.286),
+    "shoe": ((820, 1030), (352, 1314), 0.44, 0.44),
     # The head seen from the front, cut from the front-view drawing, for
     # the swimmer turning to breathe.
     "head_front": ((67, 80), (290, 292), 3.1, 3.1),
@@ -44,7 +44,10 @@ KIT_SRC = f"{IDEA}/part_leg_kit.png"
 # The shoe is taken from its collar down, without the hinge tab drawn
 # above it, and drawn over the shin so the ankle end sits inside it.
 KIT_BOX = {"thigh": (20, 10, 360, 900), "shin": (405, 130, 675, 1310), "shoe": (700, 1062, 1125, 1330)}
-KIT_KNEE = ((215, 780), 108)
+KIT_KNEE = ((215, 780), 115)
+# The shin carried a rivet at the knee too, under the thigh; painted out
+# with the skin so nothing shows through the softened knee.
+KIT_SHIN_KNEE = ((560, 190), 52)
 # The hinge rivet the kit drew at the bottom of the shin sits at the ankle,
 # above the shoe; it is painted over with the sock.
 KIT_SHIN_RIVET = ((560, 1240), 52)
@@ -69,10 +72,10 @@ BONES = [
     ("far_hand", 8, (285, 754), (292, 876)),
     ("near_thigh", -1, (318, 636), (352, 1014)),
     ("near_shin", 10, (352, 1014), (352, 1314)),
-    ("near_foot", 11, (352, 1314), (480, 1420)),
+    ("near_foot", 11, (352, 1314), (470, 1418)),
     ("far_thigh", -1, (294, 636), (328, 1014)),
     ("far_shin", 13, (328, 1014), (328, 1314)),
-    ("far_foot", 14, (328, 1314), (456, 1420)),
+    ("far_foot", 14, (328, 1314), (446, 1418)),
 ]
 NAME = {b[0]: i for i, b in enumerate(BONES)}
 BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
@@ -117,12 +120,23 @@ def load_kit_piece(name):
         mask &= (yy < ky) | ((xx - kx) ** 2 + (yy - ky) ** 2 <= r * r)
     mask = ndimage.binary_erosion(mask, iterations=3)
     alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0) * 255
+    if name == "thigh":
+        # The round knee end melts into the shin instead of ending in an
+        # edge: it fades out over the lower part of the circle.
+        (kx, ky), r = KIT_KNEE
+        rows = np.arange(mask.shape[0])
+        fade = np.clip((ky + r - rows) / (0.6 * r), 0, 1)
+        alpha = alpha * fade[:, None]
     a = np.dstack([rgb.astype(np.float32), alpha])
     if name == "shin":
-        (rx, ry), r = KIT_SHIN_RIVET
         yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
+        (rx, ry), r = KIT_SHIN_RIVET
         ring = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
         a[ring, 0:3] = np.array([246, 244, 242], np.float32)
+        (rx, ry), r = KIT_SHIN_KNEE
+        ring = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
+        skin = a[ry + r + 40:ry + r + 80, rx - 20:rx + 20, 0:3].reshape(-1, 3).mean(axis=0)
+        a[ring, 0:3] = skin
     return a
 
 
@@ -235,7 +249,7 @@ def weights_for(layer, part, bones, x, y):
 
 # Heel and toe of the sole relative to the ankle, for standing the figure
 # on the floor and for the pedals.
-SOLE = [[-45, 130], [130, 128]]
+SOLE = [[-42, 119], [120, 117]]
 rig = {"size": [W, H], "floor": FLOOR, "crown": list(CROWN), "sole": SOLE, "bones": [], "layers": []}
 for name, parent, head, tail in BONES:
     rig["bones"].append({"name": name, "parent": parent, "head": list(head), "tail": list(tail)})
