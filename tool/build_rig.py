@@ -47,7 +47,7 @@ KIT_BOX = {"thigh": (20, 10, 360, 900), "shin": (405, 130, 675, 1310), "shoe": (
 KIT_KNEE = ((215, 780), 115)
 # The shin carried a rivet at the knee too, under the thigh; painted out
 # with the skin so nothing shows through the softened knee.
-KIT_SHIN_KNEE = ((560, 190), 52)
+KIT_SHIN_KNEE = ((560, 190), 64)
 # The hinge rivet the kit drew at the bottom of the shin sits at the ankle,
 # above the shoe; it is painted over with the sock.
 KIT_SHIN_RIVET = ((560, 1240), 52)
@@ -84,22 +84,36 @@ BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
 LAYERS = [
     ("hair_back", "hair_back", None, None),
     ("far_arm", "arm", ["far_upper", "far_lower", "far_hand"], FAR_SHIFT["arm"]),
-    ("far_shin", "shin", ["far_shin"], FAR_SHIFT["shin"]),
+    # The thigh and shin are flattened into one leg image and bent at the
+    # knee by the mesh; the shoe is a rigid piece over the shin's end.
+    ("far_leg", "leg", ["far_thigh", "far_shin"], FAR_SHIFT["thigh"]),
     ("far_shoe", "shoe", ["far_foot"], FAR_SHIFT["shoe"]),
-    ("far_thigh", "thigh", ["far_thigh"], FAR_SHIFT["thigh"]),
-    ("near_shin", "shin", ["near_shin"], None),
+    ("near_leg", "leg", ["near_thigh", "near_shin"], None),
     ("near_shoe", "shoe", ["near_foot"], None),
-    ("near_thigh", "thigh", ["near_thigh"], None),
     ("skirt", "skirt", None, None),
     ("head", "head", None, None),
     ("head_front", "head_front", None, None),
     ("body", "torso", None, None),
     ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
 ]
-FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "thigh": "side_thigh.png", "shin": "side_shin.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
+FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
         "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
 # Blend width (canvas px) around the inner joints of a limb chain.
-BLEND = {"arm": (60, 40), "leg": (70, 45)}
+BLEND = {"arm": (60, 40), "leg": (70,)}
+
+
+def compose_leg():
+    """The thigh piece laid over the shin piece at their rest places, as one
+    image, so the knee bends by the mesh with no seam."""
+    parts = [load_part("shin"), load_part("thigh")]
+    x0 = min(int(round(o[0])) for _, o in parts)
+    y0 = min(int(round(o[1])) for _, o in parts)
+    x1 = max(int(round(o[0])) + im.width for im, o in parts)
+    y1 = max(int(round(o[1])) + im.height for im, o in parts)
+    canvas = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
+    for im, (ox, oy) in parts:
+        canvas.alpha_composite(im, (int(round(ox)) - x0, int(round(oy)) - y0))
+    return canvas, (x0, y0)
 
 
 def load_kit_piece(name):
@@ -259,7 +273,7 @@ images = {}
 composite = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 for order, (layer, part, bones, shift) in enumerate(LAYERS):
     if part not in images:
-        images[part] = load_part(part)
+        images[part] = compose_leg() if part == "leg" else load_part(part)
         images[part][0].save(f"{OUT}/{FILE[part]}", optimize=True)
     img, (ox, oy) = images[part]
     if shift:
