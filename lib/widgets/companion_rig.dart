@@ -260,6 +260,7 @@ class CompanionRigView extends StatelessWidget {
     this.headTurn = 0,
     this.faceFront = 0,
     this.footFollow = 0.35,
+    this.bounce = 1,
     this.gearColor = const Color(0xFF8A7F78),
     this.ink = const Color(0xFF3A3335),
   });
@@ -306,6 +307,10 @@ class CompanionRigView extends StatelessWidget {
   /// How much of the shin's turn the foot takes: a little on land, so the
   /// shoe stays level with the ground; all of it in water, toes pointed.
   final double footFollow;
+
+  /// How much of the pose's rise off the ground is used, 0 to 1: a jog
+  /// barely leaves the ground, a fast run does.
+  final double bounce;
 
   /// Frames, saddles, rails and treads.
   final Color gearColor;
@@ -426,7 +431,7 @@ class _RigPainter extends CustomPainter {
       shift = rig.floor - (m + k * math.log(sum));
       // The pose's own rise above standing height is kept on top: a run
       // leaves the ground between push-off and landing.
-      shift += (pose.hip.dy - 55) * CompanionRig.unit;
+      shift += (pose.hip.dy - 55) * CompanionRig.unit * v.bounce;
     }
     // The skirt's front is weighted to the near thigh and its back to the
     // far one, but a skirt follows whichever leg is in front: the front hem
@@ -747,5 +752,6 @@ class _RigPainter extends CustomPainter {
       old.v.headTurn != v.headTurn ||
       old.v.faceFront != v.faceFront ||
       old.v.footFollow != v.footFollow ||
+      old.v.bounce != v.bounce ||
       old.v.gearColor != v.gearColor;
 }

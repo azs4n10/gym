@@ -656,6 +656,8 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         headTurn: -0.45 * breath,
                                         faceFront: breath,
                                         footFollow: swim ? 1 : 0.35,
+                                        // Air time grows with the pace: none at a jog, full at 12 km/h.
+                                        bounce: _kind == CardioType.running ? ((speed - 4) / 8).clamp(0.1, 1.0) : 1,
                                         gearColor: mode == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                         ink: skin.ink,
                                       )
