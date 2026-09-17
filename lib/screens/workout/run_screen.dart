@@ -94,6 +94,11 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   RunProgress? _progress;
   CompanionRig? _rig;
 
+  /// Bumped every animation frame; only the scene card listens, so the
+  /// rest of the screen is rebuilt a few times a second, not sixty.
+  final _frame = ValueNotifier<int>(0);
+  double _statsAt = 0;
+
   /// The floor curve for the current activity's cycle, fitted once.
   ContactCurve? _contact;
   CardioType? _contactKind;
@@ -142,6 +147,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     _hop.dispose();
     _bubbleTimer?.cancel();
     _gpsSub?.cancel();
+    _frame.dispose();
     super.dispose();
   }
 
@@ -154,7 +160,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     _incline += (wantIncline - _incline) * math.min(1, dt * 2);
     if (!_running) {
       // Rain, stars and clouds keep moving while paused.
-      if (_weather != SceneWeather.clear || _hour < 5.5 || _hour >= 19.5) setState(() {});
+      if (_weather != SceneWeather.clear || _hour < 5.5 || _hour >= 19.5) _frame.value++;
       return;
     }
     final speed = _currentSpeed;
@@ -256,7 +262,11 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
         if (_sound) RunSound.cheer();
       }
     }
-    setState(() {});
+    _frame.value++;
+    if (_elapsedS - _statsAt >= 0.25) {
+      _statsAt = _elapsedS;
+      setState(() {});
+    }
   }
 
   double get _hour {
@@ -505,13 +515,6 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     final l = context.l;
     final t = Theme.of(context).textTheme;
     final speed = _currentSpeed;
-    final move = _sceneMove();
-    final contact = _contactFor(move);
-    // A lift-style move (start and end pose) is played back and forth; the
-    // sitting figure breathes slowly.
-    final figureT = move.loops
-        ? _phase
-        : Curves.easeInOut.transform(1 - (2 * ((_resting ? _sceneT * 0.25 : _phase) % 1) - 1).abs());
     final progress = _progress;
 
     return Scaffold(
@@ -559,8 +562,17 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                     // Most of the width, so the figure and the controls on
                     // it are big enough for a thumb.
                     height: (MediaQuery.sizeOf(context).width * 0.8).clamp(240.0, 340.0),
-                    child: LayoutBuilder(
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _frame,
+                      builder: (_, _, _) => LayoutBuilder(
                       builder: (_, c) {
+                        final move = _sceneMove();
+                        final contact = _contactFor(move);
+                        // A lift-style move (start and end pose) is played
+                        // back and forth; the sitting figure breathes slowly.
+                        final figureT = move.loops
+                            ? _phase
+                            : Curves.easeInOut.transform(1 - (2 * ((_resting ? _sceneT * 0.25 : _phase) % 1) - 1).abs());
                         final size = c.maxHeight * 0.625;
                         // Water, stairs, machines and the room are only
                         // drawn from the side.
@@ -761,6 +773,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                           ],
                         );
                       },
+                      ),
                     ),
                   ),
                 ),

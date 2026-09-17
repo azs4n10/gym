@@ -432,11 +432,12 @@ class _ScenePainter extends CustomPainter {
       ..color = skin.ink.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
-    final matY = h * RunScene.groundY + 2;
-    final mat = Rect.fromLTWH(w * 0.24, matY - h * 0.018, w * 0.52, h * 0.022);
+    // Its top is the floor line the figure stands on.
+    final matY = h * RunScene.groundY;
+    final mat = Rect.fromLTWH(w * 0.24, matY, w * 0.52, h * 0.022);
     canvas.drawRRect(RRect.fromRectAndRadius(mat, Radius.circular(h * 0.01)), Paint()..color = matColor);
     canvas.drawRRect(RRect.fromRectAndRadius(mat, Radius.circular(h * 0.01)), matEdge);
-    final roll = Offset(mat.left + h * 0.006, mat.center.dy - h * 0.004);
+    final roll = Offset(mat.left + h * 0.006, mat.center.dy);
     canvas.drawCircle(roll, h * 0.02, Paint()..color = matColor);
     canvas.drawCircle(roll, h * 0.02, matEdge);
     canvas.drawCircle(roll, h * 0.007, Paint()..color = skin.card);
@@ -681,11 +682,16 @@ class _ScenePainter extends CustomPainter {
     }
   }
 
+  // Laid-out labels, kept: laying text out every frame is dear.
+  static final _labels = <String, TextPainter>{};
+
   void _label(Canvas canvas, String text, Offset at, double scale) {
-    final tp = TextPainter(
-      text: TextSpan(text: text, style: s.labelStyle.copyWith(fontSize: (s.labelStyle.fontSize ?? 11) * scale)),
-      textDirection: TextDirection.ltr,
-    )..layout();
+    final size = ((s.labelStyle.fontSize ?? 11) * scale * 4).round() / 4;
+    final key = '$text|$size|${s.labelStyle.color?.toARGB32()}';
+    final tp = _labels.putIfAbsent(key, () => TextPainter(
+          text: TextSpan(text: text, style: s.labelStyle.copyWith(fontSize: size)),
+          textDirection: TextDirection.ltr,
+        )..layout());
     tp.paint(canvas, at - Offset(tp.width / 2, 0));
   }
 

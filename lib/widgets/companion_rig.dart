@@ -265,6 +265,17 @@ class ContactCurve {
   }
 }
 
+/// One frame of the rig: bone transforms, the lift of the whole drawing,
+/// and each layer's vertex positions in canvas px, in layer order.
+class RigPlacement {
+  const RigPlacement(this.xf, this.shift, this.positions, this.crank, this.feet);
+  final List<BoneXf> xf;
+  final double shift;
+  final List<Float32List> positions;
+  final Offset? crank;
+  final List<int> feet;
+}
+
 class RigBone {
   const RigBone({required this.name, required this.parent, required this.head, required this.tail});
   final String name;
@@ -274,20 +285,41 @@ class RigBone {
 }
 
 class RigLayer {
-  const RigLayer({
+  RigLayer({
     required this.name,
     required this.image,
     required this.rest,
     required this.uv,
     required this.indices,
-    required this.weights,
-  });
+    required List<List<(int, double)>> weights,
+  })  : wStart = Int32List(weights.length + 1),
+        wBone = Int32List(weights.fold(0, (n, w) => n + w.length)),
+        wWeight = Float32List(weights.fold(0, (n, w) => n + w.length)) {
+    var k = 0;
+    for (var i = 0; i < weights.length; i++) {
+      wStart[i] = k;
+      for (final (b, w) in weights[i]) {
+        wBone[k] = b;
+        wWeight[k] = w;
+        k++;
+      }
+    }
+    wStart[weights.length] = k;
+  }
   final String name;
   final ui.Image image;
   final Float32List rest;
   final Float32List uv;
   final Uint16List indices;
-  final List<List<(int, double)>> weights;
+
+  /// The bone weights of every vertex, flat: vertex i uses entries
+  /// wStart[i] until wStart[i + 1].
+  final Int32List wStart;
+  final Int32List wBone;
+  final Float32List wWeight;
+
+  /// The image as a shader, made once.
+  late final ui.ImageShader shader = ImageShader(image, TileMode.clamp, TileMode.clamp, Matrix4.identity().storage);
 }
 
 /// A bone's posed head and rotation; maps a rest-pose point to its posed place.
@@ -385,6 +417,9 @@ class CompanionRigView extends StatelessWidget {
   /// Tyres, spokes, cables and edges.
   final Color ink;
 
+  /// The frame this view would draw, for checks.
+  RigPlacement place() => _RigPainter(this).place();
+
   @override
   Widget build(BuildContext context) {
     final width = height * rig.width / rig.height;
@@ -448,9 +483,9 @@ class _RigPainter extends CustomPainter {
     return ankles;
   }
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = size.height / rig.height;
+  /// Works out the frame: the bones, the lift of the whole drawing, and
+  /// every layer's vertex positions in canvas px.
+  RigPlacement place() {
     final xf = rig.solve(
       pose,
       hairSway: hairSway,
@@ -514,6 +549,98 @@ class _RigPainter extends CustomPainter {
       final farKnee = xf[farThigh].apply(rig.bones[farThigh].tail, rig.bones[farThigh]);
       swapThighs = farKnee.dx > nearKnee.dx;
     }
+    final spine = rig.boneIndex('spine');
+    final spineTurn = spine >= 0 ? xf[spine].turn : 0.0;
+    // Per-bone transforms as plain numbers, so the vertex loop allocates
+    // nothing: the posed head, the turn's cosine and sine, the rest head.
+    final nb = rig.bones.length;
+    final bx = Float64List(nb);
+    final by = Float64List(nb);
+    final bc = Float64List(nb);
+    final bs = Float64List(nb);
+    final hx = Float64List(nb);
+    final hy = Float64List(nb);
+    for (var b = 0; b < nb; b++) {
+      bx[b] = xf[b].head.dx;
+      by[b] = xf[b].head.dy;
+      bc[b] = math.cos(xf[b].turn);
+      bs[b] = math.sin(xf[b].turn);
+      hx[b] = rig.bones[b].head.dx;
+      hy[b] = rig.bones[b].head.dy;
+    }
+    // How a thigh carries the skirt: the panel in front of it swings from
+    // the waist like a pendulum, by half the thigh's angle, so the hem
+    // rides up over a raised knee; the panel behind the other leg trails
+    // by a quarter. In water the skirt hangs along the body instead of
+    // down. Worked out per thigh here.
+    final lift = rig.height * 0.068;
+    final base = v.flow ? spineTurn : 0.0;
+    final skirtPivotRestY = Float64List(nb);
+    final skirtPivotPosedY = Float64List(nb);
+    final skirtC = Float64List(nb);
+    final skirtS = Float64List(nb);
+    for (final b in [nearThigh, farThigh]) {
+      if (b < 0) continue;
+      final forward = swapThighs ? b == farThigh : b == nearThigh;
+      final angle = base + (xf[b].turn - base) * (forward ? 0.5 : 0.25);
+      skirtPivotRestY[b] = hy[b] - lift;
+      skirtPivotPosedY[b] = by[b] - lift;
+      skirtC[b] = math.cos(angle);
+      skirtS[b] = math.sin(angle);
+    }
+    final positions = <Float32List>[];
+    for (final layer in rig.layers) {
+      final n = layer.rest.length ~/ 2;
+      final pos = Float32List(n * 2);
+      final skirt = layer.name == 'skirt';
+      final swap = swapThighs && skirt;
+      final rest = layer.rest;
+      final wStart = layer.wStart;
+      final wBone = layer.wBone;
+      final wWeight = layer.wWeight;
+      for (var i = 0; i < n; i++) {
+        final px = rest[i * 2];
+        final py = rest[i * 2 + 1];
+        var x = 0.0;
+        var y = 0.0;
+        for (var k = wStart[i]; k < wStart[i + 1]; k++) {
+          var b = wBone[k];
+          final w = wWeight[k];
+          if (swap) {
+            if (b == nearThigh) {
+              b = farThigh;
+            } else if (b == farThigh) {
+              b = nearThigh;
+            }
+          }
+          if (skirt && (b == nearThigh || b == farThigh)) {
+            final dx = px - hx[b];
+            final dy = py - skirtPivotRestY[b];
+            x += (bx[b] + dx * skirtC[b] - dy * skirtS[b]) * w;
+            y += (skirtPivotPosedY[b] + dx * skirtS[b] + dy * skirtC[b]) * w;
+          } else {
+            final dx = px - hx[b];
+            final dy = py - hy[b];
+            x += (bx[b] + dx * bc[b] - dy * bs[b]) * w;
+            y += (by[b] + dx * bs[b] + dy * bc[b]) * w;
+          }
+        }
+        pos[i * 2] = x;
+        pos[i * 2 + 1] = y;
+      }
+      positions.add(pos);
+    }
+    return RigPlacement(xf, shift, positions, crank, feet);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.height / rig.height;
+    final placed = place();
+    final xf = placed.xf;
+    final shift = placed.shift;
+    final crank = placed.crank;
+    final feet = placed.feet;
     canvas.save();
     canvas.scale(scale);
     canvas.translate(0, shift);
@@ -521,35 +648,9 @@ class _RigPainter extends CustomPainter {
     if (v.prop == RigProp.stairs && feet.length == 2) _drawStairs(canvas, xf, feet);
     if (v.prop == RigProp.rower) _drawRower(canvas, xf, feet);
     if (v.prop == RigProp.elliptical && feet.length == 2) _drawElliptical(canvas, xf, feet);
-    final spine = rig.boneIndex('spine');
-    final spineTurn = spine >= 0 ? xf[spine].turn : 0.0;
-    for (final layer in rig.layers) {
-      final n = layer.rest.length ~/ 2;
-      final pos = Float32List(n * 2);
-      final swap = swapThighs && layer.name == 'skirt';
-      for (var i = 0; i < n; i++) {
-        final p = Offset(layer.rest[i * 2], layer.rest[i * 2 + 1]);
-        var x = 0.0;
-        var y = 0.0;
-        for (final (bone, w) in layer.weights[i]) {
-          final b = !swap
-              ? bone
-              : bone == nearThigh
-              ? farThigh
-              : bone == farThigh
-              ? nearThigh
-              : bone;
-          final thigh = b == nearThigh || b == farThigh;
-          final forward = swapThighs ? b == farThigh : b == nearThigh;
-          final q = thigh && layer.name == 'skirt'
-              ? _skirtSwing(xf[b], rig.bones[b], p, forward ? 0.5 : 0.25, v.flow ? spineTurn : 0)
-              : xf[b].apply(p, rig.bones[b]);
-          x += q.dx * w;
-          y += q.dy * w;
-        }
-        pos[i * 2] = x;
-        pos[i * 2 + 1] = y;
-      }
+    for (var li = 0; li < rig.layers.length; li++) {
+      final layer = rig.layers[li];
+      final pos = placed.positions[li];
       final alpha = switch (layer.name) {
         'head' => 1 - v.faceFront,
         'head_front' => v.faceFront,
@@ -558,7 +659,7 @@ class _RigPainter extends CustomPainter {
       if (alpha <= 0) continue;
       final verts = ui.Vertices.raw(VertexMode.triangles, pos, textureCoordinates: layer.uv, indices: layer.indices);
       final paint = Paint()
-        ..shader = ImageShader(layer.image, TileMode.clamp, TileMode.clamp, Matrix4.identity().storage)
+        ..shader = layer.shader
         ..color = Color.fromRGBO(255, 255, 255, alpha.clamp(0.0, 1.0))
         ..filterQuality = FilterQuality.medium;
       if (farTint != null && layer.name.startsWith('far')) {
@@ -570,21 +671,6 @@ class _RigPainter extends CustomPainter {
     canvas.restore();
   }
 
-  /// How a thigh carries the skirt: the panel in front of it swings from the
-  /// waist like a pendulum, by half the thigh's angle, so the hem rides up
-  /// over a raised knee; the panel behind the other leg trails by a quarter.
-  /// [base] is the angle the skirt hangs at before the thighs push it: down,
-  /// or along the body when it streams in water.
-  Offset _skirtSwing(BoneXf x, RigBone bone, Offset p, double share, double base) {
-    final lift = rig.height * 0.068;
-    final pivotRest = bone.head - Offset(0, lift);
-    final pivotPosed = x.head - Offset(0, lift);
-    final d = p - pivotRest;
-    final angle = base + (x.turn - base) * share;
-    final c = math.cos(angle);
-    final s = math.sin(angle);
-    return Offset(pivotPosed.dx + d.dx * c - d.dy * s, pivotPosed.dy + d.dx * s + d.dy * c);
-  }
 
   /// The staircase the feet climb: the tread under the foot that is
   /// standing, and the rest at the same pitch up and down from it, over a
@@ -601,7 +687,8 @@ class _RigPainter extends CustomPainter {
     final sole = hip + (climbFoot(near ? v.phase : v.phase + 0.5) - climbHip) * CompanionRig.unit;
     final run = climbRun * CompanionRig.unit;
     final rise = climbRise * CompanionRig.unit;
-    final nose = Offset(sole.dx + run * 0.35, sole.dy);
+    // The foot lands well back on the tread, toes clear of the next riser.
+    final nose = Offset(sole.dx + run * 0.62, sole.dy);
     final top = Paint()..color = Color.lerp(v.gearColor, const Color(0xFFFFFFFF), 0.35)!;
     final face = Paint()..color = v.gearColor;
     final edge = Paint()

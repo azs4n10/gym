@@ -402,8 +402,8 @@ Pose _cycle(double p) {
 /// swings up and forward over the next one, leaving and landing at the
 /// treads' own speed so nothing jolts. The other foot is half a cycle
 /// behind. Treads pass at two a cycle, [climbRun] across and [climbRise] up.
-const climbRun = 10.0;
-const climbRise = 7.5;
+const climbRun = 9.5;
+const climbRise = 6.5;
 const climbStance = 0.6;
 Offset climbFoot(double t) {
   const land = Offset(58, 74);
@@ -428,7 +428,7 @@ Offset climbFoot(double t) {
 
 /// Climbing stairs: the hips stay level over the treads while the feet step
 /// up; the arms swing a little.
-const climbHip = Offset(50, 37);
+const climbHip = Offset(50, 35);
 
 /// The stick figure's legs are shorter than the illustration's, so it
 /// reaches for the same steps scaled toward the hip.
