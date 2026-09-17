@@ -80,6 +80,7 @@ class RunProgress {
     this.finishedRoutes = 0,
     this.hat = 'none',
     this.shirt = 0,
+    this.outfit = 'uniform',
     this.view = 'side',
     this.sound = false,
     this.look = 'girl',
@@ -97,6 +98,10 @@ class RunProgress {
 
   /// 'girl' for the illustrated companion, 'stick' for the drawn figure.
   String look;
+
+  /// What the illustrated companion wears on land: 'uniform' or 'gym'.
+  /// (In the water she wears the swimsuit regardless.)
+  String outfit;
 
   /// Keys shaped `route/landmark`.
   final Set<String> reached;
@@ -132,6 +137,7 @@ class RunProgress {
         'finishedRoutes': finishedRoutes,
         'hat': hat,
         'shirt': shirt,
+        'outfit': outfit,
         'view': view,
         'sound': sound,
         'look': look,
@@ -148,6 +154,7 @@ class RunProgress {
         finishedRoutes: j['finishedRoutes'] as int? ?? 0,
         hat: j['hat'] as String? ?? 'none',
         shirt: j['shirt'] as int? ?? 0,
+        outfit: j['outfit'] as String? ?? 'uniform',
         view: j['view'] as String? ?? 'side',
         sound: j['sound'] as bool? ?? false,
         look: j['look'] as String? ?? 'girl',

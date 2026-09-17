@@ -1,16 +1,19 @@
-"""Builds the side-view rig from parts drawn one per image (idea/part_*.png):
-each part is trimmed, scaled onto a common figure canvas, covered by a small
-triangle mesh and skinned to the bones. The arm and leg are drawn once and
-used for both the near and the far side. Joint positions were read off a
-100 px grid over each 1024x1536 drawing.
+"""Builds the side-view rigs from parts drawn one per image or as paper-doll
+kits (idea/part_*.png): each part is trimmed, scaled onto a common figure
+canvas, covered by a small triangle mesh and skinned to the bones. The arm
+and leg are drawn once and used for both the near and the far side. Joint
+positions were read off a 100 px grid over each drawing.
 
-Writes assets/companion/rig/side.json and the layer images, and a preview of
-the rest pose with the bones to build/rig_preview.png."""
+One rig per outfit: the uniform (side.json), the swimsuit (side_swim.json)
+and the gym clothes (side_gym.json), sharing the head, hair and thigh.
+Writes assets/companion/rig/*.json and the layer images, and a preview of
+each rest pose with the bones to build/rig_preview_<outfit>.png."""
 import json
 import os
 
 import numpy as np
 from PIL import Image, ImageDraw
+from scipy import ndimage
 
 SP = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SP)
@@ -19,59 +22,6 @@ OUT = f"{ROOT}/assets/companion/rig"
 
 W, H = 520, 1460
 FLOOR = 1448
-
-# Part name -> (anchor in the drawing, anchor on the canvas, sx, sy).
-# The anchor is the point of the drawing that lands on the given canvas point.
-PARTS = {
-    "torso": ((541, 1249), (300, 576), 0.315, 0.315),
-    "skirt": ((512, 240), (290, 536), 0.32, 0.344),
-    "head": ((540, 1250), (290, 292), 0.24, 0.24),
-    "hair_back": ((430, 350), (201, 140), 0.28, 0.37),
-    "arm": ((490, 150), (257, 331), 0.40, 0.40),
-    # The leg is three pieces from the paper-doll kit drawing, each one
-    # rigid on its bone, the round joint ends overlapping.
-    "thigh": ((152, 72), (318, 636), 0.40, 0.534),
-    # Anchored at the ankle hinge; a little taller than the bone so its
-    # top reaches well up under the thigh.
-    "shin": ((560, 1240), (352, 1314), 0.34, 0.314),
-    "shoe": ((820, 1030), (352, 1314), 0.44, 0.44),
-    # The head seen from the front, cut from the front-view drawing, for
-    # the swimmer turning to breathe.
-    "head_front": ((67, 80), (290, 292), 3.1, 3.1),
-}
-FRONT_SRC = f"{ROOT}/assets/companion/stand_front.png"
-KIT_SRC = f"{IDEA}/part_leg_kit.png"
-# Where each piece sits in the kit drawing, and the knee the thigh piece is
-# cut round at (it was drawn down to the ankle).
-# The shoe is taken from its collar down, without the hinge tab drawn
-# above it, and drawn over the shin so the ankle end sits inside it.
-KIT_BOX = {"thigh": (20, 10, 360, 900), "shin": (405, 130, 675, 1310), "shoe": (700, 1062, 1125, 1330)}
-KIT_KNEE = ((215, 780), 115)
-# The thigh fades out over the shin in a band centred this far above the
-# knee (negative: below it), of this half-height (kit px): just under the
-# joint, where the shin is at its full width and the two drawings match,
-# so the outline shows neither a step nor a waist.
-KNEE_SEAM_UP = -28
-# The shin is cut flat this far down its drawing, taking off the round
-# top end whose outline would show through the thigh.
-KIT_SHIN_TOP = 160
-# The calf is widened on its own, row by row, so the shin can match the
-# thigh at the knee and still have a calf: the bulge peaks at this kit y,
-# with this spread, by this much.
-CALF_Y = 380
-CALF_SPREAD = 120
-CALF_BULGE = 0.14
-KNEE_SEAM = 28
-# The shin carried a rivet at the knee too, under the thigh; painted out
-# with the skin so nothing shows through the softened knee.
-KIT_SHIN_KNEE = ((560, 190), 64)
-# The hinge rivet the kit drew at the bottom of the shin sits at the ankle,
-# above the shoe; it is painted over with the sock.
-KIT_SHIN_RIVET = ((560, 1240), 52)
-FRONT_BOX = (22, 0, 112, 88)
-FRONT_FADE = 12
-# Where the far copies sit relative to the near ones.
-FAR_SHIFT = {"arm": (13, 9), "thigh": (-24, 0), "shin": (-24, 0), "shoe": (-24, 0)}
 # Where the crown of the head is, for hats (canvas px).
 CROWN = (287, 37)
 
@@ -97,164 +47,187 @@ BONES = [
 NAME = {b[0]: i for i, b in enumerate(BONES)}
 BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
 
-# Layers back to front: name, part, bones (for the chain rules), far shift.
-LAYERS = [
-    ("hair_back", "hair_back", None, None),
-    ("far_arm", "arm", ["far_upper", "far_lower", "far_hand"], FAR_SHIFT["arm"]),
-    ("far_elbow", "elbow", ["far_upper", "far_lower"], FAR_SHIFT["arm"]),
-    # The thigh and shin are flattened into one leg image and bent at the
-    # knee by the mesh; the shoe is a rigid piece over the shin's end.
-    ("far_leg", "leg", ["far_thigh", "far_shin"], FAR_SHIFT["thigh"]),
-    ("far_knee", "knee", ["far_thigh", "far_shin"], FAR_SHIFT["thigh"]),
-    ("far_shoe", "shoe", ["far_foot"], FAR_SHIFT["shoe"]),
-    ("near_leg", "leg", ["near_thigh", "near_shin"], None),
-    ("near_knee", "knee", ["near_thigh", "near_shin"], None),
-    ("near_shoe", "shoe", ["near_foot"], None),
-    ("skirt", "skirt", None, None),
-    ("head", "head", None, None),
-    ("head_front", "head_front", None, None),
-    ("body", "torso", None, None),
-    ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
-    ("near_elbow", "elbow", ["near_upper", "near_lower"], None),
-]
-FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "elbow": "side_elbow.png", "leg": "side_leg.png", "knee": "side_knee.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
-        "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
+# Where the far copies sit relative to the near ones.
+FAR_SHIFT = {"arm": (13, 9), "leg": (-24, 0)}
+
 # Blend width (canvas px) around the inner joints of a limb chain.
 BLEND = {"arm": (60, 40), "leg": (70,)}
+# The knee: a sharp change on the back of the leg, where the bend closes
+# into a crease, and a wide one across the front, where the kneecap
+# stretches over the bend. The elbow bends the other way.
 KNEE_HALF = 44
 KNEE_BLEND_BACK = 16
 KNEE_BLEND_FRONT = 96
-# The elbow bends the other way: the crease is on the front of the arm,
-# the point at the back.
 ELBOW_HALF = 42
 ELBOW_BLEND_FRONT = 18
 ELBOW_BLEND_BACK = 80
-
-
-def compose_leg():
-    """The thigh piece laid over the shin piece at their rest places, as one
-    image, so the knee bends by the mesh with no seam."""
-    parts = [load_part("shin"), load_part("thigh")]
-    x0 = min(int(round(o[0])) for _, o in parts)
-    y0 = min(int(round(o[1])) for _, o in parts)
-    x1 = max(int(round(o[0])) + im.width for im, o in parts)
-    y1 = max(int(round(o[1])) + im.height for im, o in parts)
-    canvas = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
-    for im, (ox, oy) in parts:
-        canvas.alpha_composite(im, (int(round(ox)) - x0, int(round(oy)) - y0))
-    return canvas, (x0, y0)
-
-
+# The thigh fades out over the shin in a band centred this far above the
+# knee (negative: below it), of this half-height (kit px): just under the
+# joint, where the shin is at its full width and the two drawings match.
+KNEE_SEAM_UP = -28
+KNEE_SEAM = 28
 # The knee patch: a disc of the leg image around the knee joint, drawn over
-# the leg and turned by the average of the thigh and the shin, so it fills
-# the crease that opens on the inside of a deep bend.
+# the leg and turned by the average of the thigh and the shin.
 KNEE_R = 34
 KNEE_FEATHER = 10
+ELBOW_R = 30
+# The calf is widened on its own, row by row, so the shin can match the
+# thigh at the knee and still have a calf: the bulge peaks at this kit y,
+# with this spread, by this much.
+CALF_Y = 380
+CALF_SPREAD = 120
+CALF_BULGE = 0.14
+
+# Heel and toe of the sole relative to the ankle, per shoe, for standing the
+# figure on the floor and for the pedals.
+SOLE = {"loafer": [[-42, 119], [120, 117]], "sneaker": [[-78, 119], [156, 117]]}
+
+# Parts. kind: "idea" (transparent drawing with a glow in the alpha), "kit"
+# (a piece of a kit drawing on black), "front" (the front-view sprite).
+# anchor -> canvas gives the placement; sx, sy the scale. Boxes are in the
+# drawing's own pixels. Rivets are the hinge marks the kits carry, filled
+# from the colour around them or with a given colour.
+PARTS = {
+    "torso": dict(kind="idea", src="part_torso.png", anchor=(541, 1249), canvas=(300, 576), sx=0.315, sy=0.315),
+    "skirt": dict(kind="idea", src="part_skirt.png", anchor=(512, 240), canvas=(290, 536), sx=0.32, sy=0.344),
+    "head": dict(kind="idea", src="part_head.png", anchor=(540, 1250), canvas=(290, 292), sx=0.24, sy=0.24),
+    "hair_back": dict(kind="idea", src="part_hair_back.png", anchor=(430, 350), canvas=(201, 140), sx=0.28, sy=0.37),
+    "arm": dict(kind="idea", src="part_arm.png", anchor=(490, 150), canvas=(257, 331), sx=0.40, sy=0.40),
+    "head_front": dict(kind="front", src="stand_front.png", box=(22, 0, 112, 88), fade=12, anchor=(67, 80), canvas=(290, 292), sx=3.1, sy=3.1),
+    "head_quarter": dict(kind="kit", src="part_head_quarter.png", box=(23, 126, 990, 1324), anchor=(520, 1215), canvas=(290, 292), sx=0.245, sy=0.245, fade=60, match="head"),
+    # The leg kit: the thigh piece was drawn down to the ankle, so it is cut
+    # at the knee; the shin's round top is cut flat under the thigh.
+    "thigh": dict(kind="kit", src="part_leg_kit.png", box=(20, 10, 360, 900), anchor=(152, 72), canvas=(318, 636), sx=0.40, sy=0.534, knee=(215, 780)),
+    "shin": dict(kind="kit", src="part_leg_kit.png", box=(405, 160, 675, 1310), anchor=(560, 1240), canvas=(352, 1314), sx=0.34, sy=0.314,
+                 rivets=[((560, 1240), 52, (246, 244, 242)), ((560, 190), 64, None)], calf=True),
+    "shoe": dict(kind="kit", src="part_leg_kit.png", box=(700, 1062, 1125, 1330), anchor=(820, 1030), canvas=(352, 1314), sx=0.48, sy=0.48),
+    # The swimsuit kit: torso, bare arm, bare lower leg with the foot.
+    # The body's shoulder hinge (a ring inside the armhole) is filled from
+    # the skin around it, so it does not show when the arm swings away.
+    "swim_body": dict(kind="kit", src="part_swim_kit.png", box=(120, 150, 513, 965), anchor=(300, 150), canvas=(290, 296), sx=0.53, sy=0.53,
+                      rivets=[((240, 268), 86, None)]),
+    "swim_arm": dict(kind="kit", src="part_swim_kit.png", box=(638, 110, 825, 1043), anchor=(735, 100), canvas=(257, 331), sx=0.568, sy=0.568,
+                     rivets=[((735, 100), 40, None)]),
+    # The lower leg is taken from under its round top, where it is already
+    # at full width, and set just above the knee so the thigh covers the cut.
+    "swim_leg": dict(kind="kit", src="part_swim_kit.png", box=(1038, 150, 1378, 1026), anchor=(1155, 150), canvas=(352, 1000), sx=0.46, sy=0.5),
+    # The gym kit: shirt, arm with the short sleeve, shorts, sneaker.
+    "gym_body": dict(kind="kit", src="part_gym_kit.png", box=(50, 150, 430, 800), anchor=(200, 150), canvas=(267, 296), sx=0.49, sy=0.49,
+                     rivets=[((145, 262), 64, None)]),
+    "gym_arm": dict(kind="kit", src="part_gym_kit.png", box=(467, 100, 649, 974), anchor=(560, 80), canvas=(257, 331), sx=0.60, sy=0.60,
+                    rivets=[((560, 80), 30, None)]),
+    "gym_shorts": dict(kind="kit", src="part_gym_kit.png", box=(698, 440, 1032, 881), anchor=(885, 440), canvas=(290, 560), sx=0.62, sy=0.62),
+    "gym_shoe": dict(kind="kit", src="part_gym_kit.png", box=(1095, 730, 1499, 903), anchor=(1230, 690), canvas=(352, 1314), sx=0.58, sy=0.58),
+}
+
+# Outfits: which part fills each role. Roles without a part are left out.
+OUTFITS = {
+    "uniform": dict(file="side.json", torso="torso", arm="arm", skirt="skirt", shin="shin", shoe="shoe", sole="loafer"),
+    "swim": dict(file="side_swim.json", torso="swim_body", arm="swim_arm", skirt=None, shin="swim_leg", shoe=None, sole="loafer"),
+    "gym": dict(file="side_gym.json", torso="gym_body", arm="gym_arm", skirt="gym_shorts", shin="shin", shoe="gym_shoe", sole="sneaker"),
+}
+
+_images = {}
 
 
-def compose_patch(part, joint, radius):
-    """A disc of a part's image around a joint, feathered."""
-    img, (ox, oy) = part
-    kx, ky = joint
-    a = np.array(img).astype(np.float32)
-    yy, xx = np.mgrid[0:a.shape[0], 0:a.shape[1]]
-    d = np.sqrt((xx + ox - kx) ** 2 + (yy + oy - ky) ** 2)
-    a[:, :, 3] *= np.clip((radius - d) / KNEE_FEATHER, 0, 1)
-    m = a[:, :, 3] > 4
-    ys, xs = np.where(m)
-    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
-    return Image.fromarray(a[y0:y1, x0:x1].astype(np.uint8), "RGBA"), (ox + x0, oy + y0)
+def load_image(name):
+    if name not in _images:
+        path = f"{IDEA}/{name}" if os.path.exists(f"{IDEA}/{name}") else f"{ROOT}/assets/companion/{name}"
+        _images[name] = Image.open(path)
+    return _images[name]
 
 
-def compose_knee(leg):
-    img, (ox, oy) = leg
-    kx, ky = BONE_AT["near_thigh"][1]
-    a = np.array(img).astype(np.float32)
-    yy, xx = np.mgrid[0:a.shape[0], 0:a.shape[1]]
-    d = np.sqrt((xx + ox - kx) ** 2 + (yy + oy - ky) ** 2)
-    disc = np.clip((KNEE_R - d) / KNEE_FEATHER, 0, 1)
-    a[:, :, 3] *= disc
-    m = a[:, :, 3] > 4
-    ys, xs = np.where(m)
-    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
-    return Image.fromarray(a[y0:y1, x0:x1].astype(np.uint8), "RGBA"), (ox + x0, oy + y0)
-
-
-def load_kit_piece(name):
-    """A piece of the paper-doll kit: keyed off the black, the glow outside
-    the outline dropped, holes (the dark shoe) filled, cut round at the
-    knee for the thigh."""
-    from scipy import ndimage
-    rgb = np.array(Image.open(KIT_SRC).convert("RGB")).astype(int)
-    lum = rgb.max(axis=2)
-    mask = ndimage.binary_fill_holes(lum > 110)
-    x0, y0, x1, y1 = KIT_BOX[name]
-    box = np.zeros_like(mask)
-    box[y0:y1, x0:x1] = True
-    mask &= box
-    (kx, ky), _ = KIT_KNEE
-    rows = np.arange(mask.shape[0])
-    yy = rows[:, None]
-    if name == "thigh":
-        # The thigh ends just above the knee, fading out level over the
-        # opaque shin, so the two make one leg with no step in the
-        # outline at the knee.
-        mask &= yy < ky - KNEE_SEAM_UP + KNEE_SEAM
-    if name == "shin":
-        mask &= yy >= KIT_SHIN_TOP
-    mask = ndimage.binary_erosion(mask, iterations=3)
-    alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0) * 255
-    if name == "thigh":
-        fade = np.clip((ky - KNEE_SEAM_UP + KNEE_SEAM - rows) / (2 * KNEE_SEAM), 0, 1)
-        alpha = alpha * fade[:, None]
-    a = np.dstack([rgb.astype(np.float32), alpha])
-    if name == "shin":
-        # The rivets the kit drew at both ends are filled from the colours
-        # around them (a blur of the surroundings only), so the shading
-        # runs on through where they were.
-        yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
-        (rx, ry), r = KIT_SHIN_RIVET
-        ankle = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
-        a[ankle, 0:3] = np.array([246, 244, 242], np.float32)
-        (rx, ry), r = KIT_SHIN_KNEE
-        rivets = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
-        # Only the skin around it, not the outline, feeds the fill.
-        keep = (mask & ~rivets & (lum > 170)).astype(np.float32)
+def fill_rivets(a, mask, lum, rivets):
+    """The hinge marks the kit drew: filled from the colours around them (a
+    blur of the surrounding skin only) or with a flat colour, so the
+    shading runs on through where they were."""
+    yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
+    for (rx, ry), r, colour in rivets:
+        disc = (xx - rx) ** 2 + (yy - ry) ** 2 <= r * r
+        if colour is not None:
+            a[disc, 0:3] = np.array(colour, np.float32)
+            continue
+        keep = (mask & ~disc & (lum > 170)).astype(np.float32)
+        # A near blur where there is skin close by, a wide one where there
+        # is not (next to dark cloth or the edge), so no spot is left dark.
+        near = ndimage.gaussian_filter(keep, 18)
+        wide = ndimage.gaussian_filter(keep, 60)
         for c in range(3):
-            num = ndimage.gaussian_filter(a[:, :, c] * keep, 18)
-            den = ndimage.gaussian_filter(keep, 18)
-            fill = num / np.maximum(den, 1e-3)
-            a[:, :, c] = np.where(rivets, fill, a[:, :, c])
-    return a
+            fill_near = ndimage.gaussian_filter(a[:, :, c] * keep, 18) / np.maximum(near, 1e-6)
+            fill_wide = ndimage.gaussian_filter(a[:, :, c] * keep, 60) / np.maximum(wide, 1e-6)
+            t = np.clip(near / 0.25, 0, 1)
+            a[:, :, c] = np.where(disc, fill_near * t + fill_wide * (1 - t), a[:, :, c])
+
+
+def hair_mean(rgba):
+    """The mean colour of the top third of a drawing, where the hair is."""
+    top = rgba[: rgba.shape[0] // 3]
+    m = top[:, :, 3] > 200
+    return top[m][:, :3].mean(axis=0)
+
+
+def match_colour(a, ref_name):
+    """Pulls a drawing's colours toward another part's (the hair of the
+    side head), by a per-channel gain measured on the top third of each."""
+    ref = np.array(load_image(PARTS[ref_name]["src"]).convert("RGBA")).astype(np.float32)
+    ref[:, :, 3] = np.clip((ref[:, :, 3] - 120) / (255 - 120), 0, 1) * 255
+    gain = np.clip(hair_mean(ref) / np.maximum(hair_mean(a), 1), 0.75, 1.25)
+    a[:, :, :3] = np.clip(a[:, :, :3] * gain, 0, 255)
 
 
 def load_part(name):
-    if name in KIT_BOX:
-        a = load_kit_piece(name)
-    elif name == "head_front":
-        im = Image.open(FRONT_SRC).convert("RGBA").crop(FRONT_BOX)
-        a = np.array(im).astype(np.float32)
-        # The cut through the hair and neck fades out.
-        rows = a.shape[0]
-        fade = np.clip((rows - 1 - np.arange(rows)) / FRONT_FADE, 0, 1)
-        a[:, :, 3] *= fade[:, None]
-    else:
-        im = Image.open(f"{IDEA}/part_{name}.png").convert("RGBA")
+    spec = PARTS[name]
+    kind = spec["kind"]
+    if kind == "idea":
+        im = load_image(spec["src"]).convert("RGBA")
         a = np.array(im).astype(np.float32)
         # Trim the glow: only nearly opaque pixels stay, with a short ramp.
         a[:, :, 3] = np.clip((a[:, :, 3] - 120) / (255 - 120), 0, 1) * 255
-    top = 0  # drawing y of the first row of a
+    elif kind == "front":
+        im = load_image(spec["src"]).convert("RGBA").crop(spec["box"])
+        a = np.array(im).astype(np.float32)
+        rows = a.shape[0]
+        a[:, :, 3] *= np.clip((rows - 1 - np.arange(rows)) / spec["fade"], 0, 1)[:, None]
+    else:
+        rgb = np.array(load_image(spec["src"]).convert("RGB")).astype(int)
+        lum = rgb.max(axis=2)
+        # Everything brighter than the black background, holes filled.
+        mask = ndimage.binary_fill_holes(lum > 110)
+        x0, y0, x1, y1 = spec["box"]
+        box = np.zeros_like(mask)
+        box[y0:y1, x0:x1] = True
+        mask &= box
+        rows = np.arange(mask.shape[0])
+        if "knee" in spec:
+            # The thigh ends just above the knee, fading out level over the
+            # opaque shin, so the two make one leg with no step in the
+            # outline at the knee.
+            ky = spec["knee"][1]
+            mask &= rows[:, None] < ky - KNEE_SEAM_UP + KNEE_SEAM
+        mask = ndimage.binary_erosion(mask, iterations=3)
+        alpha = ndimage.gaussian_filter(mask.astype(np.float32), 1.0) * 255
+        if "knee" in spec:
+            ky = spec["knee"][1]
+            alpha = alpha * np.clip((ky - KNEE_SEAM_UP + KNEE_SEAM - rows) / (2 * KNEE_SEAM), 0, 1)[:, None]
+        if "fade" in spec:
+            # The cut through the neck fades out.
+            alpha = alpha * np.clip((y1 - 1 - rows) / spec["fade"], 0, 1)[:, None]
+        a = np.dstack([rgb.astype(np.float32), alpha])
+        if spec.get("rivets"):
+            fill_rivets(a, mask, lum, spec["rivets"])
+        if spec.get("match"):
+            match_colour(a, spec["match"])
     m = a[:, :, 3] > 8
     ys, xs = np.where(m)
     x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
     crop = Image.fromarray(a[y0:y1, x0:x1].astype(np.uint8), "RGBA")
-    (ax, ay), (cx, cy), sx, sy = PARTS[name]
+    (ax, ay), (cx, cy), sx, sy = spec["anchor"], spec["canvas"], spec["sx"], spec["sy"]
     size = (max(1, round(crop.width * sx)), max(1, round(crop.height * sy)))
     scaled = crop.resize(size, Image.LANCZOS)
     # Canvas position of the top-left corner of the crop.
     ox = cx + (x0 - ax) * sx
-    oy = cy + (y0 + top - ay) * sy
-    if name == "shin":
+    oy = cy + (y0 - ay) * sy
+    if spec.get("calf"):
         scaled, ox = calf_bulge(scaled, ox, y0, sy)
     return scaled, (ox, oy)
 
@@ -281,12 +254,37 @@ def calf_bulge(img, ox, y0, sy):
     return Image.fromarray(out.astype(np.uint8), "RGBA"), ox - pad
 
 
+def compose(parts):
+    """Several placed parts flattened into one image, in the order given."""
+    x0 = min(int(round(o[0])) for _, o in parts)
+    y0 = min(int(round(o[1])) for _, o in parts)
+    x1 = max(int(round(o[0])) + im.width for im, o in parts)
+    y1 = max(int(round(o[1])) + im.height for im, o in parts)
+    canvas = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
+    for im, (ox, oy) in parts:
+        canvas.alpha_composite(im, (int(round(ox)) - x0, int(round(oy)) - y0))
+    return canvas, (x0, y0)
+
+
+def compose_patch(part, joint, radius):
+    """A disc of a part's image around a joint, feathered."""
+    img, (ox, oy) = part
+    kx, ky = joint
+    a = np.array(img).astype(np.float32)
+    yy, xx = np.mgrid[0:a.shape[0], 0:a.shape[1]]
+    d = np.sqrt((xx + ox - kx) ** 2 + (yy + oy - ky) ** 2)
+    a[:, :, 3] *= np.clip((radius - d) / KNEE_FEATHER, 0, 1)
+    m = a[:, :, 3] > 4
+    ys, xs = np.where(m)
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    return Image.fromarray(a[y0:y1, x0:x1].astype(np.uint8), "RGBA"), (ox + x0, oy + y0)
+
+
 def chain_weights(p, bones, blends):
     """Weights along a limb chain: one bone per stretch, blended near the
     inner joints. p is a canvas point; bones the names of the chain."""
     joints = [BONE_AT[bones[0]][0]] + [BONE_AT[b][1] for b in bones]
     lengths = [np.linalg.norm(joints[i + 1] - joints[i]) for i in range(len(bones))]
-    # Arc length of the closest point on the chain.
     best = None
     for i in range(len(bones)):
         a, b = joints[i], joints[i + 1]
@@ -304,25 +302,9 @@ def chain_weights(p, bones, blends):
         t = min(1.0, max(0.0, (p[0] - (ex - ELBOW_HALF)) / (2 * ELBOW_HALF)))
         blends = (ELBOW_BLEND_BACK + (ELBOW_BLEND_FRONT - ELBOW_BLEND_BACK) * t, blends[1])
     if bones[-1].endswith("_shin"):
-        # The knee: a sharp change on the back of the leg, where the bend
-        # closes into a crease, and a wide one across the front, where the
-        # kneecap stretches over the bend.
         kx = joints[1][0]
         t = min(1.0, max(0.0, (p[0] - (kx - KNEE_HALF)) / (2 * KNEE_HALF)))
         blends = (KNEE_BLEND_BACK + (KNEE_BLEND_FRONT - KNEE_BLEND_BACK) * t,)
-    if bones[-1].endswith("_foot"):
-        # The shoe belongs to the foot whole, so the heel keeps its shape
-        # when the foot turns on its own; the sock above the ankle goes
-        # from the shin at the top to the foot at the bottom, so there is
-        # no seam where the two turn differently.
-        ankle_y = joints[2][1]
-        u = min(1.0, max(0.0, (p[1] - (ankle_y - 64)) / 52))
-        if u > 0:
-            if u < 1:
-                w[NAME[bones[1]]] = 1 - u
-            w[NAME[bones[2]]] = u
-            return w
-        blends = blends[:1]
     for k, b in enumerate(blends):
         S = cum[k]
         if s < S - b:
@@ -337,31 +319,30 @@ def chain_weights(p, bones, blends):
     return w
 
 
-def weights_for(layer, part, bones, x, y):
+def weights_for(role, bones, x, y):
     w = {}
-    if part in ("knee", "elbow"):
+    if role in ("knee", "elbow"):
         return {NAME[bones[0]]: 0.5, NAME[bones[1]]: 0.5}
     if bones is not None and len(bones) == 1:
-        # A rigid piece on one bone.
         return {NAME[bones[0]]: 1.0}
     if bones is not None:
-        return chain_weights(np.array([x, y], float), bones, BLEND[part])
-    if layer == "body":
+        return chain_weights(np.array([x, y], float), bones, BLEND["arm" if bones[-1].endswith("_hand") else "leg"])
+    if role == "body":
         w[NAME["spine"]] = 1.0
-    elif layer in ("head", "head_front"):
+    elif role in ("head", "head_front", "head_quarter"):
         w[NAME["head"]] = 1.0
-    elif layer == "skirt":
-        # The waistband stays on the belt; below it the skirt hangs from the
-        # waist and is carried by the thighs, its front half by the near one
-        # and its back half by the far one. (The app swaps the two so the
-        # front always goes with whichever thigh is forward, and swings the
-        # panels from the waist rather than turning them about the hip.)
+    elif role == "skirt":
+        # The waistband stays on the belt; below it the skirt (or shorts)
+        # hangs from the waist and is carried by the thighs, its front half
+        # by the near one and its back half by the far one. (The app swaps
+        # the two so the front always goes with whichever thigh is forward,
+        # and swings the panels from the waist.)
         t = min(1.0, max(0.0, (y - 556) / 110))
         side = min(1.0, max(0.0, (x - 240) / 100))
         w[NAME["near_thigh"]] = t * side
         w[NAME["far_thigh"]] = t * (1 - side)
         w[NAME["spine"]] = 1 - t
-    elif layer == "hair_back":
+    elif role == "hair_back":
         # The crown sits on the head; the length hangs from two bones so
         # the ends trail a little behind the sway.
         k = min(1.0, max(0.0, (y - 150) / 130))
@@ -372,33 +353,11 @@ def weights_for(layer, part, bones, x, y):
     return w
 
 
-# Heel and toe of the sole relative to the ankle, for standing the figure
-# on the floor and for the pedals.
-SOLE = [[-42, 119], [120, 117]]
-rig = {"size": [W, H], "floor": FLOOR, "crown": list(CROWN), "sole": SOLE, "bones": [], "layers": []}
-for name, parent, head, tail in BONES:
-    rig["bones"].append({"name": name, "parent": parent, "head": list(head), "tail": list(tail)})
-
 STEP = 14
-images = {}
-composite = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-for order, (layer, part, bones, shift) in enumerate(LAYERS):
-    if part not in images:
-        if part == "leg":
-            images[part] = compose_leg()
-        elif part == "knee":
-            images[part] = compose_knee(images["leg"] if "leg" in images else compose_leg())
-        elif part == "elbow":
-            if "arm" not in images:
-                images["arm"] = load_part("arm")
-            images[part] = compose_patch(images["arm"], BONE_AT["near_upper"][1], 30)
-        else:
-            images[part] = load_part(part)
-        images[part][0].save(f"{OUT}/{FILE[part]}", optimize=True)
-    img, (ox, oy) = images[part]
-    if shift:
-        ox, oy = ox + shift[0], oy + shift[1]
-    ox, oy = int(round(ox)), int(round(oy))
+
+
+def mesh(img, ox, oy, role, bones):
+    """A grid mesh over a placed image, with weights per vertex."""
     alpha = np.array(img)[:, :, 3] > 10
     h, w = alpha.shape
     cols = list(range(0, w, STEP)) + [w]
@@ -423,31 +382,127 @@ for order, (layer, part, bones, shift) in enumerate(LAYERS):
             tris += [a, b, c, b, d, c]
     weights = []
     for (vx, vy) in verts:
-        w = weights_for(layer, part, bones, vx + ox, vy + oy)
+        w = weights_for(role, bones, vx + ox, vy + oy)
         total = float(sum(w.values()))
         keep = [(int(k), float(v) / total) for k, v in w.items() if float(v) / total > 0.02]
         total = sum(v for _, v in keep)
         weights.append([[k, round(v / total, 4)] for k, v in keep])
-    rig["layers"].append({
-        "name": layer, "image": FILE[part], "order": order, "offset": [ox, oy],
-        "verts": [[int(x + ox), int(y + oy)] for x, y in verts], "tris": tris, "weights": weights,
-    })
-    composite.paste(img, (ox, oy), img)
-    print(layer, img.size, "at", (ox, oy), "verts", len(verts), "tris", len(tris) // 3)
+    return [[int(x + ox), int(y + oy)] for x, y in verts], tris, weights
 
-json.dump(rig, open(f"{OUT}/side.json", "w"), separators=(",", ":"))
-print("json", os.path.getsize(f"{OUT}/side.json"))
 
-# Preview: the assembled rest pose, once plain and once with the bones.
-prev = Image.new("RGBA", (W * 2, H), (255, 255, 255, 255))
-prev.paste(composite, (0, 0), composite)
-prev.paste(composite, (W, 0), composite)
-d = ImageDraw.Draw(prev)
-for name, parent, head, tail in BONES:
-    d.line([(W + head[0], head[1]), (W + tail[0], tail[1])], fill=(255, 0, 0, 255), width=5)
-    d.ellipse([W + head[0] - 7, head[1] - 7, W + head[0] + 7, head[1] + 7], fill=(0, 0, 255, 255))
-d.line([(0, FLOOR), (2 * W, FLOOR)], fill=(0, 160, 0, 255), width=2)
-prev = prev.resize((prev.width * 2 // 3, prev.height * 2 // 3), Image.LANCZOS)
-os.makedirs(f"{ROOT}/build", exist_ok=True)
-prev.save(f"{ROOT}/build/rig_preview.png")
-print("preview", prev.size)
+# Parts every outfit shares keep one file each.
+SHARED = {"hair_back": "side_hair.png", "head": "side_head.png", "head_front": "side_head_front.png",
+          "head_quarter": "side_head_quarter.png"}
+
+
+def build(outfit, spec):
+    parts = {}
+
+    def part(name):
+        if name not in parts:
+            parts[name] = load_part(name)
+        return parts[name]
+
+    torso, arm, skirt, shin, shoe = spec["torso"], spec["arm"], spec["skirt"], spec["shin"], spec["shoe"]
+    prefix = "side" if outfit == "uniform" else f"side_{outfit}"
+    leg = compose([part(shin), part("thigh")])
+    knee = compose_patch(leg, BONE_AT["near_thigh"][1], KNEE_R)
+    elbow = compose_patch(part(arm), BONE_AT["near_upper"][1], ELBOW_R)
+
+    def file_for(role, name):
+        # The leg (thigh with shin) follows the shin's file; outfits that
+        # share the uniform's shin or arm share those files.
+        if role in ("leg", "knee"):
+            base = "side" if shin == "shin" else prefix
+            return f"{base}_{role}.png"
+        if role == "elbow":
+            base = "side" if arm == "arm" else prefix
+            return f"{base}_elbow.png"
+        if name in SHARED:
+            return SHARED[name]
+        if outfit == "uniform":
+            return {"torso": "side_body.png", "arm": "side_arm.png", "skirt": "side_skirt.png", "shoe": "side_shoe.png"}[name]
+        return f"{prefix}_{name.split('_', 1)[-1]}.png"
+
+    sources = {
+        "hair_back": ("hair_back", part("hair_back")),
+        "arm": (arm, part(arm)),
+        "elbow": ("elbow", elbow),
+        "leg": ("leg", leg),
+        "knee": ("knee", knee),
+        "head": ("head", part("head")),
+        "head_quarter": ("head_quarter", part("head_quarter")),
+        "head_front": ("head_front", part("head_front")),
+        "body": (torso, part(torso)),
+    }
+    if shoe:
+        sources["shoe"] = (shoe, part(shoe))
+    if skirt:
+        sources["skirt"] = (skirt, part(skirt))
+
+    # Layers back to front.
+    layers = [
+        ("hair_back", "hair_back", None, None),
+        ("far_arm", "arm", ["far_upper", "far_lower", "far_hand"], FAR_SHIFT["arm"]),
+        ("far_elbow", "elbow", ["far_upper", "far_lower"], FAR_SHIFT["arm"]),
+        ("far_leg", "leg", ["far_thigh", "far_shin"], FAR_SHIFT["leg"]),
+        ("far_knee", "knee", ["far_thigh", "far_shin"], FAR_SHIFT["leg"]),
+    ]
+    if shoe:
+        layers.append(("far_shoe", "shoe", ["far_foot"], FAR_SHIFT["leg"]))
+    layers += [
+        ("near_leg", "leg", ["near_thigh", "near_shin"], None),
+        ("near_knee", "knee", ["near_thigh", "near_shin"], None),
+    ]
+    if shoe:
+        layers.append(("near_shoe", "shoe", ["near_foot"], None))
+    if skirt:
+        layers.append(("skirt", "skirt", None, None))
+    layers += [
+        ("head", "head", None, None),
+        ("head_quarter", "head_quarter", None, None),
+        ("head_front", "head_front", None, None),
+        ("body", "body", None, None),
+        ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
+        ("near_elbow", "elbow", ["near_upper", "near_lower"], None),
+    ]
+
+    rig = {"size": [W, H], "floor": FLOOR, "crown": list(CROWN), "sole": SOLE[spec["sole"]], "bones": [], "layers": []}
+    for name, parent, head, tail in BONES:
+        rig["bones"].append({"name": name, "parent": parent, "head": list(head), "tail": list(tail)})
+    composite = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    saved = set()
+    for order, (layer, role, bones, shift) in enumerate(layers):
+        name, (img, (ox, oy)) = sources[role]
+        file = file_for(role, name)
+        if file not in saved:
+            img.save(f"{OUT}/{file}", optimize=True)
+            saved.add(file)
+        if shift:
+            ox, oy = ox + shift[0], oy + shift[1]
+        ox, oy = int(round(ox)), int(round(oy))
+        verts, tris, weights = mesh(img, ox, oy, role, bones)
+        rig["layers"].append({"name": layer, "image": file, "order": order, "offset": [ox, oy], "verts": verts, "tris": tris, "weights": weights})
+        if role not in ("head_front", "head_quarter"):
+            composite.paste(img, (ox, oy), img)
+        print(f"{outfit:8s} {layer:12s} {img.size} at {(ox, oy)} verts {len(verts)} -> {file}")
+    json.dump(rig, open(f"{OUT}/{spec['file']}", "w"), separators=(",", ":"))
+    print(outfit, "json", os.path.getsize(f"{OUT}/{spec['file']}"))
+
+    # Preview: the assembled rest pose, once plain and once with the bones.
+    prev = Image.new("RGBA", (W * 2, H), (255, 255, 255, 255))
+    prev.paste(composite, (0, 0), composite)
+    prev.paste(composite, (W, 0), composite)
+    d = ImageDraw.Draw(prev)
+    for name, parent, head, tail in BONES:
+        d.line([(W + head[0], head[1]), (W + tail[0], tail[1])], fill=(255, 0, 0, 255), width=5)
+        d.ellipse([W + head[0] - 7, head[1] - 7, W + head[0] + 7, head[1] + 7], fill=(0, 0, 255, 255))
+    d.line([(0, FLOOR), (2 * W, FLOOR)], fill=(0, 160, 0, 255), width=2)
+    prev = prev.resize((prev.width * 2 // 3, prev.height * 2 // 3), Image.LANCZOS)
+    os.makedirs(f"{ROOT}/build", exist_ok=True)
+    prev.save(f"{ROOT}/build/rig_preview_{outfit}.png")
+
+
+if __name__ == "__main__":
+    for outfit, spec in OUTFITS.items():
+        build(outfit, spec)

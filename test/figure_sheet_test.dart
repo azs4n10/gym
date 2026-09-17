@@ -31,11 +31,12 @@ void main() {
     if (only == 'scene') {
       // The scene card as the run screen lays it out: the world, the rigged
       // figure and, for swimming, the water in front of her.
-      final rig = await tester.runAsync(() => CompanionRig.side());
       final kind = CardioType.values.byName(Platform.environment['PREVIEW_KIND'] ?? 'running');
+      final outfit = Platform.environment['PREVIEW_OUTFIT'] ?? (kind == CardioType.swimming ? 'swim' : 'uniform');
+      final rig = await tester.runAsync(() => CompanionRig.load(outfit));
       final move = cardioMoves[kind]!;
       final skin = app.skin;
-      const n = 4;
+      final n = int.tryParse(Platform.environment['PREVIEW_N'] ?? '') ?? 4;
       const w = 360.0;
       const h = 240.0;
       final rkey = GlobalKey();
@@ -92,8 +93,8 @@ void main() {
                                 prop: rigPropFor(kind),
                                 phase: i / n,
                                 flow: swim,
-                                headTurn: swim ? -0.45 * swimBreathAmount(i / n + 1.5) : 0,
-                                faceFront: swim ? swimBreathAmount(i / n + 1.5) : 0,
+                                headTurn: swim ? -0.45 * swimBreathAmount(1.5 + 0.55 * i / math.max(1, n - 1)) : 0,
+                                faceFront: swim ? swimBreathAmount(1.5 + 0.55 * i / math.max(1, n - 1)) : 0,
                                 footFollow: swim ? 1 : 0.35,
                                 groundDepth: contact?.depth(i / n),
                                 gearColor: sceneModeFor(kind) == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
@@ -125,7 +126,7 @@ void main() {
       return;
     }
     if (only == 'rig') {
-      final rig = await tester.runAsync(() => CompanionRig.side());
+      final rig = await tester.runAsync(() => CompanionRig.load(Platform.environment['PREVIEW_OUTFIT'] ?? 'uniform'));
       final kind = CardioType.values.byName(Platform.environment['PREVIEW_KIND'] ?? 'running');
       final move = cardioMoves[kind]!;
       final n = int.tryParse(Platform.environment['PREVIEW_N'] ?? '') ?? 8;
@@ -156,6 +157,10 @@ void main() {
                           hat: const ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon', 'glasses', 'none'][i % 8],
                           ground: kind != CardioType.swimming && rigPropFor(kind) == RigProp.none,
                           flight: kind == CardioType.running ? 140 : 40,
+                          // Swimming sweeps through one breath across the row.
+                          headTurn: kind == CardioType.swimming ? -0.45 * swimBreathAmount(1.5 + 0.55 * i / (n - 1)) : 0,
+                          faceFront: kind == CardioType.swimming ? swimBreathAmount(1.5 + 0.55 * i / (n - 1)) : 0,
+                          footFollow: kind == CardioType.swimming ? 1 : 0.35,
                           groundDepth: contact?.depth(i / n),
                           prop: rigPropFor(kind),
                           phase: i / n,

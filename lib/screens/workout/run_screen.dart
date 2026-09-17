@@ -92,16 +92,24 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
   int _stampsNow = 0;
 
   RunProgress? _progress;
-  CompanionRig? _rig;
+
+  /// The rigs by outfit, as they load.
+  final _rigs = <String, CompanionRig>{};
 
   /// Bumped every animation frame; only the scene card listens, so the
   /// rest of the screen is rebuilt a few times a second, not sixty.
   final _frame = ValueNotifier<int>(0);
   double _statsAt = 0;
 
-  /// The floor curve for the current activity's cycle, fitted once.
+  /// The floor curve for the current activity's cycle and outfit, fitted once.
   ContactCurve? _contact;
-  CardioType? _contactKind;
+  String? _contactKey;
+
+  /// Which outfit she wears now: the swimsuit in the water, otherwise the
+  /// wardrobe's choice.
+  String get _outfit => _kind == CardioType.swimming ? 'swim' : (_progress?.outfit ?? 'uniform');
+
+  CompanionRig? get _rig => _rigs[_outfit] ?? _rigs['uniform'];
   double _journeyAppliedKm = 0;
   bool _routeDoneSaid = false;
 
@@ -135,9 +143,11 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     RunProgress.loadShared().then((p) {
       if (mounted) setState(() => _progress = p);
     });
-    CompanionRig.side().then((r) {
-      if (mounted) setState(() => _rig = r);
-    }).catchError((Object _) {});
+    for (final outfit in const ['uniform', 'gym', 'swim']) {
+      CompanionRig.load(outfit).then((r) {
+        if (mounted) setState(() => _rigs[outfit] = r);
+      }).catchError((Object _) {});
+    }
   }
 
   @override
@@ -489,9 +499,10 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     if (rig == null || !move.loops || rigPropFor(_kind) != RigProp.none || sceneModeFor(_kind) == SceneMode.water) {
       return null;
     }
-    if (_contact == null || _contactKind != _kind) {
+    final key = '${_kind.name}/$_outfit';
+    if (_contact == null || _contactKey != key) {
       _contact = ContactCurve.fit(rig, move);
-      _contactKind = _kind;
+      _contactKey = key;
     }
     return _contact;
   }
@@ -645,7 +656,8 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         farTint: skin.ink.withValues(alpha: 0.08),
                                         // Trails the bob of the stride by a quarter turn.
                                         hairSway: (_kind == CardioType.running ? 0.09 : 0.05) * math.sin(4 * math.pi * _phase - 1.4),
-                                        hat: _girlHat,
+                                        // No hat in the water.
+                                        hat: swim ? 'none' : _girlHat,
                                         ground: !swim && rigPropFor(_kind) == RigProp.none,
                                         // A run leaves the ground a little at each stride.
                                         flight: _kind == CardioType.running ? 140 : 40,
@@ -1236,6 +1248,28 @@ class _WardrobeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+          if (!stick) ...[
+            Row(
+              children: [
+                Text(l.outfit, style: t.labelLarge?.copyWith(color: skin.subText)),
+                const SizedBox(width: 10),
+                for (final (id, label) in [('uniform', l.outfitUniform), ('gym', l.outfitGym)])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(label),
+                      selected: progress.outfit == id,
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (_) {
+                        progress.outfit = id;
+                        onChanged();
+                      },
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
           if (!stick)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),

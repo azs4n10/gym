@@ -233,6 +233,9 @@ abstract class L {
   String get look;
   String get lookGirl;
   String get lookStick;
+  String get outfit;
+  String get outfitUniform;
+  String get outfitGym;
   String get gcal;
   String get gcalConnect;
   String get gcalDisconnect;
@@ -696,6 +699,12 @@ class LEn extends L {
   String get lookGirl => 'Illustration';
   @override
   String get lookStick => 'Stick figure';
+  @override
+  String get outfit => 'Outfit';
+  @override
+  String get outfitUniform => 'Uniform';
+  @override
+  String get outfitGym => 'Gym clothes';
   @override
   String get gcal => 'Google Calendar';
   @override
@@ -1173,6 +1182,12 @@ class LJa extends L {
   String get lookGirl => 'イラスト';
   @override
   String get lookStick => '棒人間';
+  @override
+  String get outfit => '服';
+  @override
+  String get outfitUniform => '制服';
+  @override
+  String get outfitGym => '体操着';
   @override
   String get gcal => 'Google カレンダー';
   @override

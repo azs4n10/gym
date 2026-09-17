@@ -157,7 +157,12 @@ the shin's end, so the ankle turns without bending the heel), and writes
 `assets/companion/rig/side.json` plus the layer images. The bones take their angles from the same Pose cycles the stick
 figure uses, the skirt swings with the thighs, the hair hangs from two bones
 that trail the stride, and hats ride on the head bone. The rig is drawn with
-`Canvas.drawVertices` (`lib/widgets/companion_rig.dart`). The lower foot is
+`Canvas.drawVertices` (`lib/widgets/companion_rig.dart`). There is one rig
+per outfit (`side.json` for the uniform, `side_swim.json` for the swimsuit,
+`side_gym.json` for the gym clothes), built from kit drawings of the
+clothes on the same bones; the wardrobe picks the uniform or the gym
+clothes on land, and the swimsuit is worn in the water. A breath turns her
+head in two steps, profile to three-quarter to front. The lower foot is
 kept on the floor line through a soft maximum, so a bent leg lowers the
 hips rather than lifting the foot, and a run floats a little at each
 stride. Each activity gets its own world (`sceneModeFor`, `rigPropFor` in

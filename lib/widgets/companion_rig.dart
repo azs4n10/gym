@@ -36,10 +36,15 @@ class CompanionRig {
   /// The wardrobe's hat drawings by id.
   final Map<String, ui.Image> hats;
 
-  static Future<CompanionRig>? _side;
+  static final _rigs = <String, Future<CompanionRig>>{};
 
-  /// The side-view rig, loaded once.
-  static Future<CompanionRig> side() => _side ??= _load('assets/companion/rig/side.json');
+  /// The side-view rig for an outfit ('uniform', 'swim' or 'gym'), loaded
+  /// once each.
+  static Future<CompanionRig> load(String outfit) =>
+      _rigs[outfit] ??= _load(outfit == 'uniform' ? 'assets/companion/rig/side.json' : 'assets/companion/rig/side_$outfit.json');
+
+  /// The uniform rig.
+  static Future<CompanionRig> side() => load('uniform');
 
   static Future<CompanionRig> _load(String path) async {
     final json = jsonDecode(await rootBundle.loadString(path)) as Map<String, dynamic>;
@@ -99,7 +104,7 @@ class CompanionRig {
     // fills the crease of a deep bend, and a rigid shoe over the shin's end.
     const order = [
       'hair_back', 'far_arm', 'far_elbow', 'far_leg', 'far_knee', 'far_shoe', 'near_leg', 'near_knee', 'near_shoe', //
-      'skirt', 'head', 'head_front', 'body', 'near_arm', 'near_elbow',
+      'skirt', 'head', 'head_quarter', 'head_front', 'body', 'near_arm', 'near_elbow',
     ];
     layers.sort((a, b) => order.indexOf(a.name).compareTo(order.indexOf(b.name)));
     final hats = <String, ui.Image>{};
@@ -396,7 +401,8 @@ class CompanionRigView extends StatelessWidget {
   final double headTurn;
 
   /// How far the head is turned to face the viewer, 0 to 1: the profile
-  /// fades into the front view of the face, as when a swimmer breathes.
+  /// gives way to the three-quarter view and then the front, as when a
+  /// swimmer breathes.
   final double faceFront;
 
   /// How much of the shin's turn the foot takes: a little on land, so the
@@ -651,9 +657,13 @@ class _RigPainter extends CustomPainter {
     for (var li = 0; li < rig.layers.length; li++) {
       final layer = rig.layers[li];
       final pos = placed.positions[li];
+      // The head turns in two steps: the profile gives way to the
+      // three-quarter view, which gives way to the front.
+      final turn = v.faceFront * 2;
       final alpha = switch (layer.name) {
-        'head' => 1 - v.faceFront,
-        'head_front' => v.faceFront,
+        'head' => (1 - turn).clamp(0.0, 1.0),
+        'head_quarter' => (1 - (turn - 1).abs()).clamp(0.0, 1.0),
+        'head_front' => (turn - 1).clamp(0.0, 1.0),
         _ => 1.0,
       };
       if (alpha <= 0) continue;
