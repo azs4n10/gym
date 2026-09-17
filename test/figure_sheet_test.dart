@@ -41,6 +41,7 @@ void main() {
       final rkey = GlobalKey();
       await tester.binding.setSurfaceSize(Size(n * (w + 8) + 16, h + 16));
       final swim = kind == CardioType.swimming;
+      final contact = move.loops && !swim && rigPropFor(kind) == RigProp.none ? ContactCurve.fit(rig!, move) : null;
       final rigH = 176 * 1.02;
       final rigW = rigH * rig!.width / rig.height;
       await tester.pumpWidget(MaterialApp(
@@ -94,6 +95,7 @@ void main() {
                                 headTurn: swim ? -0.45 * swimBreathAmount(i / n + 1.5) : 0,
                                 faceFront: swim ? swimBreathAmount(i / n + 1.5) : 0,
                                 footFollow: swim ? 1 : 0.35,
+                                groundDepth: contact?.depth(i / n),
                                 gearColor: sceneModeFor(kind) == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                 ink: skin.ink,
                               ),
@@ -127,6 +129,7 @@ void main() {
       final kind = CardioType.values.byName(Platform.environment['PREVIEW_KIND'] ?? 'running');
       final move = cardioMoves[kind]!;
       final n = int.tryParse(Platform.environment['PREVIEW_N'] ?? '') ?? 8;
+      final contact = move.loops && kind != CardioType.swimming && rigPropFor(kind) == RigProp.none ? ContactCurve.fit(rig!, move) : null;
       final h = double.tryParse(Platform.environment['PREVIEW_H'] ?? '') ?? 300.0;
       final rkey = GlobalKey();
       await tester.binding.setSurfaceSize(Size(n * (h / 2) + 16, h + 36));
@@ -153,6 +156,7 @@ void main() {
                           hat: const ['none', 'cap', 'beanie', 'flower', 'headphones', 'ribbon', 'glasses', 'none'][i % 8],
                           ground: kind != CardioType.swimming && rigPropFor(kind) == RigProp.none,
                           flight: kind == CardioType.running ? 140 : 40,
+                          groundDepth: contact?.depth(i / n),
                           prop: rigPropFor(kind),
                           phase: i / n,
                         ),

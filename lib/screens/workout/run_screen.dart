@@ -93,6 +93,10 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
 
   RunProgress? _progress;
   CompanionRig? _rig;
+
+  /// The floor curve for the current activity's cycle, fitted once.
+  ContactCurve? _contact;
+  CardioType? _contactKind;
   double _journeyAppliedKm = 0;
   bool _routeDoneSaid = false;
 
@@ -469,6 +473,19 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
         _ => null,
       };
 
+  /// The floor curve for a looping cycle on the ground, kept per activity.
+  ContactCurve? _contactFor(Move move) {
+    final rig = _rig;
+    if (rig == null || !move.loops || rigPropFor(_kind) != RigProp.none || sceneModeFor(_kind) == SceneMode.water) {
+      return null;
+    }
+    if (_contact == null || _contactKind != _kind) {
+      _contact = ContactCurve.fit(rig, move);
+      _contactKind = _kind;
+    }
+    return _contact;
+  }
+
   /// The move for the scene: the activity's cycle, or sitting down when the
   /// speed is zero; from behind in the ahead view; no floor of its own.
   Move _sceneMove() {
@@ -489,6 +506,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
     final t = Theme.of(context).textTheme;
     final speed = _currentSpeed;
     final move = _sceneMove();
+    final contact = _contactFor(move);
     // A lift-style move (start and end pose) is played back and forth; the
     // sitting figure breathes slowly.
     final figureT = move.loops
@@ -658,6 +676,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                         footFollow: swim ? 1 : 0.35,
                                         // Air time grows with the pace: none at a jog, full at 12 km/h.
                                         bounce: _kind == CardioType.running ? ((speed - 4) / 8).clamp(0.1, 1.0) : 1,
+                                        groundDepth: contact?.depth(figureT % 1),
                                         gearColor: mode == SceneMode.stairs ? Color.lerp(skin.buttonSoft, skin.ink, 0.22)! : skin.button,
                                         ink: skin.ink,
                                       )
@@ -718,7 +737,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                             ),
                             if (hasAheadView(_kind))
                               Positioned(
-                                left: 10,
+                                right: 10,
                                 top: 10,
                                 child: Row(
                                   children: [
@@ -742,7 +761,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                               ),
                             if (_bubble != null)
                               Positioned(
-                                top: 10,
+                                top: hasAheadView(_kind) ? 54 : 10,
                                 right: 10,
                                 child: StickerBox(
                                   color: skin.accentSoft,
@@ -765,7 +784,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                               )
                             else if (_resting)
                               Positioned(
-                                top: 16,
+                                top: hasAheadView(_kind) ? 60 : 16,
                                 right: 12,
                                 child: Text(l.resting, style: t.labelMedium?.copyWith(color: skin.text)),
                               ),

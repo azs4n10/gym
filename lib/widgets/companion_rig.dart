@@ -122,6 +122,22 @@ class CompanionRig {
 
   int boneIndex(String name) => bones.indexWhere((b) => b.name == name);
 
+  /// How far below the canvas origin the lower foot's sole reaches in a
+  /// pose, with the hips at standing height (any rise of the pose left out).
+  double lowestSole(Pose pose) {
+    final level = pose.copyWith(hip: Offset(pose.hip.dx, 55));
+    final xf = solve(level);
+    var low = double.negativeInfinity;
+    for (final name in const ['near_foot', 'far_foot']) {
+      final f = boneIndex(name);
+      if (f < 0) continue;
+      for (final s in sole) {
+        low = math.max(low, xf[f].apply(bones[f].head + s, bones[f]).dy);
+      }
+    }
+    return low;
+  }
+
   /// Canvas px per unit of the pose's 100-unit box.
   static const unit = 17.0;
 
@@ -203,6 +219,52 @@ class CompanionRig {
   }
 }
 
+/// The height the figure is carried at through a cycle so that the lower
+/// foot rides on the floor: a smooth curve (two harmonics) fitted to the
+/// cycle's lowest-sole depth, lifted so no foot ever goes under the floor.
+/// Read once per cycle instead of snapping every frame, so the hips do not
+/// jolt when the feet change over.
+class ContactCurve {
+  ContactCurve._(this._a0, this._a, this._b);
+
+  final double _a0;
+  final List<double> _a;
+  final List<double> _b;
+
+  static ContactCurve fit(CompanionRig rig, Move move, {int samples = 48, int harmonics = 2}) {
+    final d = [for (var i = 0; i < samples; i++) rig.lowestSole(move.at(i / samples))];
+    final a0 = d.reduce((x, y) => x + y) / samples;
+    final a = List<double>.filled(harmonics, 0);
+    final b = List<double>.filled(harmonics, 0);
+    for (var n = 1; n <= harmonics; n++) {
+      for (var i = 0; i < samples; i++) {
+        final w = 2 * math.pi * n * i / samples;
+        a[n - 1] += 2 / samples * d[i] * math.cos(w);
+        b[n - 1] += 2 / samples * d[i] * math.sin(w);
+      }
+    }
+    final curve = ContactCurve._(a0, a, b);
+    // Lift the whole curve by the largest amount a foot would otherwise dip
+    // below it.
+    var margin = 0.0;
+    for (var i = 0; i < samples; i++) {
+      margin = math.max(margin, d[i] - curve.depth(i / samples));
+    }
+    return ContactCurve._(a0 + margin, a, b);
+  }
+
+  /// The depth (canvas px below the origin) the floor sits at for [t] in
+  /// 0..1 of the cycle.
+  double depth(double t) {
+    var v = _a0;
+    for (var n = 0; n < _a.length; n++) {
+      final w = 2 * math.pi * (n + 1) * t;
+      v += _a[n] * math.cos(w) + _b[n] * math.sin(w);
+    }
+    return v;
+  }
+}
+
 class RigBone {
   const RigBone({required this.name, required this.parent, required this.head, required this.tail});
   final String name;
@@ -261,6 +323,7 @@ class CompanionRigView extends StatelessWidget {
     this.faceFront = 0,
     this.footFollow = 0.35,
     this.bounce = 1,
+    this.groundDepth,
     this.gearColor = const Color(0xFF8A7F78),
     this.ink = const Color(0xFF3A3335),
   });
@@ -311,6 +374,10 @@ class CompanionRigView extends StatelessWidget {
   /// How much of the pose's rise off the ground is used, 0 to 1: a jog
   /// barely leaves the ground, a fast run does.
   final double bounce;
+
+  /// Where the floor is for this frame, from a [ContactCurve] fitted to the
+  /// cycle; when given, it replaces the per-frame foot snap under [ground].
+  final double? groundDepth;
 
   /// Frames, saddles, rails and treads.
   final Color gearColor;
@@ -410,6 +477,8 @@ class _RigPainter extends CustomPainter {
       shift = rig.floor - rig.height * 0.07 - low;
     } else if (v.prop == RigProp.stairs) {
       shift = 0;
+    } else if (v.ground && v.groundDepth != null) {
+      shift = rig.floor - v.groundDepth! + (pose.hip.dy - 55) * CompanionRig.unit * v.bounce;
     } else if (v.ground && feet.isNotEmpty) {
       // The lower foot, taken softly: while the feet change over the figure
       // floats a little rather than jolting from one leg to the other.
@@ -753,5 +822,6 @@ class _RigPainter extends CustomPainter {
       old.v.faceFront != v.faceFront ||
       old.v.footFollow != v.footFollow ||
       old.v.bounce != v.bounce ||
+      old.v.groundDepth != v.groundDepth ||
       old.v.gearColor != v.gearColor;
 }
