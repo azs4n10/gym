@@ -428,7 +428,7 @@ Offset climbFoot(double t) {
 
 /// Climbing stairs: the hips stay level over the treads while the feet step
 /// up; the arms swing a little.
-const climbHip = Offset(50, 44);
+const climbHip = Offset(50, 37);
 
 /// The stick figure's legs are shorter than the illustration's, so it
 /// reaches for the same steps scaled toward the hip.
@@ -648,9 +648,11 @@ final Map<CardioType, Move> cardioMoves = {
   CardioType.stairs: const Move.cycle(_climb, gear: [Gear.floor]),
   CardioType.rowing: const Move.cycle(_row, gear: [Gear.seat, Gear.plateFeet, Gear.cableFront]),
   CardioType.swimming: const Move.cycle(_swim, gear: [Gear.water]),
+  // A bodyweight squat: hips back and down, chest forward over the feet,
+  // arms out in front for balance; up to standing with the arms down.
   CardioType.hiit: const Move(
-    start: Pose(hip: Offset(46, 70), torso: 30, arm: Limb(-40, -40), leg: Limb(80, -35)),
-    end: Pose(hip: Offset(50, 48), arm: Limb(110, 110), leg: Limb(10, -10)),
+    start: Pose(hip: Offset(42, 68), torso: 42, arm: Limb(75, 70), leg: Limb(72, -22)),
+    end: Pose(hip: Offset(50, 55), torso: 6, arm: Limb(12, 12), leg: Limb(4, 0)),
     gear: [Gear.floor],
   ),
   CardioType.yoga: const Move(
@@ -658,11 +660,11 @@ final Map<CardioType, Move> cardioMoves = {
     end: Pose(hip: Offset(48, 56), torso: 100),
     gear: [Gear.floor],
   ),
+  // A reach: arms swing up overhead, rising onto the toes, and back down.
   CardioType.other: const Move(
-    start: Pose(hip: Offset(50, 58), arm: Limb(8, 8), leg: Limb(4, 0)),
-    end: Pose(hip: Offset(50, 58), arm: Limb(150, 150), leg: Limb(25, 0)),
+    start: Pose(hip: Offset(50, 56), arm: Limb(12, 14), leg: Limb(2, 0)),
+    end: Pose(hip: Offset(50, 52), torso: -6, arm: Limb(178, 176), leg: Limb(2, 0)),
     gear: [Gear.floor],
-    view: Facing.front,
   ),
 };
 

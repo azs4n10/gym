@@ -81,7 +81,7 @@ void main() {
                               left: (sceneModeFor(kind) == SceneMode.studio ? w / 2 : w * RunScene.runnerX) - rigW / 2,
                               top: swim
                                   ? h * RunScene.waterY - rigH * 0.415
-                                  : h * RunScene.groundY - rigH * (sceneModeFor(kind) == SceneMode.stairs ? 0.86 : 0.99),
+                                  : h * RunScene.groundY - rigH * (sceneModeFor(kind) == SceneMode.stairs ? 0.76 : 0.99),
                               child: CompanionRigView(
                                 rig: rig,
                                 pose: move.at(i / n),

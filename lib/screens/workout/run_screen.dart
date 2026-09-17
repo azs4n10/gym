@@ -591,7 +591,7 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                         // treads, so the drawing sits lower on the card.
                         final rigTop = swim
                             ? c.maxHeight * RunScene.waterY - rigH * 0.415
-                            : c.maxHeight * RunScene.groundY - rigH * (mode == SceneMode.stairs ? 0.86 : 0.99);
+                            : c.maxHeight * RunScene.groundY - rigH * (mode == SceneMode.stairs ? 0.76 : 0.99);
                         // The ground scrolls by the stride, so the feet do
                         // not slide on it.
                         final scroll = _phase * strideUnits(_kind) * CompanionRig.unit * rigH / (rig?.height ?? 1460);
@@ -614,36 +614,6 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
                                       .copyWith(color: skin.text, fontWeight: FontWeight.w800),
                                   mode: mode,
                                   scroll: scroll,
-                                ),
-                              ),
-                            // In the room, the mirror on the back wall shows
-                            // her again the same way round, further off and
-                            // so smaller and higher, paler, and only within
-                            // the glass; a little to one side, as if seen
-                            // from an angle, so she does not hide it.
-                            if (rigged && studio)
-                              Positioned.fill(
-                                child: ClipRect(
-                                  clipper: _RectClipper(RunScene.mirrorRect(Size(c.maxWidth, c.maxHeight))),
-                                  child: Stack(
-                                    children: [
-                                      Positioned(
-                                        left: c.maxWidth * 0.68 - rigW * 0.45 / 2,
-                                        top: c.maxHeight * 0.43 - rigH * 0.45 * 0.99,
-                                        child: Opacity(
-                                          opacity: 0.4,
-                                          child: CompanionRigView(
-                                            rig: rig,
-                                            pose: move.at(figureT),
-                                            height: rigH * 0.45,
-                                            hat: _girlHat,
-                                            gearColor: skin.button,
-                                            ink: skin.ink,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
                                 ),
                               ),
                             Positioned(
@@ -978,17 +948,6 @@ class _RunScreenState extends State<RunScreen> with TickerProviderStateMixin {
       ),
     );
   }
-}
-
-class _RectClipper extends CustomClipper<Rect> {
-  const _RectClipper(this.rect);
-  final Rect rect;
-
-  @override
-  Rect getClip(Size size) => rect;
-
-  @override
-  bool shouldReclip(_RectClipper old) => old.rect != rect;
 }
 
 /// A big round control on the scene: start, pause or finish, with its name

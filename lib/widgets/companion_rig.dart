@@ -637,9 +637,23 @@ class _RigPainter extends CustomPainter {
     return hip.dy + rig.height * 0.06;
   }
 
-  /// A rowing machine: a rail on the floor, the seat under the hips sliding
-  /// on it, the footplate under the feet, and the handle in the hands on a
-  /// cord to the flywheel at the front.
+  Paint _framePaint(double width) => Paint()
+    ..color = v.gearColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = width
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+
+  Paint _linePaint(double width) => Paint()
+    ..color = v.ink
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = width
+    ..strokeCap = StrokeCap.round;
+
+  /// A rowing machine: a long rail on feet, the seat under the hips sliding
+  /// along it, a footplate with a strap under the feet, and the fan
+  /// housing at the front with its monitor, the handle in her hands on a
+  /// cord to it.
   void _drawRower(Canvas canvas, List<BoneXf> xf, List<int> feet) {
     final h = rig.height;
     final thigh = rig.boneIndex('near_thigh');
@@ -648,67 +662,99 @@ class _RigPainter extends CustomPainter {
     final rail = _rowerRail(xf);
     final foot = feet.isEmpty ? hip + Offset(h * 0.3, h * 0.2) : _ballOfFoot(xf, feet.first);
     final grip = hand >= 0 ? _at(xf, hand, rig.bones[hand].tail) : hip + Offset(h * 0.2, -h * 0.1);
-    final frame = Paint()
-      ..color = v.gearColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = h * 0.012
-      ..strokeCap = StrokeCap.round;
-    final thin = Paint()
-      ..color = v.ink
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = h * 0.004
-      ..strokeCap = StrokeCap.round;
     final fill = Paint()..color = v.gearColor;
-    final wheel = Offset(foot.dx + h * 0.16, rail - h * 0.08);
-    canvas.drawLine(Offset(hip.dx - h * 0.28, rail), Offset(wheel.dx, rail), frame);
+    final dark = Paint()..color = Color.lerp(v.gearColor, v.ink, 0.45)!;
+    final light = Paint()..color = Color.lerp(v.gearColor, const Color(0xFFFFFFFF), 0.5)!;
+    final fan = Offset(foot.dx + h * 0.2, rail - h * 0.13);
+    final railBack = hip.dx - h * 0.32;
+    // Rail with a foot at each end, and the front frame carrying the fan.
+    canvas.drawLine(Offset(railBack, rail), Offset(fan.dx - h * 0.02, rail), _framePaint(h * 0.024));
+    for (final x in [railBack + h * 0.02, foot.dx - h * 0.06, fan.dx - h * 0.03]) {
+      canvas.drawLine(Offset(x, rail), Offset(x, rail + h * 0.03), _framePaint(h * 0.016));
+    }
+    canvas.drawLine(Offset(fan.dx - h * 0.11, rail), Offset(fan.dx - h * 0.02, fan.dy), _framePaint(h * 0.02));
+    // Seat: a block on a carriage.
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(hip.dx - h * 0.02, rail - h * 0.02), width: h * 0.09, height: h * 0.026), Radius.circular(h * 0.01)),
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(hip.dx - h * 0.01, rail - h * 0.028), width: h * 0.12, height: h * 0.03), Radius.circular(h * 0.012)),
+      dark,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(hip.dx - h * 0.01, rail - h * 0.008), width: h * 0.07, height: h * 0.016), Radius.circular(h * 0.006)),
       fill,
     );
-    // Footplate at the feet, leaning back.
-    canvas.drawLine(foot + Offset(-h * 0.02, h * 0.035), foot + Offset(h * 0.03, -h * 0.05), frame);
-    canvas.drawLine(foot + Offset(-h * 0.01, h * 0.03), Offset(foot.dx, rail), thin);
-    // Flywheel housing and the cord to the handle.
-    canvas.drawCircle(wheel, h * 0.075, fill);
-    canvas.drawCircle(wheel, h * 0.075, thin);
-    canvas.drawCircle(wheel, h * 0.02, Paint()..color = v.ink);
-    canvas.drawLine(wheel, Offset(wheel.dx, rail), frame);
-    canvas.drawLine(Offset(wheel.dx - h * 0.075, wheel.dy - h * 0.02), grip, thin);
-    canvas.drawLine(grip + Offset(h * 0.01, -h * 0.03), grip + Offset(h * 0.01, h * 0.03), frame);
+    // Footplate: an angled plate with a strap, on a stand from the rail.
+    final plateLow = foot + Offset(-h * 0.035, h * 0.045);
+    final plateHigh = foot + Offset(h * 0.035, -h * 0.07);
+    canvas.drawLine(Offset(foot.dx - h * 0.01, rail), foot + Offset(-h * 0.01, h * 0.03), _framePaint(h * 0.016));
+    canvas.drawLine(plateLow, plateHigh, _framePaint(h * 0.028));
+    canvas.drawLine(plateLow, plateHigh, Paint()..color = dark.color..strokeWidth = h * 0.012..strokeCap = StrokeCap.round);
+    canvas.drawLine(foot + Offset(-h * 0.015, -h * 0.02), foot + Offset(h * 0.03, -h * 0.005), _linePaint(h * 0.006));
+    // Fan housing: a drum with a lighter face and blades, and a monitor.
+    canvas.drawCircle(fan, h * 0.12, fill);
+    canvas.drawCircle(fan, h * 0.12, _linePaint(h * 0.005));
+    canvas.drawCircle(fan, h * 0.095, light);
+    for (var i = 0; i < 8; i++) {
+      final a = i * math.pi / 4 + v.phase * 3;
+      canvas.drawLine(fan + Offset(math.cos(a), math.sin(a)) * h * 0.03, fan + Offset(math.cos(a), math.sin(a)) * h * 0.09, _linePaint(h * 0.005));
+    }
+    canvas.drawCircle(fan, h * 0.025, dark);
+    final monitor = Rect.fromCenter(center: fan + Offset(-h * 0.02, -h * 0.2), width: h * 0.07, height: h * 0.05);
+    canvas.drawLine(fan + Offset(-h * 0.02, -h * 0.12), monitor.bottomCenter, _framePaint(h * 0.012));
+    canvas.drawRRect(RRect.fromRectAndRadius(monitor, Radius.circular(h * 0.008)), dark);
+    canvas.drawRRect(RRect.fromRectAndRadius(monitor.deflate(h * 0.008), Radius.circular(h * 0.004)), light);
+    // The handle in her hands, on a cord to the drum.
+    canvas.drawLine(fan + Offset(-h * 0.1, -h * 0.02), grip + Offset(h * 0.01, 0), _linePaint(h * 0.006));
+    canvas.drawLine(grip + Offset(h * 0.01, -h * 0.04), grip + Offset(h * 0.01, h * 0.04), _framePaint(h * 0.022));
   }
 
-  /// An elliptical: pedals under the feet on arms from a hub at the back,
-  /// a post in front with the handles at the hand, on a base on the floor.
+  /// An elliptical: a base on the floor, a crank housing at the back with
+  /// two long pedal arms running forward to the platforms under her feet,
+  /// each arm's front end on a roller on the base, and a console post in
+  /// front with the moving handle in her hand.
   void _drawElliptical(Canvas canvas, List<BoneXf> xf, List<int> feet) {
     final h = rig.height;
     final hand = rig.boneIndex('near_hand');
     final pedals = [for (final f in feet) _ballOfFoot(xf, f)];
     final low = pedals.map((p) => p.dy).reduce(math.max);
     final base = low + h * 0.07;
-    final back = Offset(pedals.map((p) => p.dx).reduce(math.min) - h * 0.12, base - h * 0.08);
-    final grip = hand >= 0 ? _at(xf, hand, rig.bones[hand].tail) : back + Offset(h * 0.4, -h * 0.4);
-    final frame = Paint()
-      ..color = v.gearColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = h * 0.012
-      ..strokeCap = StrokeCap.round;
-    final thin = Paint()
-      ..color = v.ink
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = h * 0.004
-      ..strokeCap = StrokeCap.round;
+    final rearX = pedals.map((p) => p.dx).reduce(math.min) - h * 0.2;
+    final frontX = pedals.map((p) => p.dx).reduce(math.max) + h * 0.2;
+    final hub = Offset(rearX, base - h * 0.22);
+    final grip = hand >= 0 ? _at(xf, hand, rig.bones[hand].tail) : hub + Offset(h * 0.5, -h * 0.4);
     final fill = Paint()..color = v.gearColor;
-    final postX = pedals.map((p) => p.dx).reduce(math.max) + h * 0.14;
-    canvas.drawLine(Offset(back.dx - h * 0.03, base), Offset(postX + h * 0.05, base), frame);
-    canvas.drawCircle(back, h * 0.06, fill);
-    canvas.drawCircle(back, h * 0.06, thin);
-    for (final p in pedals) {
-      canvas.drawLine(back, p + Offset(0, h * 0.01), thin);
-      canvas.drawLine(p + Offset(-h * 0.035, h * 0.012), p + Offset(h * 0.04, h * 0.012), frame);
+    final dark = Paint()..color = Color.lerp(v.gearColor, v.ink, 0.45)!;
+    final light = Paint()..color = Color.lerp(v.gearColor, const Color(0xFFFFFFFF), 0.5)!;
+    // Base bar with feet, the rear post and the crank housing.
+    canvas.drawLine(Offset(rearX - h * 0.06, base), Offset(frontX + h * 0.08, base), _framePaint(h * 0.026));
+    for (final x in [rearX - h * 0.04, frontX + h * 0.06]) {
+      canvas.drawLine(Offset(x, base), Offset(x, base + h * 0.03), _framePaint(h * 0.018));
     }
-    canvas.drawLine(Offset(postX, base), Offset(postX, grip.dy - h * 0.02), frame);
-    canvas.drawLine(Offset(postX, grip.dy + h * 0.02), grip + Offset(-h * 0.01, 0), thin);
-    canvas.drawLine(grip + Offset(-h * 0.01, h * 0.03), grip + Offset(-h * 0.01, -h * 0.05), frame);
+    canvas.drawLine(Offset(rearX, base), hub, _framePaint(h * 0.024));
+    canvas.drawCircle(hub, h * 0.075, fill);
+    canvas.drawCircle(hub, h * 0.075, _linePaint(h * 0.005));
+    canvas.drawCircle(hub, h * 0.05, light);
+    canvas.drawCircle(hub, h * 0.015, dark);
+    // Pedal arms from the crank to the platforms, their front ends on
+    // rollers along the base.
+    for (final p in pedals) {
+      final back = p + Offset(-h * 0.05, h * 0.012);
+      final front = p + Offset(h * 0.07, h * 0.012);
+      canvas.drawLine(hub, back, _framePaint(h * 0.016));
+      canvas.drawLine(front, Offset(front.dx + h * 0.08, base - h * 0.02), _framePaint(h * 0.014));
+      canvas.drawCircle(Offset(front.dx + h * 0.08, base - h * 0.02), h * 0.018, dark);
+      canvas.drawLine(back, front, _framePaint(h * 0.03));
+      canvas.drawLine(back, front, Paint()..color = dark.color..strokeWidth = h * 0.012..strokeCap = StrokeCap.round);
+    }
+    // Console post with its screen, a fixed bar, and the moving handle.
+    final top = Offset(frontX, base - h * 0.62);
+    canvas.drawLine(Offset(frontX, base), top, _framePaint(h * 0.026));
+    final screen = Rect.fromCenter(center: top + Offset(-h * 0.01, -h * 0.03), width: h * 0.1, height: h * 0.06);
+    canvas.drawRRect(RRect.fromRectAndRadius(screen, Radius.circular(h * 0.008)), dark);
+    canvas.drawRRect(RRect.fromRectAndRadius(screen.deflate(h * 0.008), Radius.circular(h * 0.004)), light);
+    canvas.drawLine(top + Offset(-h * 0.08, h * 0.04), top + Offset(h * 0.02, h * 0.04), _framePaint(h * 0.016));
+    final pivot = Offset(frontX, base - h * 0.42);
+    canvas.drawLine(pivot, grip + Offset(-h * 0.01, h * 0.01), _framePaint(h * 0.018));
+    canvas.drawLine(grip + Offset(-h * 0.01, h * 0.05), grip + Offset(-h * 0.01, -h * 0.05), _framePaint(h * 0.022));
   }
 
   double get _wheelRadius => rig.height * 0.17;

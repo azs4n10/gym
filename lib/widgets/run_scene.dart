@@ -425,10 +425,21 @@ class _ScenePainter extends CustomPainter {
       final y = floorY + (h - floorY) * t;
       canvas.drawLine(Offset(0, y), Offset(w, y), seam);
     }
-    // A mat where the figure stands.
-    final mat = Rect.fromCenter(center: Offset(w / 2, h * RunScene.groundY + 4), width: w * 0.5, height: h * 0.12);
-    canvas.drawRRect(RRect.fromRectAndRadius(mat, const Radius.circular(6)), Paint()..color = skin.accentSoft);
-    canvas.drawRRect(RRect.fromRectAndRadius(mat, const Radius.circular(6)), Paint()..color = skin.ink.withValues(alpha: 0.4)..style = PaintingStyle.stroke..strokeWidth = 1.2);
+    // An exercise mat under the figure, seen edge-on: a thin slab with a
+    // rolled end.
+    final matColor = Color.lerp(skin.accent, skin.ink, 0.25)!;
+    final matEdge = Paint()
+      ..color = skin.ink.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final matY = h * RunScene.groundY + 2;
+    final mat = Rect.fromLTWH(w * 0.24, matY - h * 0.018, w * 0.52, h * 0.022);
+    canvas.drawRRect(RRect.fromRectAndRadius(mat, Radius.circular(h * 0.01)), Paint()..color = matColor);
+    canvas.drawRRect(RRect.fromRectAndRadius(mat, Radius.circular(h * 0.01)), matEdge);
+    final roll = Offset(mat.left + h * 0.006, mat.center.dy - h * 0.004);
+    canvas.drawCircle(roll, h * 0.02, Paint()..color = matColor);
+    canvas.drawCircle(roll, h * 0.02, matEdge);
+    canvas.drawCircle(roll, h * 0.007, Paint()..color = skin.card);
     // A clock on the wall, a bottle and a towel on the floor by the wall,
     // and a speaker on the other side.
     final clock = Offset(w * 0.5, h * 0.045);
