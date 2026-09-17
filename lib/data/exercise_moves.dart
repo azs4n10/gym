@@ -348,7 +348,7 @@ Pose _run(double p) {
   // landing.
   final flight = _bump(2 * (p - 1.58), 4.0);
   return Pose(
-    hip: Offset(50, 55 - 7 * flight),
+    hip: Offset(50, 55 - 4 * flight),
     torso: 16,
     arm: arm(p),
     arm2: arm(p + math.pi),
