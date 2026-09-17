@@ -60,6 +60,7 @@ const SHELL = [
   'assets/assets/companion/rig/side.json',
   'assets/assets/companion/rig/side_hair.png',
   'assets/assets/companion/rig/side_arm.png',
+  'assets/assets/companion/rig/side_elbow.png',
   'assets/assets/companion/rig/side_leg.png',
   'assets/assets/companion/rig/side_knee.png',
   'assets/assets/companion/rig/side_shoe.png',

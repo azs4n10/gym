@@ -98,8 +98,8 @@ class CompanionRig {
     // Each leg is one image bent at the knee, a patch over the knee that
     // fills the crease of a deep bend, and a rigid shoe over the shin's end.
     const order = [
-      'hair_back', 'far_arm', 'far_leg', 'far_knee', 'far_shoe', 'near_leg', 'near_knee', 'near_shoe', //
-      'skirt', 'head', 'head_front', 'body', 'near_arm',
+      'hair_back', 'far_arm', 'far_elbow', 'far_leg', 'far_knee', 'far_shoe', 'near_leg', 'near_knee', 'near_shoe', //
+      'skirt', 'head', 'head_front', 'body', 'near_arm', 'near_elbow',
     ];
     layers.sort((a, b) => order.indexOf(a.name).compareTo(order.indexOf(b.name)));
     final hats = <String, ui.Image>{};

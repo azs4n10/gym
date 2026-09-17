@@ -340,7 +340,8 @@ Pose _run(double p) {
 
   Limb arm(double q) {
     final upper = -42 * _sin(q);
-    return Limb(upper, upper + 88);
+    // The elbow opens a little on the back swing and closes in front.
+    return Limb(upper, upper + 85 - 15 * _sin(q));
   }
 
   // Flight: after each push-off, until the other foot lands, the body is
@@ -349,7 +350,7 @@ Pose _run(double p) {
   final flight = _bump(2 * (p - 1.58), 4.0);
   return Pose(
     hip: Offset(50, 55 - 4 * flight),
-    torso: 16,
+    torso: 16 + 2 * _sin(2 * p),
     arm: arm(p),
     arm2: arm(p + math.pi),
     leg: leg(p),

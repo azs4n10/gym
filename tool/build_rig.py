@@ -101,6 +101,7 @@ BONE_AT = {b[0]: (np.array(b[2], float), np.array(b[3], float)) for b in BONES}
 LAYERS = [
     ("hair_back", "hair_back", None, None),
     ("far_arm", "arm", ["far_upper", "far_lower", "far_hand"], FAR_SHIFT["arm"]),
+    ("far_elbow", "elbow", ["far_upper", "far_lower"], FAR_SHIFT["arm"]),
     # The thigh and shin are flattened into one leg image and bent at the
     # knee by the mesh; the shoe is a rigid piece over the shin's end.
     ("far_leg", "leg", ["far_thigh", "far_shin"], FAR_SHIFT["thigh"]),
@@ -114,14 +115,20 @@ LAYERS = [
     ("head_front", "head_front", None, None),
     ("body", "torso", None, None),
     ("near_arm", "arm", ["near_upper", "near_lower", "near_hand"], None),
+    ("near_elbow", "elbow", ["near_upper", "near_lower"], None),
 ]
-FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "leg": "side_leg.png", "knee": "side_knee.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
+FILE = {"hair_back": "side_hair.png", "arm": "side_arm.png", "elbow": "side_elbow.png", "leg": "side_leg.png", "knee": "side_knee.png", "shoe": "side_shoe.png", "head_front": "side_head_front.png",
         "skirt": "side_skirt.png", "head": "side_head.png", "torso": "side_body.png"}
 # Blend width (canvas px) around the inner joints of a limb chain.
 BLEND = {"arm": (60, 40), "leg": (70,)}
 KNEE_HALF = 44
 KNEE_BLEND_BACK = 16
 KNEE_BLEND_FRONT = 96
+# The elbow bends the other way: the crease is on the front of the arm,
+# the point at the back.
+ELBOW_HALF = 42
+ELBOW_BLEND_FRONT = 18
+ELBOW_BLEND_BACK = 80
 
 
 def compose_leg():
@@ -143,6 +150,20 @@ def compose_leg():
 # the crease that opens on the inside of a deep bend.
 KNEE_R = 34
 KNEE_FEATHER = 10
+
+
+def compose_patch(part, joint, radius):
+    """A disc of a part's image around a joint, feathered."""
+    img, (ox, oy) = part
+    kx, ky = joint
+    a = np.array(img).astype(np.float32)
+    yy, xx = np.mgrid[0:a.shape[0], 0:a.shape[1]]
+    d = np.sqrt((xx + ox - kx) ** 2 + (yy + oy - ky) ** 2)
+    a[:, :, 3] *= np.clip((radius - d) / KNEE_FEATHER, 0, 1)
+    m = a[:, :, 3] > 4
+    ys, xs = np.where(m)
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    return Image.fromarray(a[y0:y1, x0:x1].astype(np.uint8), "RGBA"), (ox + x0, oy + y0)
 
 
 def compose_knee(leg):
@@ -278,6 +299,10 @@ def chain_weights(p, bones, blends):
     s = best[1]
     w = {}
     cum = np.cumsum(lengths)
+    if bones[-1].endswith("_hand"):
+        ex = joints[1][0]
+        t = min(1.0, max(0.0, (p[0] - (ex - ELBOW_HALF)) / (2 * ELBOW_HALF)))
+        blends = (ELBOW_BLEND_BACK + (ELBOW_BLEND_FRONT - ELBOW_BLEND_BACK) * t, blends[1])
     if bones[-1].endswith("_shin"):
         # The knee: a sharp change on the back of the leg, where the bend
         # closes into a crease, and a wide one across the front, where the
@@ -314,7 +339,7 @@ def chain_weights(p, bones, blends):
 
 def weights_for(layer, part, bones, x, y):
     w = {}
-    if part == "knee":
+    if part in ("knee", "elbow"):
         return {NAME[bones[0]]: 0.5, NAME[bones[1]]: 0.5}
     if bones is not None and len(bones) == 1:
         # A rigid piece on one bone.
@@ -363,6 +388,10 @@ for order, (layer, part, bones, shift) in enumerate(LAYERS):
             images[part] = compose_leg()
         elif part == "knee":
             images[part] = compose_knee(images["leg"] if "leg" in images else compose_leg())
+        elif part == "elbow":
+            if "arm" not in images:
+                images["arm"] = load_part("arm")
+            images[part] = compose_patch(images["arm"], BONE_AT["near_upper"][1], 30)
         else:
             images[part] = load_part(part)
         images[part][0].save(f"{OUT}/{FILE[part]}", optimize=True)
